@@ -4,7 +4,7 @@
 //  - Percentages are integers in basis points (fields ending in `Bps`, 1000 = 10%).
 //  - Every business table has `tenantId` (= Store.id) and is listed in
 //    `src/core/tenancy/tenant-models.ts` so the Prisma extension scopes it automatically.
-//  - Declare it as: tenantId String @default(dbgenerated("current_setting('app.tenant_id')"))
+//  - Declare it as: tenantId String @default(dbgenerated("current_setting('app.tenant_id'::text)"))
 //    The extension always fills it; the DB default makes the field optional in the
 //    generated types and makes Postgres reject inserts that bypass the extension.
 //  - In writes to tenant models, use scalar foreign keys (`productId`), not `connect`.
@@ -94,7 +94,7 @@ model Store {
 
 model BusinessHours {
   id       String @id @default(cuid())
-  tenantId String @default(dbgenerated("current_setting('app.tenant_id')"))
+  tenantId String @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   /// 0 = Sunday ... 6 = Saturday
   weekday  Int
   /// "HH:mm"; when closesAt < opensAt the interval crosses midnight.
@@ -127,7 +127,7 @@ model User {
 /// Access of a user to a store, with a role in that store.
 model Membership {
   id        String   @id @default(cuid())
-  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id')"))
+  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   userId    String
   role      Role
   isActive  Boolean  @default(true)
@@ -176,7 +176,7 @@ model PasswordResetToken {
 /// Audit trail for sensitive operations (cancellations, discounts, price changes, permissions).
 model AuditLog {
   id        String   @id @default(cuid())
-  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id')"))
+  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   userId    String?
   action    String
   entity    String

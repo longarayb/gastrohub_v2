@@ -46,7 +46,11 @@ const isTest = process.env.NODE_ENV === 'test';
     }),
     ClsModule.forRoot({ global: true, middleware: { mount: true } }),
     // Generous default; sensitive routes (login, reset) have stricter @Throttle limits.
-    ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: isTest ? 10_000 : 600 }] }),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 600 }],
+      // Read per request so e2e suites can turn rate limiting on and off.
+      skipIf: () => process.env.THROTTLE_DISABLED === 'true',
+    }),
     PrismaModule,
     QueueModule,
     MailModule,
