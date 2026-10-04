@@ -5,4 +5,19 @@
  * When adding a business model to schema.prisma, add it here too.
  * (A unit test fails if a model has `tenantId` but is missing from this list.)
  */
-export const TENANT_MODELS = new Set<string>(['BusinessHours', 'Membership', 'AuditLog']);
+export const TENANT_MODELS = new Set<string>([
+  'BusinessHours',
+  'Membership',
+  'AuditLog',
+  // Menu
+  'ProductionSector',
+  'Category',
+  'Product',
+  'Size',
+  'ProductSizePrice',
+  'ModifierGroup',
+  'ModifierOption',
+  'ModifierOptionSizePrice',
+  'ModifierGroupLink',
+  'AvailabilitySchedule',
+]);
