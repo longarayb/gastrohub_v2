@@ -1,12 +1,20 @@
 import { Permission, type Role, hasAnyPermission, hasPermission } from '@app/shared';
 import { NAV } from '../components/shell/nav';
 
+/** Protected routes that are not menu items. */
+const EXTRA_RULES: { prefix: string; permissions: Permission[] }[] = [
+  { prefix: '/cardapio/produtos', permissions: [Permission.MENU_MANAGE] },
+];
+
 /** Permissions required by each protected route prefix (any of them grants access). */
-const ROUTE_PERMISSIONS: { prefix: string; permissions: Permission[] }[] = NAV.flatMap((g) =>
-  g.items
-    .filter((item) => item.permissions?.length)
-    .map((item) => ({ prefix: item.href, permissions: item.permissions! })),
-);
+const ROUTE_PERMISSIONS: { prefix: string; permissions: Permission[] }[] = [
+  ...NAV.flatMap((g) =>
+    g.items
+      .filter((item) => item.permissions?.length)
+      .map((item) => ({ prefix: item.href, permissions: item.permissions! })),
+  ),
+  ...EXTRA_RULES,
+];
 
 /** Whether `role` may open `pathname`. Routes without a rule (e.g. /conta/senha) are open. */
 export function canAccess(role: Role | null | undefined, pathname: string): boolean {
@@ -20,6 +28,7 @@ export function canAccess(role: Role | null | undefined, pathname: string): bool
 export function homeFor(role: Role): string {
   if (hasPermission(role, Permission.REPORTS_READ)) return '/painel';
   if (hasPermission(role, Permission.STORE_MANAGE)) return '/configuracoes/empresa';
+  if (hasPermission(role, Permission.MENU_READ)) return '/cardapio';
   return '/conta/senha';
 }
 

@@ -6,11 +6,15 @@ describe('route access', () => {
     expect(canAccess('OWNER', '/configuracoes/usuarios')).toBe(true);
     expect(canAccess('WAITER', '/configuracoes/usuarios')).toBe(false);
     expect(canAccess('WAITER', '/conta/senha')).toBe(true);
+    expect(canAccess('KITCHEN', '/cardapio')).toBe(true);
+    expect(canAccess('KITCHEN', '/cardapio/produtos/abc')).toBe(false);
+    expect(canAccess('MANAGER', '/cardapio/produtos/novo')).toBe(true);
   });
 
   it('sends each role to its home', () => {
     expect(homeFor('OWNER')).toBe('/painel');
-    expect(homeFor('WAITER')).toBe('/conta/senha');
+    expect(homeFor('WAITER')).toBe('/cardapio');
+    expect(homeFor('COURIER')).toBe('/conta/senha');
   });
 });
 
@@ -30,7 +34,7 @@ describe('safeNext', () => {
   });
 
   it('ignores pages the role cannot open', () => {
-    expect(safeNext('/configuracoes/usuarios', 'WAITER')).toBe('/conta/senha');
-    expect(safeNext(null, 'WAITER')).toBe('/conta/senha');
+    expect(safeNext('/configuracoes/usuarios', 'WAITER')).toBe('/cardapio');
+    expect(safeNext(null, 'COURIER')).toBe('/conta/senha');
   });
 });

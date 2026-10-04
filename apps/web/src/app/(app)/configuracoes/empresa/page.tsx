@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  PIZZA_PRICING_RULE_LABELS,
+  type PizzaPricingRule,
   fetchAddressByCEP,
   formatCEP,
   formatCNPJ,
@@ -19,6 +21,13 @@ import {
   CardTitle,
 } from '@app/ui/components/card';
 import { Skeleton, Switch } from '@app/ui/components/misc';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@app/ui/components/select';
 import { toast } from '@app/ui/components/sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ImageUp, Store } from 'lucide-react';
@@ -26,6 +35,7 @@ import { useEffect, useRef } from 'react';
 import { Controller } from 'react-hook-form';
 import {
   MaskedField,
+  Field,
   MoneyField,
   NumberField,
   PercentField,
@@ -158,7 +168,8 @@ function LogoCard({ store }: { store: StoreDto }) {
       <CardHeader>
         <CardTitle>Logo</CardTitle>
         <CardDescription>
-          Exibido no cardápio digital e nos cupons. JPG, PNG ou WEBP até 3 MB.
+          Exibido no cardápio digital e nos cupons. JPG, PNG, WEBP, AVIF ou HEIC até 8 MB
+          (convertido para WebP).
         </CardDescription>
       </CardHeader>
       <CardContent className="flex items-center gap-4">
@@ -264,6 +275,29 @@ function SettingsForm({ store }: { store: StoreDto }) {
                 </span>
                 <Switch checked={field.value} onCheckedChange={field.onChange} />
               </label>
+            )}
+          />
+          <Controller
+            control={form.control}
+            name="pizzaPricingRule"
+            render={({ field }) => (
+              <Field
+                label="Preço da pizza com mais de um sabor"
+                hint="Usado em meio a meio e pizzas com vários sabores"
+              >
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger aria-label="Preço da pizza com mais de um sabor">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(PIZZA_PRICING_RULE_LABELS) as PizzaPricingRule[]).map((rule) => (
+                      <SelectItem key={rule} value={rule}>
+                        {PIZZA_PRICING_RULE_LABELS[rule]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
             )}
           />
         </CardContent>
