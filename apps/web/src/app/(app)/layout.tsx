@@ -1,13 +1,17 @@
 'use client';
 
+import { Button } from '@app/ui/components/button';
+import { ShieldX } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { FullPageSpinner } from '@/components/page';
+import { EmptyState, FullPageSpinner } from '@/components/page';
 import { AppShell } from '@/components/shell/app-shell';
 import { useAuth } from '@/lib/auth';
+import { canAccess, homeFor } from '@/lib/routes';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { status } = useAuth();
+  const { status, session } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -17,6 +21,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [status, router, pathname]);
 
-  if (status !== 'authenticated') return <FullPageSpinner />;
-  return <AppShell>{children}</AppShell>;
+  if (status !== 'authenticated' || !session) return <FullPageSpinner />;
+
+  return (
+    <AppShell>
+      {canAccess(session.role, pathname) ? (
+        children
+      ) : (
+        <div className="p-6">
+          <EmptyState
+            icon={ShieldX}
+            title="Acesso não permitido"
+            description="Seu perfil não tem permissão para esta tela. Fale com o responsável pela unidade."
+            action={
+              <Button asChild variant="outline">
+                <Link href={homeFor(session.role) as never}>Ir para o início</Link>
+              </Button>
+            }
+          />
+        </div>
+      )}
+    </AppShell>
+  );
 }

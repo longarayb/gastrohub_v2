@@ -9,22 +9,25 @@ import { Suspense, useEffect } from 'react';
 import { TextField, useZodForm } from '@/components/form';
 import { errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { safeNext } from '@/lib/routes';
 
 function LoginForm() {
-  const { login, status } = useAuth();
+  const { login, status, session } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get('next') ?? '/painel';
+  const next = params.get('next');
   const form = useZodForm(loginSchema, { email: '', password: '' });
 
+  // Once authenticated (after login or with a restored session), go to `next` if it is a
+  // safe internal page this role can open, otherwise to the role's home.
+  const role = session?.role;
   useEffect(() => {
-    if (status === 'authenticated') router.replace(next as never);
-  }, [status, router, next]);
+    if (status === 'authenticated' && role) router.replace(safeNext(next, role) as never);
+  }, [status, role, router, next]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       await login(values);
-      router.replace(next as never);
     } catch (error) {
       toast.error(errorMessage(error));
     }
