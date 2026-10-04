@@ -14,6 +14,7 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} NEXT_TELEMETRY_DISABLED=1
 COPY --from=prune /repo/out/json/ .
 RUN pnpm install --frozen-lockfile
 COPY --from=prune /repo/out/full/ .
+COPY --from=prune /repo/scripts ./scripts
 RUN pnpm turbo run build --filter=@app/${APP}
 
 FROM node:24-alpine AS runtime
@@ -22,6 +23,7 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 WORKDIR /app
 COPY --from=build /repo/apps/${APP}/.next/standalone ./
 COPY --from=build /repo/apps/${APP}/.next/static ./apps/${APP}/.next/static
+COPY --from=build /repo/apps/${APP}/public ./apps/${APP}/public
 ENV APP_DIR=apps/${APP}
 EXPOSE 3000
 CMD ["sh", "-c", "node ${APP_DIR}/server.js"]

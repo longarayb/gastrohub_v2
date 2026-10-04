@@ -45,3 +45,6 @@ desktop.ini
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Brand assets copied from packages/ui/assets/brand by scripts/sync-brand-assets.mjs
+apps/*/public/brand/

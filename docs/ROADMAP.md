@@ -30,3 +30,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 - Apps de garçom, entregador e totem de autoatendimento
 - Roteirização de entregas e mapa
 - Postgres RLS como segunda camada de isolamento multi-tenant
+- Cardápio: copiar cardápio entre unidades
+- Cardápio: cardápio compartilhado da rede (matriz define, unidades ajustam preço/disponibilidade)
+- Cardápio: preço por canal (`ProductChannelPrice`), promoção com período, frações desiguais na pizza
+- Fiscal: dados fiscais de produtos e opções (NCM, CFOP, CEST, origem) em tabela separada, quando a NFC-e entrar

@@ -17,7 +17,7 @@ O nome **GastroHub é provisório**. Nada no código, nos pacotes ou na infraest
 
 - **Única fonte da marca:** `packages/shared/src/brand.ts` (`BRAND`: nome, slogan, logo, cores). Toda UI, e-mail e título do Swagger lê de lá. Nunca escrever o nome do produto em código, textos de tela ou testes.
 - **Cores da marca:** `--primary`, `--primary-foreground` e `--ring` saem de `BRAND.colors` e são injetadas por `brandCssVariables()` no layout raiz de cada app. O tema base (`@app/ui/globals.css`) não define essas três variáveis.
-- **Logo:** `BRAND.logo.src` (URL pública; `null` = ícone padrão).
+- **Logo e favicon:** arquivos em `packages/ui/assets/brand/` (`logo.svg`, `favicon.svg`), copiados para `apps/{web,menu}/public/brand/` por `scripts/sync-brand-assets.mjs` antes do `dev`/`build` (cópias no .gitignore). `BRAND.logo.src` e `BRAND.favicon` apontam para `/brand/...`.
 - **Pacotes:** escopo neutro `@app/*` (`@app/shared`, `@app/ui`, `@app/config`, `@app/api`, `@app/web`, `@app/menu`). Raiz: `app-monorepo`.
 - **Infra:** projeto Compose `app` (containers `app-postgres-1` etc.), banco `app_db` / `app_db_test`, usuário `app`. Cookie de refresh `app_refresh`. Prefixo de log dos scripts `[app]`.
 - **Ambiente:** `APP_NAME` (opcional, sobrescreve `BRAND.name` em e-mails e Swagger) e `MAIL_FROM_ADDRESS`.
