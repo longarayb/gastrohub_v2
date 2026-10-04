@@ -38,6 +38,10 @@ export const storeSettingsSchema = z.object({
   autoAcceptDigitalOrders: z.boolean(),
   /** How a pizza with several flavors is priced. */
   pizzaPricingRule: z.enum(['HIGHEST', 'AVERAGE']),
+  /** Order types that get the service fee by default (dine-in only unless configured). */
+  serviceFeeOrderTypes: z
+    .array(z.enum(['DINE_IN', 'TAKEOUT', 'DELIVERY']))
+    .transform((list) => [...new Set(list)]),
 });
 export type StoreSettingsInput = z.input<typeof storeSettingsSchema>;
 
