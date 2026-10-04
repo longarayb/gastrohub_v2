@@ -21,6 +21,9 @@ test-results/
 .env.*
 !.env.example
 
+# Generated code (Prisma Client is generated on install)
+apps/api/src/generated/
+
 # Uploads / local storage
 apps/api/uploads/
 storage/
