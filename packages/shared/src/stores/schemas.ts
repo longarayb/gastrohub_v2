@@ -36,6 +36,8 @@ export const storeSettingsSchema = z.object({
   takeoutEtaMinutes: z.number().int().min(0).max(480),
   /** Automatically accept orders from the digital menu. */
   autoAcceptDigitalOrders: z.boolean(),
+  /** How a pizza with several flavors is priced. */
+  pizzaPricingRule: z.enum(['HIGHEST', 'AVERAGE']),
 });
 export type StoreSettingsInput = z.input<typeof storeSettingsSchema>;
 

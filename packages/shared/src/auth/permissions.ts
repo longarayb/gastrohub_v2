@@ -27,6 +27,8 @@ export const Permission = {
   USERS_MANAGE: 'users:manage',
   MENU_READ: 'menu:read',
   MENU_MANAGE: 'menu:manage',
+  /** Pause/resume items ('Acabou'); operational staff can do it. */
+  MENU_PAUSE: 'menu:pause',
   PRICES_MANAGE: 'prices:manage',
   ORDERS_READ: 'orders:read',
   ORDERS_CREATE: 'orders:create',
@@ -55,6 +57,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   MANAGER: ALL.filter((p) => p !== P.STORE_CREATE),
   CASHIER: [
     P.MENU_READ,
+    P.MENU_PAUSE,
     P.ORDERS_READ,
     P.ORDERS_CREATE,
     P.ORDERS_UPDATE_STATUS,
@@ -75,7 +78,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     P.TABLES_OPERATE,
     P.CUSTOMERS_READ,
   ],
-  KITCHEN: [P.MENU_READ, P.ORDERS_READ, P.ORDERS_UPDATE_STATUS, P.KDS_OPERATE],
+  KITCHEN: [P.MENU_READ, P.MENU_PAUSE, P.ORDERS_READ, P.ORDERS_UPDATE_STATUS, P.KDS_OPERATE],
   COURIER: [P.ORDERS_READ, P.DELIVERY_OPERATE],
 };
 

@@ -10,11 +10,8 @@ import {
 import { AuditAction, AuditService } from '../../core/audit/audit.service.js';
 import { ConflictError, NotFoundError } from '../../core/errors/domain-error.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';
-import {
-  InjectStorage,
-  type StorageProvider,
-  type UploadedImage,
-} from '../../core/storage/storage.js';
+import { ImageService, type UploadedImage } from '../../core/storage/image.service.js';
+import { InjectStorage, type StorageProvider } from '../../core/storage/storage.js';
 import { type Db, InjectDb } from '../../core/tenancy/db.provider.js';
 import { TenantContext } from '../../core/tenancy/tenant-context.js';
 import { AuthService } from '../auth/auth.service.js';
@@ -50,6 +47,7 @@ export function toStoreDto(store: Store) {
       deliveryMinimumCents: store.deliveryMinimumCents,
       takeoutEtaMinutes: store.takeoutEtaMinutes,
       autoAcceptDigitalOrders: store.autoAcceptDigitalOrders,
+      pizzaPricingRule: store.pizzaPricingRule,
     },
   };
 }
@@ -65,6 +63,7 @@ export class StoresService {
     private readonly audit: AuditService,
     private readonly auth: AuthService,
     @InjectStorage() private readonly storage: StorageProvider,
+    private readonly images: ImageService,
   ) {}
 
   private async current(): Promise<Store> {
@@ -130,12 +129,14 @@ export class StoresService {
 
   async updateLogo(file: UploadedImage): Promise<StoreDto> {
     const before = await this.current();
-    const url = await this.storage.save(`stores/${before.id}`, file);
+    const key = await this.images.storeSingle(`t/${before.id}/logo`, file);
+    const url = this.storage.publicUrl(key);
     const store = await this.prisma.store.update({
       where: { id: before.id },
       data: { logoUrl: url },
     });
-    if (before.logoUrl) await this.storage.remove(before.logoUrl);
+    const oldKey = before.logoUrl ? this.storage.keyFromUrl(before.logoUrl) : null;
+    if (oldKey) await this.storage.delete(oldKey);
     return toStoreDto(store);
   }
 

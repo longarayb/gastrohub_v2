@@ -12,7 +12,11 @@ import {
   storeSettingsSchema,
   updateStoreSchema,
 } from '@app/shared';
-import { type UploadedImage, assertImage } from '../../core/storage/storage.js';
+import {
+  MAX_UPLOAD_BYTES,
+  type UploadedImage,
+  assertImage,
+} from '../../core/storage/image.service.js';
 import { ApiZodBody, ZBody } from '../../core/validation/zod.js';
 import { RequirePermissions } from '../auth/auth.decorators.js';
 import { StoresService } from './stores.service.js';
@@ -47,7 +51,7 @@ export class StoresController {
 
   @Post('current/logo')
   @RequirePermissions(Permission.STORE_MANAGE)
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 3 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } }))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } },

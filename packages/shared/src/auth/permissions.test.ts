@@ -45,3 +45,13 @@ describe('isOpenAt', () => {
     expect(isOpenAt(hours, 5, 60)).toBe(false); // Friday 01:00 (Thursday had no night shift)
   });
 });
+
+describe('menu permissions', () => {
+  it('lets operational staff pause items but not edit the menu or prices', () => {
+    expect(hasPermission(Role.KITCHEN, Permission.MENU_PAUSE)).toBe(true);
+    expect(hasPermission(Role.CASHIER, Permission.MENU_PAUSE)).toBe(true);
+    expect(hasPermission(Role.WAITER, Permission.MENU_PAUSE)).toBe(false);
+    expect(hasPermission(Role.CASHIER, Permission.MENU_MANAGE)).toBe(false);
+    expect(hasPermission(Role.MANAGER, Permission.PRICES_MANAGE)).toBe(true);
+  });
+});
