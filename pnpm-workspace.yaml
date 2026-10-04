@@ -18,3 +18,6 @@ allowBuilds:
   '@scarf/scarf': false
 minimumReleaseAgeExclude:
   - lucide-react@1.52.0
+
+# Few parallel install scripts: this machine has little commit memory.
+childConcurrency: 2
