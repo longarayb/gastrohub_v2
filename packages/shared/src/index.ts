@@ -1,4 +1,7 @@
+export * from './auth/permissions.js';
+export * from './auth/schemas.js';
 export * from './errors.js';
+export * from './stores/schemas.js';
 export * from './schemas/common.js';
 export * from './utils/cep.js';
 export * from './utils/datetime.js';
