@@ -80,6 +80,8 @@ model Store {
   takeoutEtaMinutes       Int              @default(20)
   autoAcceptDigitalOrders Boolean          @default(false)
   pizzaPricingRule        PizzaPricingRule @default(HIGHEST)
+  /// Order types that get the service fee by default (dine-in only unless configured).
+  serviceFeeOrderTypes    OrderType[]      @default([DINE_IN])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -437,4 +439,402 @@ model AvailabilitySchedule {
 
   @@index([tenantId, categoryId])
   @@index([tenantId, productId])
+}
+
+// ============================================================================
+// Orders (see docs/DECISOES.md D019–D022)
+// ============================================================================
+
+enum OrderType {
+  DINE_IN
+  TAKEOUT
+  DELIVERY
+}
+
+enum OrderSource {
+  POS
+  DIGITAL_MENU
+  WAITER_APP
+  IFOOD
+  NINETY_NINE_FOOD
+  AIQFOME
+  OPEN_DELIVERY
+  OTHER
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PREPARING
+  READY
+  DISPATCHED
+  DELIVERED
+  CANCELED
+}
+
+enum OrderItemStatus {
+  DRAFT
+  QUEUED
+  PREPARING
+  READY
+  SERVED
+  CANCELED
+}
+
+enum DiscountType {
+  VALUE
+  PERCENT
+}
+
+enum CouponType {
+  PERCENT
+  FIXED
+}
+
+enum PaymentMethod {
+  CASH
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+  MEAL_VOUCHER
+  ONLINE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+}
+
+enum OrderPaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+model Area {
+  id        String   @id @default(cuid())
+  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  tables Table[]
+
+  @@index([tenantId, sortOrder])
+}
+
+model Table {
+  id        String   @id @default(cuid())
+  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  areaId    String?
+  /// Display name/number ("12", "Varanda 3").
+  name      String
+  seats     Int?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  area     Area?               @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  sessions TableSessionTable[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, areaId])
+}
+
+/// Physical occupation of one or more tables; may hold several open tabs (orders).
+model TableSession {
+  id         String    @id @default(cuid())
+  tenantId   String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  openedAt   DateTime  @default(now())
+  closedAt   DateTime?
+  guests     Int?
+  waiterId   String?
+  openedById String?
+
+  tables TableSessionTable[]
+  orders Order[]
+
+  @@index([tenantId, closedAt])
+}
+
+model TableSessionTable {
+  id        String    @id @default(cuid())
+  tenantId  String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  sessionId String
+  tableId   String
+  joinedAt  DateTime  @default(now())
+  /// Set when the table leaves the session (session closed or table moved).
+  leftAt    DateTime?
+
+  session TableSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  table   Table        @relation(fields: [tableId], references: [id])
+
+  @@index([tenantId, tableId, leftAt])
+  @@index([sessionId])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name      String
+  /// Digits with DDD, no country code.
+  phone     String
+  document  String?
+  email     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  addresses CustomerAddress[]
+  orders    Order[]
+
+  @@unique([tenantId, phone])
+}
+
+model CustomerAddress {
+  id           String   @id @default(cuid())
+  tenantId     String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  customerId   String
+  label        String?
+  cep          String
+  street       String
+  number       String
+  complement   String?
+  neighborhood String
+  city         String
+  state        String
+  reference    String?
+  latitude     Float?
+  longitude    Float?
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, customerId])
+}
+
+/// Delivery person; userId is optional (freelancers may have no login).
+model Courier {
+  id        String   @id @default(cuid())
+  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name      String
+  phone     String?
+  userId    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  orders Order[]
+
+  @@index([tenantId])
+}
+
+model Coupon {
+  id               String     @id @default(cuid())
+  tenantId         String     @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  code             String
+  type             CouponType
+  /// PERCENT: basis points; FIXED: cents.
+  value            Int
+  minOrderCents    Int?
+  maxDiscountCents Int?
+  validFrom        DateTime?
+  validUntil       DateTime?
+  usageLimit       Int?
+  usedCount        Int        @default(0)
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+
+  orders Order[]
+
+  @@unique([tenantId, code])
+}
+
+/// Daily counter per unit (incremented atomically with INSERT ... ON CONFLICT).
+model OrderSequence {
+  tenantId     String
+  businessDate String
+  lastNumber   Int
+
+  @@id([tenantId, businessDate])
+}
+
+/// A tab/order. Dine-in orders receive items in rounds; a table session may hold several.
+model Order {
+  id           String      @id @default(cuid())
+  tenantId     String      @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  /// Business day (YYYY-MM-DD) the order belongs to (overnight shifts count for the start day).
+  businessDate String
+  /// Sequential number within the business day and unit.
+  number       Int
+  /// Short, non-sequential public code (customer tracking).
+  publicCode   String      @unique
+  type         OrderType
+  source       OrderSource @default(POS)
+  status       OrderStatus
+  /// Optimistic concurrency: every change must send the version it saw.
+  version      Int         @default(0)
+
+  externalId        String?
+  externalDisplayId String?
+  externalPayload   Json?
+  idempotencyKey    String?
+  requestHash       String?
+
+  tableSessionId String?
+  /// Name of the tab inside the table (for example a guest name or a tab card number).
+  tabLabel       String?
+
+  customerId       String?
+  customerName     String?
+  customerPhone    String?
+  customerDocument String?
+  deliveryAddress  Json?
+  courierId        String?
+
+  subtotalCents          Int           @default(0)
+  itemDiscountCents      Int           @default(0)
+  orderDiscountType      DiscountType?
+  orderDiscountValue     Int?
+  orderDiscountReason    String?
+  orderDiscountCents     Int           @default(0)
+  couponId               String?
+  couponCode             String?
+  couponDiscountCents    Int           @default(0)
+  serviceFeeBps          Int           @default(0)
+  serviceFeeWaived       Boolean       @default(false)
+  serviceFeeWaivedReason String?
+  serviceFeeCents        Int           @default(0)
+  deliveryFeeCents       Int           @default(0)
+  totalCents             Int           @default(0)
+  promoSavingsCents      Int           @default(0)
+
+  expectedPaymentMethod PaymentMethod?
+  changeForCents        Int?
+  paidCents             Int                @default(0)
+  paymentStatus         OrderPaymentStatus @default(UNPAID)
+
+  notes            String?
+  estimatedReadyAt DateTime?
+  createdById      String?
+  acceptedAt       DateTime?
+  readyAt          DateTime?
+  dispatchedAt     DateTime?
+  deliveredAt      DateTime?
+  canceledAt       DateTime?
+  canceledById     String?
+  cancelReason     String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tableSession TableSession?        @relation(fields: [tableSessionId], references: [id])
+  customer     Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  courier      Courier?             @relation(fields: [courierId], references: [id], onDelete: SetNull)
+  coupon       Coupon?              @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  rounds       OrderRound[]
+  items        OrderItem[]
+  history      OrderStatusHistory[]
+  payments     Payment[]
+
+  @@unique([tenantId, businessDate, number])
+  @@unique([tenantId, idempotencyKey])
+  @@unique([tenantId, source, externalId])
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, tableSessionId])
+}
+
+/// One send to the kitchen. Counter/delivery orders have a single round.
+model OrderRound {
+  id        String    @id @default(cuid())
+  tenantId  String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  orderId   String
+  number    Int
+  sentAt    DateTime?
+  sentById  String?
+  createdAt DateTime  @default(now())
+
+  order Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items OrderItem[]
+
+  @@unique([orderId, number])
+}
+
+model OrderItem {
+  id                    String          @id @default(cuid())
+  tenantId              String          @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  orderId               String
+  roundId               String
+  /// Reference only; prices and names come from snapshot.
+  productId             String?
+  /// MenuItemSnapshot (v1) frozen at the time of sale.
+  snapshot              Json
+  name                  String
+  sizeName              String?
+  quantity              Int
+  unitFullPriceCents    Int
+  unitChargedPriceCents Int
+  discountType          DiscountType?
+  discountValue         Int?
+  discountReason        String?
+  discountCents         Int             @default(0)
+  totalCents            Int
+  sectorId              String?
+  status                OrderItemStatus @default(DRAFT)
+  notes                 String?
+  sortOrder             Int             @default(0)
+  sentAt                DateTime?
+  startedAt             DateTime?
+  readyAt               DateTime?
+  servedAt              DateTime?
+  canceledAt            DateTime?
+  canceledById          String?
+  cancelReason          String?
+  createdAt             DateTime        @default(now())
+
+  order Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  round OrderRound @relation(fields: [roundId], references: [id])
+
+  @@index([tenantId, orderId])
+  @@index([tenantId, sectorId, status])
+}
+
+model OrderStatusHistory {
+  id         String       @id @default(cuid())
+  tenantId   String       @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  orderId    String
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  userId     String?
+  reason     String?
+  createdAt  DateTime     @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, orderId])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  tenantId      String        @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  orderId       String
+  method        PaymentMethod
+  amountCents   Int
+  receivedCents Int?
+  changeCents   Int?
+  status        PaymentStatus @default(CONFIRMED)
+  /// Cash register session (next stage).
+  cashSessionId String?
+  externalRef   String?
+  createdById   String?
+  createdAt     DateTime      @default(now())
+  canceledAt    DateTime?
+  canceledById  String?
+  cancelReason  String?
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([tenantId, orderId])
 }

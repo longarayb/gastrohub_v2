@@ -26,6 +26,20 @@ export const DEMO_USERS = [
 
 /** Tenant tables in deletion order (children first). Store rows are tenant-scoped by tenantId. */
 const TENANT_TABLES = [
+  'Payment',
+  'OrderStatusHistory',
+  'OrderItem',
+  'OrderRound',
+  'Order',
+  'OrderSequence',
+  'Coupon',
+  'Courier',
+  'CustomerAddress',
+  'Customer',
+  'TableSessionTable',
+  'TableSession',
+  'Table',
+  'Area',
   'ModifierOptionSizePrice',
   'ModifierGroupLink',
   'ModifierOption',
