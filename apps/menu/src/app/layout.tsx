@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-app', display: 'swap
 
 export const metadata: Metadata = {
   title: { default: 'Cardápio digital', template: '%s · Cardápio digital' },
+  icons: { icon: BRAND.favicon },
   description: 'Peça online direto do restaurante',
 };
 

@@ -31,6 +31,7 @@ export interface StoreDto {
     deliveryMinimumCents: number;
     takeoutEtaMinutes: number;
     autoAcceptDigitalOrders: boolean;
+    pizzaPricingRule: 'HIGHEST' | 'AVERAGE';
   };
 }
 

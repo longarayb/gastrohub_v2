@@ -191,3 +191,250 @@ model AuditLog {
   @@index([tenantId, createdAt])
   @@index([tenantId, entity, entityId])
 }
+
+// ============================================================================
+// Menu (per unit — see docs/DECISOES.md D015/D016)
+// Relations to Store are omitted on purpose: tenantId is a scalar filled by the
+// tenant extension. Use scalar foreign keys in writes.
+// ============================================================================
+
+enum SalesChannel {
+  DINE_IN
+  COUNTER
+  DELIVERY
+  DIGITAL_MENU
+}
+
+enum CategoryKind {
+  STANDARD
+  PIZZA
+}
+
+enum ProductKind {
+  STANDARD
+  SIZED
+}
+
+/// Kitchen, bar, pizza oven... Used by the KDS and printing to route items.
+model ProductionSector {
+  id        String   @id @default(cuid())
+  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name      String
+  sortOrder Int      @default(0)
+  /// Sector used for products without an explicit sector.
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@index([tenantId, sortOrder])
+}
+
+model Category {
+  id          String         @id @default(cuid())
+  tenantId    String         @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name        String
+  description String?
+  kind        CategoryKind   @default(STANDARD)
+  sortOrder   Int            @default(0)
+  isPaused    Boolean        @default(false)
+  /// End of the pause ("Acabou" = end of the business day); null = indefinite.
+  pausedUntil DateTime?
+  channels    SalesChannel[] @default([DINE_IN, COUNTER, DELIVERY, DIGITAL_MENU])
+  deletedAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  products      Product[]
+  /// PIZZA categories: sizes shared by every flavor.
+  sizes         Size[]
+  modifierLinks ModifierGroupLink[]
+  schedules     AvailabilitySchedule[]
+
+  @@index([tenantId, sortOrder])
+}
+
+model Product {
+  id              String         @id @default(cuid())
+  tenantId        String         @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  categoryId      String
+  /// Inside a PIZZA category every product is a flavor priced per category size.
+  kind            ProductKind    @default(STANDARD)
+  name            String
+  description     String?
+  /// Storage keys (URLs are derived by the StorageProvider).
+  imageKey        String?
+  thumbKey        String?
+  /// STANDARD products only; sized products and pizza flavors use ProductSizePrice.
+  priceCents      Int?
+  promoPriceCents Int?
+  /// Internal/POS code, unique per unit (cleared on soft delete).
+  sku             String?
+  /// External integration code (iFood etc.).
+  externalCode    String?
+  sectorId        String?
+  sortOrder       Int            @default(0)
+  isPaused        Boolean        @default(false)
+  pausedUntil     DateTime?
+  channels        SalesChannel[] @default([DINE_IN, COUNTER, DELIVERY, DIGITAL_MENU])
+  /// Name + sku + description, lowercase and without accents (search).
+  searchText      String         @default("")
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  category      Category               @relation(fields: [categoryId], references: [id])
+  sector        ProductionSector?      @relation(fields: [sectorId], references: [id], onDelete: SetNull)
+  sizes         Size[]
+  sizePrices    ProductSizePrice[]
+  modifierLinks ModifierGroupLink[]
+  schedules     AvailabilitySchedule[]
+  /// Combo options that reference this product.
+  referencedBy  ModifierOption[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId, categoryId, sortOrder])
+  @@index([tenantId, deletedAt])
+}
+
+/// Size owned by a PIZZA category (shared by flavors) or by a SIZED product. Exactly one owner (CHECK).
+model Size {
+  id           String   @id @default(cuid())
+  tenantId     String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  categoryId   String?
+  productId    String?
+  name         String
+  sortOrder    Int      @default(0)
+  /// Pizza: maximum number of flavors in this size.
+  maxFlavors   Int      @default(1)
+  /// Pizza: number of slices (informative).
+  slices       Int?
+  externalCode String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  category     Category?                 @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  product      Product?                  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  prices       ProductSizePrice[]
+  optionPrices ModifierOptionSizePrice[]
+
+  @@index([tenantId, categoryId])
+  @@index([tenantId, productId])
+}
+
+model ProductSizePrice {
+  id              String    @id @default(cuid())
+  tenantId        String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  productId       String
+  sizeId          String
+  priceCents      Int
+  promoPriceCents Int?
+  isPaused        Boolean   @default(false)
+  pausedUntil     DateTime?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size    Size    @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, sizeId])
+  @@index([tenantId])
+}
+
+/// Reusable group of options ("Adicionais", "Ponto da carne", "Borda").
+model ModifierGroup {
+  id          String    @id @default(cuid())
+  tenantId    String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name        String
+  description String?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  options ModifierOption[]
+  links   ModifierGroupLink[]
+
+  @@index([tenantId])
+}
+
+model ModifierOption {
+  id           String    @id @default(cuid())
+  tenantId     String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  groupId      String
+  /// Display name; combo options show the referenced product name instead.
+  name         String
+  priceCents   Int       @default(0)
+  sortOrder    Int       @default(0)
+  maxQuantity  Int       @default(1)
+  /// Combo: option that is a menu product (name and sector come from the product).
+  productId    String?
+  isPaused     Boolean   @default(false)
+  pausedUntil  DateTime?
+  sku          String?
+  externalCode String?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  group      ModifierGroup             @relation(fields: [groupId], references: [id])
+  product    Product?                  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sizePrices ModifierOptionSizePrice[]
+
+  @@index([tenantId, groupId, sortOrder])
+}
+
+model ModifierOptionSizePrice {
+  id         String @id @default(cuid())
+  tenantId   String @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  optionId   String
+  sizeId     String
+  priceCents Int
+
+  option ModifierOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  size   Size           @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+
+  @@unique([optionId, sizeId])
+  @@index([tenantId])
+}
+
+/// Link of a group to a category or a product (exactly one, CHECK), with its own limits/order.
+model ModifierGroupLink {
+  id         String   @id @default(cuid())
+  tenantId   String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  groupId    String
+  categoryId String?
+  productId  String?
+  minSelect  Int      @default(0)
+  maxSelect  Int      @default(1)
+  sortOrder  Int      @default(0)
+  /// Product links only: removes a group inherited from the category.
+  isDisabled Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  group    ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  category Category?     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  product  Product?      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, groupId])
+  @@unique([productId, groupId])
+  @@index([tenantId, groupId])
+}
+
+/// Sale windows of a category or product (exactly one, CHECK). Windows may cross midnight.
+model AvailabilitySchedule {
+  id         String  @id @default(cuid())
+  tenantId   String  @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  categoryId String?
+  productId  String?
+  /// 0 = Sunday ... 6 = Saturday
+  weekday    Int
+  /// "HH:mm"
+  opensAt    String
+  closesAt   String
+
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, categoryId])
+  @@index([tenantId, productId])
+}

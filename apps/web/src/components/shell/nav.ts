@@ -1,5 +1,14 @@
 import { Permission } from '@app/shared';
-import { Building2, Clock, LayoutDashboard, type LucideIcon, Users } from 'lucide-react';
+import {
+  BookOpen,
+  Building2,
+  ChefHat,
+  Clock,
+  LayoutDashboard,
+  ListPlus,
+  type LucideIcon,
+  Users,
+} from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -25,6 +34,29 @@ export const NAV: NavGroup[] = [
         label: 'Painel',
         icon: LayoutDashboard,
         permissions: [Permission.REPORTS_READ],
+      },
+    ],
+  },
+  {
+    label: 'Cardápio',
+    items: [
+      {
+        href: '/cardapio',
+        label: 'Produtos',
+        icon: BookOpen,
+        permissions: [Permission.MENU_READ],
+      },
+      {
+        href: '/cardapio/complementos',
+        label: 'Complementos',
+        icon: ListPlus,
+        permissions: [Permission.MENU_READ],
+      },
+      {
+        href: '/cardapio/setores',
+        label: 'Setores de produção',
+        icon: ChefHat,
+        permissions: [Permission.MENU_MANAGE],
       },
     ],
   },

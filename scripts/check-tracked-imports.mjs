@@ -6,15 +6,14 @@ import path from 'node:path';
 import { root } from './lib.mjs';
 
 const tracked = new Set(
-  execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' })
-    .split('\n')
-    .filter(Boolean),
+  execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean),
 );
 
 const sources = [...tracked].filter(
   (f) => /\.(ts|tsx|mjs|js)$/.test(f) && !f.includes('node_modules/') && !f.endsWith('.d.ts'),
 );
-const importRe = /(?:import|export)\s[^'"]*?from\s+['"](\.{1,2}\/[^'"]+)['"]|import\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/g;
+const importRe =
+  /(?:import|export)\s[^'"]*?from\s+['"](\.{1,2}\/[^'"]+)['"]|import\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/g;
 const candidates = (base) => [
   base,
   base.replace(/\.js$/, '.ts'),

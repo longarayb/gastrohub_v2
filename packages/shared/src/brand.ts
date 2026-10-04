@@ -1,7 +1,10 @@
 /**
  * Product identity — the ONLY place where the product name, logo and brand colors live.
  *
- * The current name is provisional. To rebrand, edit this file (and optionally set
+ * Image assets (logo, favicon) live in packages/ui/assets/brand/ and are copied to each
+ * app at /brand/* by scripts/sync-brand-assets.mjs.
+ *
+ * The current name is provisional. To rebrand, edit this file and the assets (and optionally set
  * `APP_NAME` in the environment to override the name in server-generated content
  * such as e-mails and the Swagger title). Code, packages (@app/*), database and
  * containers use neutral names and never reference the brand directly.
@@ -20,9 +23,11 @@ export interface Brand {
   /** Short marketing line used on the login screen. */
   headline: string;
   logo: {
-    /** Public URL of the logo image; `null` renders the default icon mark. */
+    /** Path of the logo inside each app (`null` renders the default icon mark). */
     src: string | null;
   };
+  /** Path of the favicon inside each app. */
+  favicon: string;
   colors: {
     light: BrandColorScheme;
     dark: BrandColorScheme;
@@ -35,7 +40,8 @@ export const BRAND: Brand = {
   name: 'GastroHub',
   tagline: 'Gestão para restaurantes, bares e deliveries',
   headline: 'Pedidos, salão, cozinha e delivery em um só lugar.',
-  logo: { src: null },
+  logo: { src: '/brand/logo.svg' },
+  favicon: '/brand/favicon.svg',
   colors: {
     light: { primary: 'oklch(0.64 0.19 42)', primaryForeground: 'oklch(0.99 0 0)' },
     dark: { primary: 'oklch(0.7 0.18 45)', primaryForeground: 'oklch(0.16 0.01 60)' },

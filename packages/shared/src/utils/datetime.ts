@@ -74,3 +74,54 @@ export const formatTime = (d: Date | string): string => timeFormatter.format(new
 export function elapsedMinutes(from: Date | string, to: Date = new Date()): number {
   return Math.max(0, Math.floor((to.getTime() - new Date(from).getTime()) / 60_000));
 }
+
+// ---------------------------------------------------------------------------
+// Calendar-date helpers ("YYYY-MM-DD" strings, no time zone)
+
+function parseDate(date: string): [number, number, number] {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) throw new RangeError(`Invalid date: ${date}`);
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+/** "2026-10-04" + 1 -> "2026-10-05" */
+export function addDaysToDate(date: string, days: number): string {
+  const [y, m, d] = parseDate(date);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** Weekday (0 = Sunday) of a calendar date. */
+export function weekdayOfDate(date: string): number {
+  const [y, m, d] = parseDate(date);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+/** Offset in minutes between the local wall time in `timeZone` and UTC at `instant`. */
+function zoneOffsetMinutes(instant: number, timeZone: string): number {
+  const p = getParts(new Date(instant), timeZone);
+  const asUtc = Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day),
+    Number(p.hour) % 24,
+    Number(p.minute),
+  );
+  return Math.round((asUtc - Math.floor(instant / 60_000) * 60_000) / 60_000);
+}
+
+/**
+ * Instant of a local wall time in `timeZone`. `minutes` may exceed 1440 to express
+ * times on the following days (e.g. 1560 = 02:00 of the next day).
+ */
+export function zonedTimeToInstant(
+  date: string,
+  minutes: number,
+  timeZone = DEFAULT_TIMEZONE,
+): Date {
+  const [y, m, d] = parseDate(date);
+  const wallAsUtc = Date.UTC(y, m - 1, d, 0, minutes);
+  let instant = wallAsUtc - zoneOffsetMinutes(wallAsUtc, timeZone) * 60_000;
+  // Second pass corrects instants close to an offset change (DST).
+  instant = wallAsUtc - zoneOffsetMinutes(instant, timeZone) * 60_000;
+  return new Date(instant);
+}

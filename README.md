@@ -79,7 +79,20 @@ docs/          Arquitetura, decisões técnicas e roadmap
 
 ## Credenciais de demonstração
 
-Serão documentadas aqui quando o seed estiver pronto. São **apenas para demonstração** e não devem ser usadas em produção.
+Criadas por `pnpm db:seed` (ou `pnpm bootstrap`). São **apenas para demonstração** — nunca use em produção.
+
+Unidade: **GastroHub Demo** (`${BRAND.name} Demo`, slug `demo`). Senha de todos os usuários: `Demo1234`
+
+| Papel | E-mail |
+|---|---|
+| Dono | `dono@demo.local` |
+| Gerente | `gerente@demo.local` |
+| Caixa | `caixa@demo.local` |
+| Garçom | `garcom@demo.local` |
+| Cozinha | `cozinha@demo.local` |
+| Entregador | `entregador@demo.local` |
+
+O seed pode ser rodado de novo: ele apaga e recria apenas a unidade de demonstração. Cardápio incluído: lanches com complementos herdados (e um produto que desliga um grupo herdado), combos com bebida (opção que referencia produto), porções e bebidas por tamanho, pizzas de 1 a 4 sabores com borda com preço por tamanho, sobremesas, almoço executivo só em dias úteis no almoço e um item pausado ("Onion rings").
 
 ## Documentação
 
