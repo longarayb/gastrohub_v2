@@ -153,6 +153,43 @@ export function NumberField<T extends FieldValues>({
   );
 }
 
+/** Percentage input shown as "%" and stored in basis points (12% -> 1200). */
+export function PercentField<T extends FieldValues>({
+  control,
+  name,
+  label,
+  hint,
+  className,
+  ...props
+}: Omit<TextFieldProps<T>, 'type'>) {
+  const id = useId();
+  const { field, fieldState } = useController({ control, name });
+  return (
+    <Field
+      label={label}
+      error={fieldState.error?.message}
+      hint={hint}
+      className={className}
+      htmlFor={id}
+    >
+      <Input
+        id={id}
+        type="number"
+        inputMode="decimal"
+        step={0.5}
+        min={0}
+        {...props}
+        name={field.name}
+        ref={field.ref}
+        onBlur={field.onBlur}
+        value={((field.value as number | undefined) ?? 0) / 100}
+        onChange={(e) => field.onChange(Math.round(Number(e.target.value || 0) * 100))}
+        aria-invalid={!!fieldState.error}
+      />
+    </Field>
+  );
+}
+
 const MASKS = {
   cpf: formatCPF,
   cnpj: formatCNPJ,

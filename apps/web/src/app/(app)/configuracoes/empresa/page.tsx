@@ -18,7 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@gastrohub/ui/components/card';
-import { Input } from '@gastrohub/ui/components/input';
 import { Skeleton, Switch } from '@gastrohub/ui/components/misc';
 import { toast } from '@gastrohub/ui/components/sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -26,10 +25,10 @@ import { ImageUp, Store } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Controller } from 'react-hook-form';
 import {
-  Field,
   MaskedField,
   MoneyField,
   NumberField,
+  PercentField,
   TextField,
   applyApiErrors,
   useZodForm,
@@ -212,21 +211,11 @@ function SettingsForm({ store }: { store: StoreDto }) {
           <CardDescription>Taxas, tempos e comportamento do cardápio digital.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <Controller
+          <PercentField
             control={form.control}
             name="serviceFeeBps"
-            render={({ field, fieldState }) => (
-              <Field label="Taxa de serviço no salão (%)" error={fieldState.error?.message}>
-                <Input
-                  type="number"
-                  min={0}
-                  max={30}
-                  step={0.5}
-                  value={(field.value ?? 0) / 100}
-                  onChange={(e) => field.onChange(Math.round(Number(e.target.value) * 100))}
-                />
-              </Field>
-            )}
+            label="Taxa de serviço no salão (%)"
+            max={30}
           />
           <NumberField
             control={form.control}
