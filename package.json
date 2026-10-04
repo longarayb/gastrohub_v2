@@ -10,7 +10,7 @@
     "dev": "node scripts/dev.mjs",
     "dev:apps": "turbo run dev --filter=./apps/* --filter=./packages/*",
     "build": "turbo run build",
-    "check": "turbo run build typecheck lint test --concurrency=2",
+    "check": "node scripts/check-tracked-imports.mjs && turbo run build typecheck lint test --concurrency=2",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
@@ -25,7 +25,8 @@
     "db:seed": "pnpm --filter @app/api db:seed",
     "db:studio": "pnpm --filter @app/api db:studio",
     "bootstrap": "node scripts/bootstrap.mjs",
-    "clean": "turbo run clean && rimraf node_modules .turbo"
+    "clean": "turbo run clean && rimraf node_modules .turbo",
+    "check:imports": "node scripts/check-tracked-imports.mjs"
   },
   "devDependencies": {
     "@app/config": "workspace:*",
