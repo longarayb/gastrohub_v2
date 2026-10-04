@@ -1,0 +1,38 @@
+{
+  "name": "gastrohub",
+  "private": true,
+  "description": "GastroHub V2 — gestão para restaurantes, bares e deliveries",
+  "packageManager": "pnpm@12.9.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:apps": "turbo run dev --filter=./apps/* --filter=./packages/*",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose up -d --wait postgres redis mailpit",
+    "infra:down": "docker compose down",
+    "db:generate": "pnpm --filter @gastrohub/api db:generate",
+    "db:migrate": "pnpm --filter @gastrohub/api db:migrate",
+    "db:reset": "pnpm --filter @gastrohub/api db:reset",
+    "db:seed": "pnpm --filter @gastrohub/api db:seed",
+    "db:studio": "pnpm --filter @gastrohub/api db:studio",
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "clean": "turbo run clean && rimraf node_modules .turbo"
+  },
+  "devDependencies": {
+    "@gastrohub/config": "workspace:*",
+    "prettier": "^3.6.2",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "rimraf": "^6.0.1",
+    "tailwindcss": "^4.3.3",
+    "turbo": "^2.11.7",
+    "typescript": "~6.0.3"
+  }
+}

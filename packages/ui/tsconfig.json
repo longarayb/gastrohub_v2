@@ -1,0 +1,7 @@
+{
+  "extends": "@gastrohub/config/tsconfig/react-library.json",
+  "compilerOptions": {
+    "types": []
+  },
+  "include": ["src"]
+}

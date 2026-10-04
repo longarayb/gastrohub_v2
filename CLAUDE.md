@@ -43,13 +43,29 @@ Padrões locais: BRL (`R$ 1.234,56`), fuso `America/Sao_Paulo`, CPF/CNPJ validad
 ```powershell
 corepack enable pnpm          # uma vez
 pnpm install
+pnpm bootstrap                # .env + docker + migrations + seed (primeira vez)
 pnpm dev                      # sobe docker (postgres, redis, mailpit) + todas as apps
 pnpm infra:up / infra:down    # apenas a infraestrutura Docker
-pnpm db:migrate               # prisma migrate dev
+pnpm db:migrate               # prisma migrate dev (criar migration: pnpm db:migrate --name x)
 pnpm db:seed                  # dados de demonstração
-pnpm lint | pnpm test | pnpm build | pnpm typecheck
+pnpm lint | pnpm test | pnpm build | pnpm typecheck | pnpm format
+pnpm test:e2e                 # e2e da API (banco gastrohub_test, requer Docker)
 docker compose --profile full up --build   # tudo em containers
 ```
+
+Validação completa antes de merge: `pnpm turbo run build typecheck lint test` + `pnpm format:check`.
+
+## Notas de toolchain (descobertas na fundação)
+
+- **NestJS 12 é ESM-only**: a API usa `"type": "module"`, `module: NodeNext` e **imports relativos com extensão `.js`**. Build com SWC (`.swcrc`) para emitir metadata de decorators. Evite imports circulares entre arquivos com classes injetáveis (TDZ em ESM).
+- **Prisma 7**: URL do banco em `apps/api/prisma.config.ts` (lê o `.env` da raiz), client gerado em `apps/api/src/generated/prisma` (gitignored, gerado no `postinstall`), conexão via `@prisma/adapter-pg`.
+- **TypeScript 6**: `types` não é mais incluído por padrão — declare `"types": [...]` em cada tsconfig.
+- **Validação**: pipe próprio `ZBody/ZQuery` + `ApiZodBody` em `apps/api/src/core/validation/zod.ts` (nestjs-zod não suporta Nest 12). Swagger via `z.toJSONSchema`.
+- `.env` único na raiz; Next carrega via `loadEnvConfig` no `next.config.ts`; Nest via `ConfigModule` (`../../.env`).
+- `pnpm-workspace.yaml` controla `allowBuilds` (scripts de install permitidos).
+- Neste ambiente o PowerShell não herda o PATH novo: prefixe comandos com
+  `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')`.
+- Não editar arquivos via `Get-Content/Set-Content` no PS 5.1 (corrompe UTF-8).
 
 ## Regras importantes (não violar)
 

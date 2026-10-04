@@ -1,0 +1,12 @@
+// GastroHub V2 — database schema
+// Rules: money in integer cents (*Cents), every business table has `tenantId` (Store id).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
