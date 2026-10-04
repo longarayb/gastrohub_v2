@@ -5,6 +5,8 @@ export * from './domain/business-day.js';
 export * from './domain/menu-availability.js';
 export * from './domain/menu-modifiers.js';
 export * from './domain/menu-pricing.js';
+export * from './domain/order-status.js';
+export * from './domain/order-totals.js';
 export * from './errors.js';
 export * from './menu/schemas.js';
 export * from './menu/types.js';

@@ -8,22 +8,32 @@ import {
   zonedTimeToInstant,
 } from '../utils/datetime.js';
 
+export interface BusinessDay {
+  /** Calendar date ("YYYY-MM-DD") on which the business day starts. */
+  date: string;
+  /** Instant when the business day ends (end of its last shift). */
+  endsAt: Date;
+}
+
 /**
- * End of the store's current business day.
+ * The store's current business day.
  *
  * A business day is the set of shifts that START on a given weekday; shifts that cross
- * midnight (18:00–02:00) end on the next calendar day. The result is the end of the
- * earliest business day that has not ended yet:
- *  - during a shift (including after midnight of an overnight shift) → end of that day's last shift;
- *  - before opening → end of today's last shift;
- *  - after closing → end of the next business day with shifts.
- * Without opening hours, falls back to the next local midnight.
+ * midnight (18:00–02:00) end on the next calendar day. The result is the earliest
+ * business day that has not ended yet:
+ *  - during a shift (including after midnight of an overnight shift) → that day;
+ *  - before opening → today;
+ *  - after closing → the next day with shifts.
+ * Without opening hours, the business day is the local calendar day.
+ *
+ * Used for "Acabou" pauses (`endsAt`) and daily order numbering (`date`), so both
+ * always agree on which day an instant belongs to.
  */
-export function endOfBusinessDay(
+export function currentBusinessDay(
   hours: readonly BusinessHour[],
   now: Date = new Date(),
   timeZone = DEFAULT_TIMEZONE,
-): Date {
+): BusinessDay {
   const today = toLocalTime(now, timeZone).businessDate;
 
   if (hours.length > 0) {
@@ -41,11 +51,20 @@ export function endOfBusinessDay(
           return zonedTimeToInstant(date, endMinutes, timeZone).getTime();
         }),
       );
-      if (end > now.getTime()) return new Date(end);
+      if (end > now.getTime()) return { date, endsAt: new Date(end) };
     }
   }
 
-  return zonedTimeToInstant(addDaysToDate(today, 1), 0, timeZone);
+  return { date: today, endsAt: zonedTimeToInstant(addDaysToDate(today, 1), 0, timeZone) };
+}
+
+/** End of the store's current business day (see `currentBusinessDay`). */
+export function endOfBusinessDay(
+  hours: readonly BusinessHour[],
+  now: Date = new Date(),
+  timeZone = DEFAULT_TIMEZONE,
+): Date {
+  return currentBusinessDay(hours, now, timeZone).endsAt;
 }
 
 /**

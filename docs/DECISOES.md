@@ -67,3 +67,19 @@ O cardápio (categorias, produtos, tamanhos, complementos, setores) pertence à 
 
 ## D018 — Imagens em WebP
 Uploads passam pelo `sharp`: imagem principal até 800 px e miniatura de 240 px, WebP qualidade 80, sem EXIF. O banco guarda a chave do arquivo (`imageKey`); a URL é derivada pelo `StorageProvider` (disco local agora, S3/R2 depois).
+
+## D019 — Pedidos: conta, rodadas e sessão de mesa
+Um pedido (`Order`) é uma **conta**. Pedidos de mesa recebem itens em **rodadas** (`OrderRound`), cada uma enviada à cozinha de uma vez; balcão e delivery têm uma única rodada. A ocupação física é a **sessão de mesa** (`TableSession`), que pode reunir várias mesas (juntar mesas) e **várias contas abertas ao mesmo tempo** (casal que paga separado, comanda individual em bar). Mover itens entre contas (transferência e divisão por itens) é feito movendo linhas de `OrderItem` entre pedidos, com auditoria.
+**Motivo:** a conta é a unidade de pagamento; dividir, transferir e juntar viram operações sobre itens e pagamentos, sem números e cards duplicados por rodada.
+
+## D020 — Valores do pedido
+Ordem: desconto por item → desconto do pedido → cupom (sobre o que restou; mínimo verificado no subtotal) → **taxa de serviço sobre o resultado** (nunca sobre a entrega nem sobre si mesma) → + taxa de entrega. Cada etapa é limitada a zero. Percentuais convertidos para centavos no ponto de aplicação, arredondando metade para cima. Funções em `shared/domain/order-totals.ts`; o backend sempre recalcula.
+Taxa de serviço por padrão só em pedidos de mesa, configurável por tipo de pedido (Empresa). Pode ser removida de um pedido a pedido do cliente, com permissão `orders:discount` e auditoria (`order.service_fee_removed`).
+
+## D021 — Numeração e dia de negócio
+Número sequencial por unidade e dia de negócio via `OrderSequence` com `INSERT … ON CONFLICT DO UPDATE … RETURNING` na mesma transação da criação (sem repetição em pedidos simultâneos; número não é consumido se a criação falhar). O dia de negócio usa `currentBusinessDay`, a mesma regra do "Acabou" (turnos que passam da meia-noite pertencem ao dia em que começam).
+
+## D022 — Concorrência, idempotência e tempo real
+- Pedido com `version`: alterações enviam a versão vista; `UPDATE … WHERE version = ?`; conflito → 409 com mensagem em pt-BR.
+- Criação com `Idempotency-Key` (obrigatória no cardápio digital): mesma chave + mesmo corpo devolve o pedido existente; corpo diferente → 409.
+- Socket.IO autenticado por access token, salas por unidade e por setor; eventos são avisos (`{ id, version, status }`) emitidos após o commit; a tela refaz a busca ao reconectar ou voltar o foco. Som de novo pedido liberado por clique ("Ativar som") por causa do bloqueio de áudio dos navegadores.
