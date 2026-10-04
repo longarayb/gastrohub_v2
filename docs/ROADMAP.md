@@ -8,7 +8,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 |---|---|---|
 | Fundação do monorepo, Docker, tooling | `main` / `chore/foundation` | ✅ |
 | Autenticação, multi-tenant, empresa e usuários | `feat/auth-tenancy` | ✅ |
-| Cardápio (categorias, produtos, complementos, tamanhos, pizza) | `feat/menu` | 🚧 |
+| Cardápio (categorias, produtos, complementos, tamanhos, pizza) | `feat/menu` | ✅ |
 | Pedidos e tempo real (kanban, status, numeração) | `feat/orders` | ⏳ |
 | Salão, mesas, PDV e caixa | `feat/tables-pos` | ⏳ |
 | KDS e setores de produção | `feat/kds` | ⏳ |

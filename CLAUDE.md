@@ -67,7 +67,7 @@ pnpm test:e2e                 # e2e da API (banco app_db_test, requer Docker)
 docker compose --profile full up --build   # tudo em containers
 ```
 
-Validação completa antes de merge: `pnpm check` (build + typecheck + lint + test com `--concurrency=2`) + `pnpm format:check` + `pnpm test:e2e`.
+Validação completa antes de merge: `pnpm check` (imports versionados + build + typecheck + lint + test com `--concurrency=2`) + `pnpm format:check` + `pnpm test:e2e`.
 
 > **Memória nesta máquina:** o limite de commit do Windows (RAM + pagefile) é baixo; muitos processos Node/Next/Edge em paralelo derrubam processos com código 0xC0000409 (-1073740791 / 3221226505). Use sempre `pnpm check` (concorrência 2), Next build com 2 workers (`NEXT_BUILD_CPUS`) e Playwright headless, um navegador, sem paralelismo. Pare os servidores de dev antes de rodar builds.
 
@@ -104,6 +104,10 @@ Validação completa antes de merge: `pnpm check` (build + typecheck + lint + te
 - **Frontend — formulários:** `useZodForm(schema, defaults)` + `TextField`/`MaskedField`/`NumberField`/`MoneyField`/`PercentField` (`apps/web/src/components/form.tsx`). Validação no primeiro submit e depois a cada mudança (validar no blur engolia cliques em links). Erros 400 da API vão para os campos com `applyApiErrors`.
 - **Frontend — rotas e permissões:** cada item de menu em `components/shell/nav.ts` declara `permissions`; `lib/routes.ts` deriva daí `canAccess` (tela de acesso negado no layout), `homeFor` e `safeNext` (valida `?next=`, evita open redirect). Nova tela protegida = novo item no `NAV`.
 - **Frontend — dados:** TanStack Query; chaves por módulo (`storeKeys`); `api()` faz refresh automático em 401. Access token só em memória.
+- **Cardápio:** preço e snapshot do item só por `priceMenuItem` (shared); grupos efetivos por `effectiveModifierLinks`; disponibilidade por `getProductAvailability`; "Acabou" = `MenuContext.pauseState({ mode: 'END_OF_DAY' })` (fim do dia de negócio). Alteração de preço exige `prices:manage` e grava `product.price_changed` na auditoria. Pausar exige só `menu:pause` (caixa e cozinha podem).
+- **Imagens:** sempre via `ImageService` (WebP); o banco guarda chaves (`imageKey`), nunca URLs.
+- **Seed:** `apps/api/prisma/seed` (re-executável; usa o client raw com `tenantId` explícito). Ao criar uma tabela de tenant nova, inclua-a em `TENANT_TABLES` do seed.
+- **.gitignore:** regras de pastas genéricas devem ser ancoradas na raiz (`/storage/`); `pnpm check` falha se um arquivo versionado importar um arquivo não versionado (`scripts/check-tracked-imports.mjs`).
 - **Teste visual das telas:** script Playwright fora do repo (scratchpad) contra o build de produção (`node dist/main.js` + `node .next/standalone/apps/web/server.js` com `.next/static` copiado). Edge headless, um navegador, sem paralelismo.
 
 ## Estrutura
