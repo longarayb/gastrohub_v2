@@ -1,0 +1,57 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { type Db, type DbTx, InjectDb } from '../tenancy/db.provider.js';
+import { TenantContext } from '../tenancy/tenant-context.js';
+
+export const AuditAction = {
+  ORDER_CANCELED: 'order.canceled',
+  ORDER_DISCOUNT: 'order.discount',
+  ORDER_ITEM_DISCOUNT: 'order.item_discount',
+  ORDER_ITEM_REMOVED: 'order.item_removed',
+  PRICE_CHANGED: 'product.price_changed',
+  USER_CREATED: 'user.created',
+  USER_UPDATED: 'user.updated',
+  STORE_UPDATED: 'store.updated',
+  CASH_CLOSED: 'cash.closed',
+  CASH_MOVEMENT: 'cash.movement',
+  PAYMENT_REMOVED: 'payment.removed',
+} as const;
+export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
+
+export interface AuditEntry {
+  action: AuditAction;
+  entity: string;
+  entityId?: string;
+  reason?: string;
+  before?: unknown;
+  after?: unknown;
+}
+
+const toJson = (v: unknown) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+
+/** Writes the audit trail for sensitive operations. Pass `tx` to record inside a transaction. */
+@Injectable()
+export class AuditService {
+  private readonly logger = new Logger('Audit');
+
+  constructor(
+    @InjectDb() private readonly db: Db,
+    private readonly ctx: TenantContext,
+  ) {}
+
+  async log(entry: AuditEntry, tx?: DbTx): Promise<void> {
+    const client = tx ?? this.db;
+    await client.auditLog.create({
+      data: {
+        tenantId: this.ctx.tenantId,
+        userId: this.ctx.userId ?? null,
+        action: entry.action,
+        entity: entry.entity,
+        entityId: entry.entityId ?? null,
+        reason: entry.reason ?? null,
+        before: toJson(entry.before),
+        after: toJson(entry.after),
+      },
+    });
+    this.logger.log({ ...entry, userId: this.ctx.userId }, entry.action);
+  }
+}

@@ -1,21 +1,30 @@
 import { randomUUID } from 'node:crypto';
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
+import { AuditModule } from './core/audit/audit.module.js';
 import { AppConfigModule } from './core/config/config.module.js';
 import { AllExceptionsFilter } from './core/errors/all-exceptions.filter.js';
+import { MailModule } from './core/mail/mail.module.js';
 import { PrismaModule } from './core/prisma/prisma.module.js';
+import { QueueModule } from './core/queue/queue.module.js';
+import { StorageModule } from './core/storage/storage.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { StoresModule } from './modules/stores/stores.module.js';
+import { UsersModule } from './modules/users/users.module.js';
 
 const isDev = process.env.NODE_ENV !== 'production';
+const isTest = process.env.NODE_ENV === 'test';
 
 @Module({
   imports: [
     AppConfigModule,
     LoggerModule.forRoot({
       pinoHttp: {
-        level: process.env.NODE_ENV === 'test' ? 'silent' : isDev ? 'debug' : 'info',
+        level: isTest ? 'silent' : isDev ? 'debug' : 'info',
         genReqId: (req, res) => {
           const id = (req.headers['x-request-id'] as string | undefined) ?? randomUUID();
           res.setHeader('x-request-id', id);
@@ -26,15 +35,31 @@ const isDev = process.env.NODE_ENV !== 'production';
           tenantId: (req as { user?: { tenantId?: string } }).user?.tenantId,
         }),
         autoLogging: { ignore: (req) => req.url?.startsWith('/api/health') ?? false },
-        transport: isDev
-          ? { target: 'pino-pretty', options: { singleLine: true, translateTime: 'SYS:HH:MM:ss' } }
-          : undefined,
+        transport:
+          isDev && !isTest
+            ? {
+                target: 'pino-pretty',
+                options: { singleLine: true, translateTime: 'SYS:HH:MM:ss' },
+              }
+            : undefined,
       },
     }),
     ClsModule.forRoot({ global: true, middleware: { mount: true } }),
+    // Generous default; sensitive routes (login, reset) have stricter @Throttle limits.
+    ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: isTest ? 10_000 : 600 }] }),
     PrismaModule,
+    QueueModule,
+    MailModule,
+    AuditModule,
+    StorageModule,
+    AuthModule,
     HealthModule,
+    StoresModule,
+    UsersModule,
   ],
-  providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
+  providers: [
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

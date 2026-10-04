@@ -1,7 +1,9 @@
 import type { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppConfig } from './core/config/app-config.service.js';
+import { UPLOADS_ROUTE, storageRoot } from './core/storage/storage.js';
 
 /** Global HTTP setup shared by `main.ts` and the e2e tests. */
 export function setupApp(app: INestApplication): void {
@@ -13,6 +15,12 @@ export function setupApp(app: INestApplication): void {
   app.enableCors({
     origin: config.get('API_CORS_ORIGINS'),
     credentials: true,
+  });
+  // Uploaded images (local storage provider).
+  (app as NestExpressApplication).useStaticAssets(storageRoot(config), {
+    prefix: UPLOADS_ROUTE,
+    maxAge: '7d',
+    index: false,
   });
   app.enableShutdownHooks();
 }
