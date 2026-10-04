@@ -1,5 +1,5 @@
 {
-  "name": "@gastrohub/menu",
+  "name": "@app/menu",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,8 +13,8 @@
     "clean": "rimraf .next .turbo"
   },
   "dependencies": {
-    "@gastrohub/shared": "workspace:*",
-    "@gastrohub/ui": "workspace:*",
+    "@app/shared": "workspace:*",
+    "@app/ui": "workspace:*",
     "@tanstack/react-query": "^5.104.1",
     "lucide-react": "^1.52.0",
     "next": "^16.3.8",
@@ -25,7 +25,7 @@
     "zod": "^4.3.3"
   },
   "devDependencies": {
-    "@gastrohub/config": "workspace:*",
+    "@app/config": "workspace:*",
     "@next/env": "^16.3.8",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.9.0",

@@ -1,4 +1,6 @@
-# GastroHub V2
+# GastroHub V2 (nome provisório)
+
+> O nome do produto é provisório e fica centralizado em [packages/shared/src/brand.ts](packages/shared/src/brand.ts). Pacotes (`@app/*`), banco (`app_db`) e containers usam nomes neutros.
 
 Sistema SaaS de gestão para restaurantes, bares, lanchonetes, pizzarias e deliveries no Brasil: cardápio, pedidos em tempo real, salão e mesas, PDV/caixa, KDS (cozinha), delivery e cardápio digital.
 
@@ -49,6 +51,13 @@ pnpm dev        # sobe a infraestrutura e todas as apps em modo watch
 | `pnpm db:reset` | Recria o banco do zero (apaga dados!) |
 | `pnpm db:studio` | Abre o Prisma Studio |
 | `pnpm format` | Formata o código com Prettier |
+
+### Infraestrutura local
+
+| Item | Valor (apenas desenvolvimento) |
+|---|---|
+| Containers | `app-postgres-1`, `app-redis-1`, `app-mailpit-1` |
+| Banco | `app_db` (testes e2e: `app_db_test`), usuário `app` / senha `app_dev` |
 
 ### Tudo em containers
 

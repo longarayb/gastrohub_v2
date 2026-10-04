@@ -6,7 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { type ApiErrorBody, ErrorCode } from '@gastrohub/shared';
+import { type ApiErrorBody, ErrorCode } from '@app/shared';
 import type { Request, Response } from 'express';
 import { ZodError } from 'zod';
 import { DomainError } from './domain-error.js';

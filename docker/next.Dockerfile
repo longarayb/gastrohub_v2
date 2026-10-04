@@ -6,7 +6,7 @@ ARG APP
 
 FROM base AS prune
 COPY . .
-RUN pnpm dlx turbo@2 prune @gastrohub/${APP} --docker
+RUN pnpm dlx turbo@2 prune @app/${APP} --docker
 
 FROM base AS build
 ARG NEXT_PUBLIC_API_URL=http://localhost:3333
@@ -14,7 +14,7 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} NEXT_TELEMETRY_DISABLED=1
 COPY --from=prune /repo/out/json/ .
 RUN pnpm install --frozen-lockfile
 COPY --from=prune /repo/out/full/ .
-RUN pnpm turbo run build --filter=@gastrohub/${APP}
+RUN pnpm turbo run build --filter=@app/${APP}
 
 FROM node:24-alpine AS runtime
 ARG APP

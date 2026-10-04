@@ -1,5 +1,13 @@
-// GastroHub V2 — database schema
-// Rules: money in integer cents (*Cents), every business table has `tenantId` (Store id).
+// Database schema
+// Rules:
+//  - Money is always an integer in cents (fields ending in `Cents`).
+//  - Percentages are integers in basis points (fields ending in `Bps`, 1000 = 10%).
+//  - Every business table has `tenantId` (= Store.id) and is listed in
+//    `src/core/tenancy/tenant-models.ts` so the Prisma extension scopes it automatically.
+//  - Declare it as: tenantId String @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+//    The extension always fills it; the DB default makes the field optional in the
+//    generated types and makes Postgres reject inserts that bypass the extension.
+//  - In writes to tenant models, use scalar foreign keys (`productId`), not `connect`.
 
 generator client {
   provider     = "prisma-client"
@@ -9,4 +17,177 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ============================================================================
+// Tenancy & access
+// ============================================================================
+
+enum Role {
+  OWNER
+  MANAGER
+  CASHIER
+  WAITER
+  KITCHEN
+  COURIER
+}
+
+enum PizzaPricingRule {
+  HIGHEST
+  AVERAGE
+}
+
+/// Group of stores owned by the same business owner.
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stores Store[]
+}
+
+/// A restaurant unit. **This is the tenant.**
+model Store {
+  id             String  @id @default(cuid())
+  organizationId String
+  slug           String  @unique
+  tradeName      String
+  legalName      String
+  cnpj           String
+  phone          String
+  email          String?
+  logoUrl        String?
+  timezone       String  @default("America/Sao_Paulo")
+  isActive       Boolean @default(true)
+
+  addressCep          String?
+  addressStreet       String?
+  addressNumber       String?
+  addressComplement   String?
+  addressNeighborhood String?
+  addressCity         String?
+  addressState        String?
+  addressReference    String?
+  latitude            Float?
+  longitude           Float?
+
+  // Settings
+  serviceFeeBps           Int              @default(1000)
+  kdsLateAfterMinutes     Int              @default(20)
+  digitalMenuEnabled      Boolean          @default(true)
+  deliveryMinimumCents    Int              @default(0)
+  takeoutEtaMinutes       Int              @default(20)
+  autoAcceptDigitalOrders Boolean          @default(false)
+  pizzaPricingRule        PizzaPricingRule @default(HIGHEST)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization  Organization    @relation(fields: [organizationId], references: [id])
+  memberships   Membership[]
+  businessHours BusinessHours[]
+  auditLogs     AuditLog[]
+
+  @@index([organizationId])
+}
+
+model BusinessHours {
+  id       String @id @default(cuid())
+  tenantId String @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  /// 0 = Sunday ... 6 = Saturday
+  weekday  Int
+  /// "HH:mm"; when closesAt < opensAt the interval crosses midnight.
+  opensAt  String
+  closesAt String
+
+  store Store @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, weekday])
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  phone        String?
+  passwordHash String
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  /// Store selected on the last login, used as default on the next one.
+  lastStoreId  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  memberships         Membership[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+/// Access of a user to a store, with a role in that store.
+model Membership {
+  id        String   @id @default(cuid())
+  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  userId    String
+  role      Role
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  /// Tokens issued from the same login share a family; reuse of a rotated token revokes the family.
+  familyId   String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedAt DateTime?
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Audit trail for sensitive operations (cancellations, discounts, price changes, permissions).
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  reason    String?
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+
+  store Store @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, entity, entityId])
 }

@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-export const log = (msg) => console.log(`\x1b[36m[gastrohub]\x1b[0m ${msg}`);
+export const log = (msg) => console.log(`\x1b[36m[app]\x1b[0m ${msg}`);
 export const fail = (msg) => {
-  console.error(`\x1b[31m[gastrohub]\x1b[0m ${msg}`);
+  console.error(`\x1b[31m[app]\x1b[0m ${msg}`);
   process.exit(1);
 };
 

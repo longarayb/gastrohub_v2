@@ -1,5 +1,5 @@
 {
-  "extends": "@gastrohub/config/tsconfig/nextjs.json",
+  "extends": "@app/config/tsconfig/nextjs.json",
   "compilerOptions": {
     "types": ["node"],
     "paths": {

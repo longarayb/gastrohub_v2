@@ -8,7 +8,9 @@ loadEnvConfig(path.join(import.meta.dirname, '..', '..'));
 const nextConfig: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: path.join(import.meta.dirname, '..', '..'),
-  transpilePackages: ['@gastrohub/ui'],
+  transpilePackages: ['@app/ui'],
+  // Few build workers by default: dev machines with a small page file run out of commit memory.
+  experimental: { cpus: Number(process.env.NEXT_BUILD_CPUS) || 2 },
   typedRoutes: true,
   images: {
     remotePatterns: [{ protocol: 'http', hostname: 'localhost' }],

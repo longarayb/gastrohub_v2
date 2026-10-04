@@ -1,3 +1,4 @@
+import { BRAND } from '@app/shared';
 import { z } from 'zod';
 
 const csv = z
@@ -11,6 +12,12 @@ const csv = z
   );
 
 export const envSchema = z.object({
+  /** Display name used in e-mails and the API docs. Defaults to BRAND.name. */
+  APP_NAME: z
+    .string()
+    .trim()
+    .transform((v) => v || BRAND.name)
+    .default(BRAND.name),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_PORT: z.coerce.number().int().default(3333),
   API_PUBLIC_URL: z.url().default('http://localhost:3333'),
@@ -26,7 +33,7 @@ export const envSchema = z.object({
 
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().int().default(1025),
-  SMTP_FROM: z.string().default('GastroHub <nao-responda@gastrohub.local>'),
+  MAIL_FROM_ADDRESS: z.email().default('nao-responda@app.local'),
 
   WEB_PUBLIC_URL: z.url().default('http://localhost:3000'),
   MENU_PUBLIC_URL: z.url().default('http://localhost:3001'),

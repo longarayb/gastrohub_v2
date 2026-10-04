@@ -1,5 +1,5 @@
 /**
- * Money helpers. All monetary values in GastroHub are integers in cents (BRL).
+ * Money helpers. All monetary values in the system are integers in cents (BRL).
  * Percentages are expressed in basis points (1% = 100 bps, 10% = 1000 bps).
  */
 
