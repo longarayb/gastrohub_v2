@@ -21,3 +21,7 @@ minimumReleaseAgeExclude:
 
 # Few parallel install scripts: this machine has little commit memory.
 childConcurrency: 2
+
+# Single socket.io version (the Nest adapter and the API must share the same types).
+overrides:
+  socket.io: 4.8.4
