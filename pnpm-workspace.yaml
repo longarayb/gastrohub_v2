@@ -9,6 +9,8 @@ strictPeerDependencies: false
 allowBuilds:
   '@prisma/engines': true
   '@swc/core': true
+  argon2: true
+  msgpackr-extract: true
   esbuild: true
   prisma: true
   sharp: true

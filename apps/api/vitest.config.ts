@@ -34,6 +34,7 @@ export default defineConfig({
           name: 'e2e',
           globals: true,
           include: ['test/**/*.e2e.test.ts'],
+          globalSetup: ['test/global-setup.ts'],
           setupFiles: ['test/setup-env.ts'],
           fileParallelism: false,
           testTimeout: 30_000,
