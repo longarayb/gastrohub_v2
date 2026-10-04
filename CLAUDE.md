@@ -93,6 +93,17 @@ Validação completa antes de merge: `pnpm check` (build + typecheck + lint + te
 8. Validação Zod compartilhada front/back. Erros da API no formato `{ code, message, details }` com mensagem em pt-BR.
 9. Pontos de extensão (não implementar na Fase 1): `MarketplaceAdapter`, `FiscalProvider`, `PaymentGateway`, `TefProvider`, `PrintProvider`, `GeocodingProvider`, `StorageProvider`, `MailProvider`.
 
+## Convenções de código (aprendidas nas etapas)
+
+- **API:** tenancy via `@InjectDb() db: Db` (cliente com escopo). `PrismaService` (raw) só em auth, `Store` (o próprio tenant), seed e cardápio público. Em escritas de modelos de tenant use FKs escalares (`productId`), não `connect`. Novo modelo de negócio: `tenantId String @default(dbgenerated("current_setting('app.tenant_id'::text)"))` + incluir em `TENANT_MODELS` (há teste que falha se esquecer).
+- **Migrations:** `pnpm db:migrate --name <nome>`; confira drift com `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma`.
+- **Erros de negócio:** lance `DomainError`/`NotFoundError`/`ConflictError`/... com mensagem em pt-BR; nunca `HttpException` com texto em inglês.
+- **Auditoria:** `AuditService.log({ action, entity, entityId, before, after, reason }, tx?)`.
+- **Frontend — formulários:** `useZodForm(schema, defaults)` + `TextField`/`MaskedField`/`NumberField`/`MoneyField`/`PercentField` (`apps/web/src/components/form.tsx`). Validação no primeiro submit e depois a cada mudança (validar no blur engolia cliques em links). Erros 400 da API vão para os campos com `applyApiErrors`.
+- **Frontend — rotas e permissões:** cada item de menu em `components/shell/nav.ts` declara `permissions`; `lib/routes.ts` deriva daí `canAccess` (tela de acesso negado no layout), `homeFor` e `safeNext` (valida `?next=`, evita open redirect). Nova tela protegida = novo item no `NAV`.
+- **Frontend — dados:** TanStack Query; chaves por módulo (`storeKeys`); `api()` faz refresh automático em 401. Access token só em memória.
+- **Teste visual das telas:** script Playwright fora do repo (scratchpad) contra o build de produção (`node dist/main.js` + `node .next/standalone/apps/web/server.js` com `.next/static` copiado). Edge headless, um navegador, sem paralelismo.
+
 ## Estrutura
 
 ```
