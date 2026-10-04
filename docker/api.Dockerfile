@@ -5,14 +5,14 @@ WORKDIR /repo
 
 FROM base AS prune
 COPY . .
-RUN pnpm dlx turbo@2 prune @gastrohub/api --docker
+RUN pnpm dlx turbo@2 prune @app/api --docker
 
 FROM base AS build
 COPY --from=prune /repo/out/json/ .
 RUN pnpm install --frozen-lockfile
 COPY --from=prune /repo/out/full/ .
-RUN pnpm turbo run build --filter=@gastrohub/api
-RUN pnpm --filter @gastrohub/api deploy --prod --legacy /app
+RUN pnpm turbo run build --filter=@app/api
+RUN pnpm --filter @app/api deploy --prod --legacy /app
 
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production TZ=UTC

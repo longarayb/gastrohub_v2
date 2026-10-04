@@ -1,5 +1,5 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { ErrorCode } from '@gastrohub/shared';
+import { ErrorCode } from '@app/shared';
 import { z } from 'zod';
 import { toErrorBody } from './all-exceptions.filter.js';
 import { ConflictError, DomainError, NotFoundError } from './domain-error.js';

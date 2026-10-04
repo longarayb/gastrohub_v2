@@ -8,7 +8,7 @@ import {
   type ResetPasswordInput,
   type Role,
   slugify,
-} from '@gastrohub/shared';
+} from '@app/shared';
 import { AppConfig } from '../../core/config/app-config.service.js';
 import {
   ConflictError,

@@ -7,7 +7,7 @@ import {
   type UpdateUserInput,
   createUserSchema,
   updateUserSchema,
-} from '@gastrohub/shared';
+} from '@app/shared';
 import { ApiZodBody, ZBody } from '../../core/validation/zod.js';
 import { RequirePermissions } from '../auth/auth.decorators.js';
 import { UsersService } from './users.service.js';

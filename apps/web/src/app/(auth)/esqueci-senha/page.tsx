@@ -1,8 +1,8 @@
 'use client';
 
-import { forgotPasswordSchema } from '@gastrohub/shared';
-import { Button } from '@gastrohub/ui/components/button';
-import { toast } from '@gastrohub/ui/components/sonner';
+import { forgotPasswordSchema } from '@app/shared';
+import { Button } from '@app/ui/components/button';
+import { toast } from '@app/ui/components/sonner';
 import { MailCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';

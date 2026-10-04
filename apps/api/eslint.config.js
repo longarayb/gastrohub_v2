@@ -1,1 +1,1 @@
-export { default } from '@gastrohub/config/eslint/nest';
+export { default } from '@app/config/eslint/nest';

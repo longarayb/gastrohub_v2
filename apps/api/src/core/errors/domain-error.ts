@@ -1,4 +1,4 @@
-import { ErrorCode } from '@gastrohub/shared';
+import { ErrorCode } from '@app/shared';
 
 /**
  * Base class for expected business errors. Messages are user-facing (pt-BR).

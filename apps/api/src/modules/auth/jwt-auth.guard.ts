@@ -1,7 +1,7 @@
 import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import type { AccessTokenPayload } from '@gastrohub/shared';
+import type { AccessTokenPayload } from '@app/shared';
 import type { Request } from 'express';
 import { AppConfig } from '../../core/config/app-config.service.js';
 import { UnauthorizedError } from '../../core/errors/domain-error.js';

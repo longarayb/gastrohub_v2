@@ -1,8 +1,8 @@
 'use client';
 
-import { loginSchema } from '@gastrohub/shared';
-import { Button } from '@gastrohub/ui/components/button';
-import { toast } from '@gastrohub/ui/components/sonner';
+import { loginSchema } from '@app/shared';
+import { Button } from '@app/ui/components/button';
+import { toast } from '@app/ui/components/sonner';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';

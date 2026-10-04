@@ -1,9 +1,9 @@
 'use client';
 
-import { changePasswordSchema } from '@gastrohub/shared';
-import { Button } from '@gastrohub/ui/components/button';
-import { Card, CardContent, CardFooter } from '@gastrohub/ui/components/card';
-import { toast } from '@gastrohub/ui/components/sonner';
+import { changePasswordSchema } from '@app/shared';
+import { Button } from '@app/ui/components/button';
+import { Card, CardContent, CardFooter } from '@app/ui/components/card';
+import { toast } from '@app/ui/components/sonner';
 import { TextField, applyApiErrors, useZodForm } from '@/components/form';
 import { Page } from '@/components/page';
 import { apiPost, errorMessage } from '@/lib/api';

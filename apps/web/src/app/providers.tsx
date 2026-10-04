@@ -3,8 +3,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { useState } from 'react';
-import { TooltipProvider } from '@gastrohub/ui/components/misc';
-import { Toaster } from '@gastrohub/ui/components/sonner';
+import { TooltipProvider } from '@app/ui/components/misc';
+import { Toaster } from '@app/ui/components/sonner';
 import { ApiError } from '@/lib/api';
 import { AuthProvider } from '@/lib/auth';
 

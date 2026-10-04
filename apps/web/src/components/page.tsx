@@ -1,4 +1,4 @@
-import { cn } from '@gastrohub/ui/lib/utils';
+import { cn } from '@app/ui/lib/utils';
 
 /** Standard page wrapper with title, description and actions. */
 export function Page({

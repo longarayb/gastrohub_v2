@@ -1,5 +1,5 @@
 import { type ExecutionContext, SetMetadata, createParamDecorator } from '@nestjs/common';
-import type { AccessTokenPayload, Permission } from '@gastrohub/shared';
+import type { AccessTokenPayload, Permission } from '@app/shared';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 /** Marks a route as accessible without authentication. */

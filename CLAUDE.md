@@ -1,4 +1,4 @@
-# CLAUDE.md — GastroHub V2
+# CLAUDE.md — Plataforma de gestão para food service (nome provisório: GastroHub)
 
 Memória do projeto para sessões do Claude Code. Mantenha este arquivo atualizado ao final de cada etapa.
 
@@ -8,6 +8,18 @@ SaaS de gestão para food service no Brasil (restaurantes, bares, lanchonetes, p
 Público: restaurantes pequenos e médios com salão, balcão e delivery. Interface em **pt-BR**; código, nomes e commits em **inglês**.
 
 Padrões locais: BRL (`R$ 1.234,56`), fuso `America/Sao_Paulo`, CPF/CNPJ validados, CEP via ViaCEP, telefone com DDD, PIX como forma de pagamento de primeira classe.
+
+## Nome do produto e identidade (nomes neutros)
+
+O nome **GastroHub é provisório**. Nada no código, nos pacotes ou na infraestrutura depende dele:
+
+- **Única fonte da marca:** `packages/shared/src/brand.ts` (`BRAND`: nome, slogan, logo, cores). Toda UI, e-mail e título do Swagger lê de lá. Nunca escrever o nome do produto em código, textos de tela ou testes.
+- **Cores da marca:** `--primary`, `--primary-foreground` e `--ring` saem de `BRAND.colors` e são injetadas por `brandCssVariables()` no layout raiz de cada app. O tema base (`@app/ui/globals.css`) não define essas três variáveis.
+- **Logo:** `BRAND.logo.src` (URL pública; `null` = ícone padrão).
+- **Pacotes:** escopo neutro `@app/*` (`@app/shared`, `@app/ui`, `@app/config`, `@app/api`, `@app/web`, `@app/menu`). Raiz: `app-monorepo`.
+- **Infra:** projeto Compose `app` (containers `app-postgres-1` etc.), banco `app_db` / `app_db_test`, usuário `app`. Cookie de refresh `app_refresh`. Prefixo de log dos scripts `[app]`.
+- **Ambiente:** `APP_NAME` (opcional, sobrescreve `BRAND.name` em e-mails e Swagger) e `MAIL_FROM_ADDRESS`.
+- A pasta `D:\GastroHub_v2` e o repositório `gastrohub_v2` mantêm o nome original (não renomear sem pedido do usuário).
 
 ## Ambiente
 
@@ -49,11 +61,13 @@ pnpm infra:up / infra:down    # apenas a infraestrutura Docker
 pnpm db:migrate               # prisma migrate dev (criar migration: pnpm db:migrate --name x)
 pnpm db:seed                  # dados de demonstração
 pnpm lint | pnpm test | pnpm build | pnpm typecheck | pnpm format
-pnpm test:e2e                 # e2e da API (banco gastrohub_test, requer Docker)
+pnpm test:e2e                 # e2e da API (banco app_db_test, requer Docker)
 docker compose --profile full up --build   # tudo em containers
 ```
 
-Validação completa antes de merge: `pnpm turbo run build typecheck lint test` + `pnpm format:check`.
+Validação completa antes de merge: `pnpm check` (build + typecheck + lint + test com `--concurrency=2`) + `pnpm format:check` + `pnpm test:e2e`.
+
+> **Memória nesta máquina:** o limite de commit do Windows (RAM + pagefile) é baixo; muitos processos Node/Next/Edge em paralelo derrubam processos com código 0xC0000409 (-1073740791 / 3221226505). Use sempre `pnpm check` (concorrência 2), Next build com 2 workers (`NEXT_BUILD_CPUS`) e Playwright headless, um navegador, sem paralelismo. Pare os servidores de dev antes de rodar builds.
 
 ## Notas de toolchain (descobertas na fundação)
 

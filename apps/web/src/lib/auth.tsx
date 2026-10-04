@@ -6,7 +6,7 @@ import {
   type Permission,
   type RegisterInput,
   hasPermission,
-} from '@gastrohub/shared';
+} from '@app/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';

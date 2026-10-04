@@ -1,17 +1,10 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  formatBRL,
-  formatCEP,
-  formatCNPJ,
-  formatCPF,
-  formatPhone,
-  onlyDigits,
-} from '@gastrohub/shared';
-import { Input } from '@gastrohub/ui/components/input';
-import { Label } from '@gastrohub/ui/components/label';
-import { cn } from '@gastrohub/ui/lib/utils';
+import { formatBRL, formatCEP, formatCNPJ, formatCPF, formatPhone, onlyDigits } from '@app/shared';
+import { Input } from '@app/ui/components/input';
+import { Label } from '@app/ui/components/label';
+import { cn } from '@app/ui/lib/utils';
 import { useId } from 'react';
 import {
   type Control,

@@ -10,7 +10,10 @@
     "NEXT_PUBLIC_*",
     "API_*",
     "JWT_*",
-    "SMTP_*"
+    "SMTP_*",
+    "APP_NAME",
+    "MAIL_*",
+    "NEXT_BUILD_CPUS"
   ],
   "tasks": {
     "build": {

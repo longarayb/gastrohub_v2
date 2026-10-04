@@ -1,8 +1,8 @@
 'use client';
 
-import { registerSchema } from '@gastrohub/shared';
-import { Button } from '@gastrohub/ui/components/button';
-import { toast } from '@gastrohub/ui/components/sonner';
+import { registerSchema } from '@app/shared';
+import { Button } from '@app/ui/components/button';
+import { toast } from '@app/ui/components/sonner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MaskedField, TextField, applyApiErrors, useZodForm } from '@/components/form';

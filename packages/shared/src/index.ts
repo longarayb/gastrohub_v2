@@ -1,4 +1,5 @@
 export * from './auth/permissions.js';
+export * from './brand.js';
 export * from './auth/schemas.js';
 export * from './errors.js';
 export * from './stores/schemas.js';

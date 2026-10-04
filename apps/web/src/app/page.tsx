@@ -1,6 +1,6 @@
 'use client';
 
-import { Permission, hasPermission } from '@gastrohub/shared';
+import { Permission, hasPermission } from '@app/shared';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { FullPageSpinner } from '@/components/page';

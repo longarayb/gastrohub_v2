@@ -88,7 +88,7 @@ export async function registerStore(
 
 export function refreshCookie(setCookie: string | string[] | undefined): string {
   const cookies = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
-  const found = cookies.find((c) => c.startsWith('gh_refresh='));
+  const found = cookies.find((c) => c.startsWith('app_refresh='));
   return found ? found.split(';')[0]! : '';
 }
 

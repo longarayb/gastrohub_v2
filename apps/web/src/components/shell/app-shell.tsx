@@ -1,7 +1,7 @@
 'use client';
 
-import { ROLE_LABELS, hasAnyPermission } from '@gastrohub/shared';
-import { Button } from '@gastrohub/ui/components/button';
+import { ROLE_LABELS, hasAnyPermission } from '@app/shared';
+import { Button } from '@app/ui/components/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,10 +11,10 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@gastrohub/ui/components/dropdown-menu';
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@gastrohub/ui/components/sheet';
-import { toast } from '@gastrohub/ui/components/sonner';
-import { cn } from '@gastrohub/ui/lib/utils';
+} from '@app/ui/components/dropdown-menu';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@app/ui/components/sheet';
+import { toast } from '@app/ui/components/sonner';
+import { cn } from '@app/ui/lib/utils';
 import {
   Check,
   ChevronsUpDown,

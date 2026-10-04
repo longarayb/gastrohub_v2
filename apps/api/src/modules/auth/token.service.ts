@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { AccessTokenPayload } from '@gastrohub/shared';
+import type { AccessTokenPayload } from '@app/shared';
 import { AppConfig } from '../../core/config/app-config.service.js';
 import { UnauthorizedError } from '../../core/errors/domain-error.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';

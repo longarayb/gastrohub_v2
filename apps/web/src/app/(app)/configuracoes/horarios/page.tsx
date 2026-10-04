@@ -1,11 +1,11 @@
 'use client';
 
-import { type BusinessHour, WEEKDAY_LABELS } from '@gastrohub/shared';
-import { Button } from '@gastrohub/ui/components/button';
-import { Card, CardContent, CardFooter } from '@gastrohub/ui/components/card';
-import { Input } from '@gastrohub/ui/components/input';
-import { Skeleton } from '@gastrohub/ui/components/misc';
-import { toast } from '@gastrohub/ui/components/sonner';
+import { type BusinessHour, WEEKDAY_LABELS } from '@app/shared';
+import { Button } from '@app/ui/components/button';
+import { Card, CardContent, CardFooter } from '@app/ui/components/card';
+import { Input } from '@app/ui/components/input';
+import { Skeleton } from '@app/ui/components/misc';
+import { toast } from '@app/ui/components/sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Copy, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';

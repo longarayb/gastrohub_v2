@@ -1,4 +1,4 @@
-import { Permission } from '@gastrohub/shared';
+import { Permission } from '@app/shared';
 import { Building2, Clock, LayoutDashboard, type LucideIcon, Users } from 'lucide-react';
 
 export interface NavItem {

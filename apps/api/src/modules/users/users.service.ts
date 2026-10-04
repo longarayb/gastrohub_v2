@@ -1,10 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  type CreateUserInput,
-  Role,
-  type UpdateUserInput,
-  assignableRoles,
-} from '@gastrohub/shared';
+import { type CreateUserInput, Role, type UpdateUserInput, assignableRoles } from '@app/shared';
 import { AuditAction, AuditService } from '../../core/audit/audit.service.js';
 import {
   ConflictError,

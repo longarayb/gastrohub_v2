@@ -21,7 +21,7 @@ describe('Auth (e2e)', () => {
   it('registers a restaurant and returns an owner session with refresh cookie', async () => {
     const store = await registerStore(ctx, { tradeName: 'Pizzaria do João' });
     expect(store.accessToken).toBeTruthy();
-    expect(store.cookie).toMatch(/^gh_refresh=/);
+    expect(store.cookie).toMatch(/^app_refresh=/);
 
     const me = await ctx
       .http()

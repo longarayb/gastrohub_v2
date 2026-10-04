@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  BRAND,
   ROLE_LABELS,
   type Role,
   assignableRoles,
@@ -8,10 +9,10 @@ import {
   formatDateTime,
   formatPhone,
   updateUserSchema,
-} from '@gastrohub/shared';
-import { Badge } from '@gastrohub/ui/components/badge';
-import { Button } from '@gastrohub/ui/components/button';
-import { Card } from '@gastrohub/ui/components/card';
+} from '@app/shared';
+import { Badge } from '@app/ui/components/badge';
+import { Button } from '@app/ui/components/button';
+import { Card } from '@app/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -19,16 +20,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@gastrohub/ui/components/dialog';
-import { Skeleton, Switch } from '@gastrohub/ui/components/misc';
+} from '@app/ui/components/dialog';
+import { Skeleton, Switch } from '@app/ui/components/misc';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@gastrohub/ui/components/select';
-import { toast } from '@gastrohub/ui/components/sonner';
+} from '@app/ui/components/select';
+import { toast } from '@app/ui/components/sonner';
 import {
   Table,
   TableBody,
@@ -36,7 +37,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@gastrohub/ui/components/table';
+} from '@app/ui/components/table';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, UserPlus } from 'lucide-react';
 import { useState } from 'react';
@@ -120,7 +121,7 @@ function CreateUserDialog({
         <DialogHeader>
           <DialogTitle>Novo usuário</DialogTitle>
           <DialogDescription>
-            Se o e-mail já tiver conta no GastroHub, ele ganha acesso a esta unidade.
+            Se o e-mail já tiver conta no {BRAND.name}, ele ganha acesso a esta unidade.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>

@@ -6,7 +6,7 @@ import {
   type UpdateStoreInput,
   isOpenAt,
   toLocalTime,
-} from '@gastrohub/shared';
+} from '@app/shared';
 import { AuditAction, AuditService } from '../../core/audit/audit.service.js';
 import { ConflictError, NotFoundError } from '../../core/errors/domain-error.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';

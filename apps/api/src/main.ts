@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { BRAND } from '@app/shared';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
@@ -14,8 +15,8 @@ async function bootstrap(): Promise<void> {
   const config = app.get(AppConfig);
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('GastroHub API')
-    .setDescription('API do GastroHub V2 — gestão para restaurantes, bares e deliveries')
+    .setTitle(`${config.get('APP_NAME')} API`)
+    .setDescription(BRAND.tagline)
     .setVersion('0.1.0')
     .addBearerAuth()
     .build();

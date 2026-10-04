@@ -11,7 +11,7 @@ import {
   createStoreSchema,
   storeSettingsSchema,
   updateStoreSchema,
-} from '@gastrohub/shared';
+} from '@app/shared';
 import { type UploadedImage, assertImage } from '../../core/storage/storage.js';
 import { ApiZodBody, ZBody } from '../../core/validation/zod.js';
 import { RequirePermissions } from '../auth/auth.decorators.js';

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Role } from '@gastrohub/shared';
+import type { Role } from '@app/shared';
 import { ClsService, type ClsStore } from 'nestjs-cls';
 import { UnauthorizedError } from '../errors/domain-error.js';
 

@@ -1,4 +1,4 @@
-import type { ApiErrorBody, AuthSession } from '@gastrohub/shared';
+import type { ApiErrorBody, AuthSession } from '@app/shared';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333';
 

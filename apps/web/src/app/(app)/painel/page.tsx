@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardDescription, CardHeader, CardTitle } from '@gastrohub/ui/components/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@app/ui/components/card';
 import { Page } from '@/components/page';
 import { useSession } from '@/lib/auth';
 

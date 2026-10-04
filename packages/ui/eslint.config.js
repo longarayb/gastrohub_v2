@@ -1,4 +1,4 @@
-import { next } from '@gastrohub/config/eslint/next';
+import { next } from '@app/config/eslint/next';
 
 export default [
   ...next,

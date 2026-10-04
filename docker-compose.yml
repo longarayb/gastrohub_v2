@@ -1,4 +1,4 @@
-name: gastrohub
+name: app
 
 # Default: only infrastructure (apps run on the host via `pnpm dev`).
 # Full stack in containers: `docker compose --profile full up --build`.
@@ -8,9 +8,9 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: gastrohub
-      POSTGRES_PASSWORD: gastrohub_dev
-      POSTGRES_DB: gastrohub
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app_dev
+      POSTGRES_DB: app_db
       TZ: UTC
     ports:
       - '5432:5432'
@@ -18,7 +18,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U gastrohub -d gastrohub']
+      test: ['CMD-SHELL', 'pg_isready -U app -d app_db']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -56,7 +56,7 @@ services:
       dockerfile: docker/api.Dockerfile
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://gastrohub:gastrohub_dev@postgres:5432/gastrohub?schema=public
+      DATABASE_URL: postgresql://app:app_dev@postgres:5432/app_db?schema=public
       REDIS_URL: redis://redis:6379
       SMTP_HOST: mailpit
     ports:

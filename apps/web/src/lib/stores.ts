@@ -1,4 +1,4 @@
-import type { BusinessHour } from '@gastrohub/shared';
+import type { BusinessHour } from '@app/shared';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from './api';
 

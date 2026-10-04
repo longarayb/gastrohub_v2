@@ -8,8 +8,8 @@ import {
   isValidCEP,
   storeSettingsSchema,
   updateStoreSchema,
-} from '@gastrohub/shared';
-import { Button } from '@gastrohub/ui/components/button';
+} from '@app/shared';
+import { Button } from '@app/ui/components/button';
 import {
   Card,
   CardContent,
@@ -17,9 +17,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@gastrohub/ui/components/card';
-import { Skeleton, Switch } from '@gastrohub/ui/components/misc';
-import { toast } from '@gastrohub/ui/components/sonner';
+} from '@app/ui/components/card';
+import { Skeleton, Switch } from '@app/ui/components/misc';
+import { toast } from '@app/ui/components/sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ImageUp, Store } from 'lucide-react';
 import { useEffect, useRef } from 'react';

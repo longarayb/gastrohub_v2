@@ -16,6 +16,9 @@ export class SmtpMailProvider implements MailProvider {
   }
 
   async send(message: MailMessage): Promise<void> {
-    await this.transporter.sendMail({ from: this.config.get('SMTP_FROM'), ...message });
+    await this.transporter.sendMail({
+      from: { name: this.config.get('APP_NAME'), address: this.config.get('MAIL_FROM_ADDRESS') },
+      ...message,
+    });
   }
 }

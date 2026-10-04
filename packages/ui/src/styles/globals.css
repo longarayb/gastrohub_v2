@@ -14,9 +14,8 @@
   --card-foreground: oklch(0.2 0.01 60);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.01 60);
-  /* Brand: warm orange (food service) */
-  --primary: oklch(0.64 0.19 42);
-  --primary-foreground: oklch(0.99 0 0);
+  /* --primary, --primary-foreground and --ring come from BRAND (@app/shared brand.ts),
+     injected by each app layout via brandCssVariables(). */
   --secondary: oklch(0.95 0.008 75);
   --secondary-foreground: oklch(0.25 0.01 60);
   --muted: oklch(0.95 0.006 75);
@@ -33,7 +32,6 @@
   --info-foreground: oklch(0.99 0 0);
   --border: oklch(0.9 0.008 75);
   --input: oklch(0.88 0.008 75);
-  --ring: oklch(0.64 0.19 42);
   --sidebar: oklch(0.97 0.004 75);
   --sidebar-foreground: oklch(0.2 0.01 60);
 }
@@ -45,8 +43,6 @@
   --card-foreground: oklch(0.96 0.004 75);
   --popover: oklch(0.21 0.007 60);
   --popover-foreground: oklch(0.96 0.004 75);
-  --primary: oklch(0.7 0.18 45);
-  --primary-foreground: oklch(0.16 0.01 60);
   --secondary: oklch(0.27 0.008 60);
   --secondary-foreground: oklch(0.96 0.004 75);
   --muted: oklch(0.26 0.007 60);
@@ -63,7 +59,6 @@
   --info-foreground: oklch(0.16 0.01 60);
   --border: oklch(0.32 0.008 60);
   --input: oklch(0.34 0.008 60);
-  --ring: oklch(0.7 0.18 45);
   --sidebar: oklch(0.19 0.006 60);
   --sidebar-foreground: oklch(0.96 0.004 75);
 }

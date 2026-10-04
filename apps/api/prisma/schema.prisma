@@ -1,4 +1,4 @@
-// GastroHub V2 — database schema
+// Database schema
 // Rules:
 //  - Money is always an integer in cents (fields ending in `Cents`).
 //  - Percentages are integers in basis points (fields ending in `Bps`, 1000 = 10%).

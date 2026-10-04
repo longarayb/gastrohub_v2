@@ -1,5 +1,5 @@
 {
-  "name": "@gastrohub/ui",
+  "name": "@app/ui",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -32,7 +32,7 @@
     "react-dom": ">=19"
   },
   "devDependencies": {
-    "@gastrohub/config": "workspace:*",
+    "@app/config": "workspace:*",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "eslint": "^10.12.0",

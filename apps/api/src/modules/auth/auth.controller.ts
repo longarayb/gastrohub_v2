@@ -14,14 +14,14 @@ import {
   registerSchema,
   resetPasswordSchema,
   switchStoreSchema,
-} from '@gastrohub/shared';
+} from '@app/shared';
 import type { CookieOptions, Request, Response } from 'express';
 import { AppConfig } from '../../core/config/app-config.service.js';
 import { ApiZodBody, ZBody } from '../../core/validation/zod.js';
 import { type AuthUser, CurrentUser, Public } from './auth.decorators.js';
 import { AuthService, type RequestMeta, type SessionWithRefresh } from './auth.service.js';
 
-export const REFRESH_COOKIE = 'gh_refresh';
+export const REFRESH_COOKIE = 'app_refresh';
 
 @ApiTags('auth')
 @Controller('auth')

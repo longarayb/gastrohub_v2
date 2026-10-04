@@ -1,6 +1,6 @@
 import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { type AccessTokenPayload, type Permission, hasPermission } from '@gastrohub/shared';
+import { type AccessTokenPayload, type Permission, hasPermission } from '@app/shared';
 import { ForbiddenError } from '../../core/errors/domain-error.js';
 import { PERMISSIONS_KEY } from './auth.decorators.js';
 
