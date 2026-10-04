@@ -2,6 +2,8 @@
 
 Memória do projeto para sessões do Claude Code. Mantenha este arquivo atualizado ao final de cada etapa.
 
+> **Requisitos completos do produto:** [docs/PROMPT_INICIAL.md](docs/PROMPT_INICIAL.md) (texto integral do prompt inicial, incluindo escopo da Fase 1, seção 0.1 sobre o nome provisório e o que fica fora do escopo). Consulte-o antes de começar cada etapa; este CLAUDE.md resume decisões e convenções, não substitui os requisitos.
+
 ## Produto
 
 SaaS de gestão para food service no Brasil (restaurantes, bares, lanchonetes, pizzarias, deliveries), no segmento de Saipos/Suitable.
