@@ -6,19 +6,74 @@ Sistema SaaS de gestão para restaurantes, bares, lanchonetes, pizzarias e deliv
 
 ## Pré-requisitos (Windows)
 
-- [Node.js LTS](https://nodejs.org) (24.x)
-- pnpm via corepack: `corepack enable pnpm`
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) com backend WSL2
-- [Git](https://git-scm.com)
+| Ferramenta | Versão | Instalação |
+|---|---|---|
+| Node.js | 24 LTS | `winget install OpenJS.NodeJS.LTS` |
+| pnpm | 12 (via corepack) | `corepack enable pnpm` |
+| Docker Desktop | com backend WSL2 | `wsl --install` e `winget install Docker.DockerDesktop` |
+| Git | 2.4x+ | `winget install Git.Git` |
+
+> Funciona igualmente no PowerShell e no Git Bash. Os scripts não dependem de shell Unix.
+
+## Primeiros passos
+
+```powershell
+git clone https://github.com/longarayb/gastrohub_v2.git
+cd gastrohub_v2
+corepack enable pnpm
+pnpm install
+pnpm bootstrap  # cria .env, sobe Postgres/Redis/Mailpit, aplica migrations e popula o seed
+pnpm dev        # sobe a infraestrutura e todas as apps em modo watch
+```
+
+| Serviço | URL |
+|---|---|
+| Painel / PDV / KDS (`apps/web`) | http://localhost:3000 |
+| Cardápio digital (`apps/menu`) | http://localhost:3001 |
+| API REST (`apps/api`) | http://localhost:3333/api |
+| Swagger | http://localhost:3333/docs |
+| Mailpit (e-mails de dev) | http://localhost:8025 |
+
+## Comandos
+
+| Comando | O que faz |
+|---|---|
+| `pnpm dev` | Sobe Docker (Postgres, Redis, Mailpit), aplica migrations e roda api/web/menu com hot reload |
+| `pnpm infra:up` / `pnpm infra:down` | Sobe/derruba só a infraestrutura Docker |
+| `pnpm build` | Build de todos os pacotes |
+| `pnpm lint` / `pnpm typecheck` | ESLint / TypeScript |
+| `pnpm test` | Testes unitários (Vitest) |
+| `pnpm test:e2e` | Testes e2e da API (requer Docker rodando) |
+| `pnpm db:migrate` | Cria/aplica migration em desenvolvimento (`prisma migrate dev`) |
+| `pnpm db:seed` | Popula dados de demonstração |
+| `pnpm db:reset` | Recria o banco do zero (apaga dados!) |
+| `pnpm db:studio` | Abre o Prisma Studio |
+| `pnpm format` | Formata o código com Prettier |
+
+### Tudo em containers
+
+```powershell
+docker compose --profile full up --build
+```
 
 ## Estrutura
 
 ```
-apps/api       API NestJS (REST + WebSocket)
-apps/web       Painel administrativo, PDV, KDS (Next.js)
+apps/api       API NestJS (REST + WebSocket), Prisma, BullMQ
+apps/web       Painel administrativo, PDV, gestão de pedidos, mesas, KDS (Next.js)
 apps/menu      Cardápio digital público (Next.js)
-packages/      shared (tipos, Zod, utils), ui, config
-docs/          arquitetura, decisões, roadmap
+packages/shared  Tipos, schemas Zod, utils BR (moeda, CPF/CNPJ, telefone, CEP) e regras de cálculo
+packages/ui      Componentes shadcn/ui compartilhados e tema (claro/escuro)
+packages/config  tsconfig e ESLint compartilhados
+docs/          Arquitetura, decisões técnicas e roadmap
 ```
 
-Instruções completas de instalação, execução e credenciais de demonstração serão adicionadas ao concluir a fundação.
+## Credenciais de demonstração
+
+Serão documentadas aqui quando o seed estiver pronto. São **apenas para demonstração** e não devem ser usadas em produção.
+
+## Documentação
+
+- [docs/ARQUITETURA.md](docs/ARQUITETURA.md)
+- [docs/DECISOES.md](docs/DECISOES.md)
+- [docs/ROADMAP.md](docs/ROADMAP.md)
