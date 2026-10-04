@@ -8,7 +8,6 @@ import {
   hasPermission,
 } from '@app/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, refreshSession, setAccessToken, setSessionHandlers } from './api';
 
@@ -31,7 +30,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSessionState] = useState<AuthSession | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   const setSession = useCallback((next: AuthSession | null) => {
     setAccessToken(next?.accessToken ?? null);
@@ -89,10 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await api('/auth/logout', { method: 'POST', noRetry: true }).catch(() => undefined);
-    setSession(null);
-    queryClient.clear();
-    router.replace('/login');
-  }, [queryClient, router, setSession]);
+    // Full navigation: drops all in-memory state and avoids the protected layout
+    // redirecting to /login?next=<current page>, which the next user may not access.
+    setAccessToken(null);
+    window.location.replace('/login');
+  }, []);
 
   const switchStore = useCallback(
     async (storeId: string) => {

@@ -26,7 +26,11 @@ export function useZodForm<S extends z.ZodType<FieldValues, FieldValues>>(
   return useForm<z.input<S>, unknown, z.output<S>>({
     resolver: zodResolver(schema as never) as never,
     defaultValues,
-    mode: 'onTouched',
+    // Validate on the first submit, then on every change. Validating on blur made error
+    // messages appear between mousedown and mouseup when leaving a field to click a link,
+    // shifting the layout and swallowing the click.
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
   });
 }
 
