@@ -48,6 +48,7 @@ export function toStoreDto(store: Store) {
       takeoutEtaMinutes: store.takeoutEtaMinutes,
       autoAcceptDigitalOrders: store.autoAcceptDigitalOrders,
       pizzaPricingRule: store.pizzaPricingRule,
+      serviceFeeOrderTypes: store.serviceFeeOrderTypes,
     },
   };
 }
