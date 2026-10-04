@@ -182,6 +182,26 @@ export function PauseBadge({ item }: { item: { isPaused: boolean; pausedUntil: s
   );
 }
 
+/** Runs a pause/resume call, refreshes menu data and shows a toast. */
+export function usePauseActions(onChanged?: () => void) {
+  const invalidate = useInvalidateMenu();
+  const [busy, setBusy] = useState(false);
+  const run = async (action: () => Promise<unknown>, message: string) => {
+    setBusy(true);
+    try {
+      await action();
+      await invalidate();
+      onChanged?.();
+      toast.success(message);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { busy, run };
+}
+
 /**
  * One-click "Acabou" (until the end of the business day) with a menu for indefinite
  * pause and resume.
@@ -201,23 +221,8 @@ export function PauseButton({
   className?: string;
   onChanged?: () => void;
 }) {
-  const invalidate = useInvalidateMenu();
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = usePauseActions(onChanged);
   const paused = isPausedNow(item);
-
-  const run = async (action: () => Promise<unknown>, message: string) => {
-    setBusy(true);
-    try {
-      await action();
-      await invalidate();
-      onChanged?.();
-      toast.success(message);
-    } catch (error) {
-      toast.error(errorMessage(error));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   if (paused) {
     return (

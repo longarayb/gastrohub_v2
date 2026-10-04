@@ -8,6 +8,7 @@ import {
   SALES_CHANNEL_LABELS,
   type SalesChannel,
   formatBRL,
+  isPausedNow,
 } from '@app/shared';
 import { Badge } from '@app/ui/components/badge';
 import { Button } from '@app/ui/components/button';
@@ -37,8 +38,10 @@ import {
   Eye,
   ImageOff,
   MoreVertical,
+  PauseCircle,
   Pencil,
   Pizza,
+  Play,
   Plus,
   Search,
   Trash2,
@@ -48,13 +51,26 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDeferredValue, useState } from 'react';
 import { CategoryDialog } from '@/components/menu/category-dialog';
-import { ChannelBadges, PauseBadge, PauseButton } from '@/components/menu/menu-fields';
+import {
+  ChannelBadges,
+  PauseBadge,
+  PauseButton,
+  usePauseActions,
+} from '@/components/menu/menu-fields';
 import { ProductPreviewDialog } from '@/components/menu/product-preview-dialog';
 import { DragHandle, SortableList } from '@/components/menu/sortable-list';
 import { EmptyState, Page } from '@/components/page';
 import { apiDelete, apiPost, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { menuKeys, useCategories, useInvalidateMenu, useProducts, useSectors } from '@/lib/menu';
+import {
+  menuKeys,
+  pauseItem,
+  resumeItem,
+  useCategories,
+  useInvalidateMenu,
+  useProducts,
+  useSectors,
+} from '@/lib/menu';
 
 type Status = 'all' | 'active' | 'paused';
 const ALL = '__all__';
@@ -86,6 +102,9 @@ function CategoryRow({
   canPause: boolean;
   sortable: boolean;
 }) {
+  const { run } = usePauseActions();
+  const target = { kind: 'category' as const, id: category.id };
+  const paused = isPausedNow(category);
   return (
     <div
       className={cn(
@@ -125,6 +144,34 @@ function CategoryRow({
                 <Pencil /> Editar
               </DropdownMenuItem>
             )}
+            {canPause &&
+              (paused ? (
+                <DropdownMenuItem
+                  onSelect={() => run(() => resumeItem(target), 'Categoria disponível novamente')}
+                >
+                  <Play /> Reativar categoria
+                </DropdownMenuItem>
+              ) : (
+                <>
+                  <DropdownMenuItem
+                    onSelect={() =>
+                      run(
+                        () => pauseItem(target, 'END_OF_DAY'),
+                        'Categoria pausada até o fim do dia',
+                      )
+                    }
+                  >
+                    <PauseCircle /> Acabou (até o fim do dia)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() =>
+                      run(() => pauseItem(target, 'INDEFINITE'), 'Categoria pausada até reativar')
+                    }
+                  >
+                    <PauseCircle /> Pausar até reativar
+                  </DropdownMenuItem>
+                </>
+              ))}
             {canManage && (
               <>
                 <DropdownMenuSeparator />
@@ -135,13 +182,6 @@ function CategoryRow({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-      )}
-      {canPause && (
-        <PauseButton
-          target={{ kind: 'category', id: category.id }}
-          item={category}
-          label="Pausar"
-        />
       )}
     </div>
   );
@@ -359,7 +399,23 @@ export default function MenuPage() {
       }
     >
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-        <aside className="space-y-2">
+        {/* Small screens: compact category picker instead of the full list. */}
+        <div className="lg:hidden">
+          <Select value={categoryId} onValueChange={setCategoryId}>
+            <SelectTrigger aria-label="Categoria">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Todas as categorias</SelectItem>
+              {categories?.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name} ({c.productCount})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <aside className="hidden space-y-2 lg:block">
           <button
             type="button"
             onClick={() => setCategoryId(ALL)}
