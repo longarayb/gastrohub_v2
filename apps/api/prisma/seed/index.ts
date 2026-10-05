@@ -114,6 +114,11 @@ async function main(): Promise<void> {
         latitude: -23.5649,
         longitude: -46.6519,
         pizzaPricingRule: 'HIGHEST',
+        // Demo PIX key (fictitious): the QR Code is valid but pays no one.
+        pixKeyType: 'EMAIL',
+        pixKey: 'pix@demo.local',
+        pixMerchantName: `${BRAND.name} Demo`.slice(0, 25),
+        pixMerchantCity: 'São Paulo',
         businessHours: { createMany: { data: HOURS } },
       },
     });
@@ -137,6 +142,7 @@ async function main(): Promise<void> {
     const orders = await seedOrders(prisma, store.id, {
       cashierId: userIds.CASHIER!,
       waiterId: userIds.WAITER!,
+      managerId: userIds.MANAGER!,
     });
 
     console.log(`\n✔ Unidade "${store.tradeName}" (slug: ${store.slug})`);
@@ -146,7 +152,10 @@ async function main(): Promise<void> {
       `✔ Cardápio: ${menu.categories} categorias, ${menu.products} produtos, ${menu.groups} grupos de complementos`,
     );
     console.log(
-      `✔ Pedidos de hoje: ${orders.orders} · ${orders.tables} mesas · ${orders.customers} clientes · cupons BEMVINDO10 e FRETEGRATIS\n`,
+      `✔ Pedidos de hoje: ${orders.orders} · ${orders.tables} mesas · ${orders.customers} clientes · cupons BEMVINDO10 e FRETEGRATIS`,
+    );
+    console.log(
+      `✔ Caixas: ${orders.cashSessions} (gerente: fechado com diferença; caixa: aberto) · PIX pix@demo.local\n`,
     );
   } finally {
     await prisma.$disconnect();

@@ -6,6 +6,7 @@
 import { randomInt } from 'node:crypto';
 import {
   type BusinessHour,
+  type CardBrand,
   type MenuItemPricing,
   type OrderItemStatus,
   type OrderSource,
@@ -14,9 +15,13 @@ import {
   type PaymentMethod,
   type PricedModifier,
   calculateOrderTotals,
+  cashSessionCount,
+  cashSessionTotals,
   currentBusinessDay,
   defaultServiceFeeBps,
+  paymentSummary,
   priceMenuItem,
+  splitEvenly,
 } from '@app/shared';
 import type { PrismaClient } from '../../src/generated/prisma/client.js';
 
@@ -73,8 +78,8 @@ interface OrderSpec {
 export async function seedOrders(
   prisma: PrismaClient,
   tenantId: string,
-  users: { cashierId: string; waiterId: string },
-): Promise<{ orders: number; tables: number; customers: number }> {
+  users: { cashierId: string; waiterId: string; managerId: string },
+): Promise<{ orders: number; tables: number; customers: number; cashSessions: number }> {
   const store = await prisma.store.findUniqueOrThrow({ where: { id: tenantId } });
   const hours = (await prisma.businessHours.findMany({
     where: { tenantId },
@@ -439,11 +444,109 @@ export async function seedOrders(
       },
     });
 
-  const { cashierId, waiterId } = users;
+  const { cashierId, waiterId, managerId } = users;
+
+  // ---- Cash registers (D024): the manager's morning register, closed further below with a
+  // difference, and the cashier's register open now ----
+  const morning = await prisma.cashSession.create({
+    data: {
+      tenantId,
+      businessDate,
+      operatorId: managerId,
+      openOperatorId: managerId,
+      openingCents: 15_000,
+      openedAt: minutesAgo(now, 200),
+      openedById: managerId,
+    },
+  });
+  const current = await prisma.cashSession.create({
+    data: {
+      tenantId,
+      businessDate,
+      operatorId: cashierId,
+      openOperatorId: cashierId,
+      openingCents: 20_000,
+      openedAt: minutesAgo(now, 95),
+      openedById: cashierId,
+    },
+  });
+  await prisma.cashMovement.createMany({
+    data: [
+      {
+        tenantId,
+        sessionId: morning.id,
+        type: 'WITHDRAWAL',
+        amountCents: 10_000,
+        reason: 'Depósito no cofre',
+        createdById: managerId,
+        createdAt: minutesAgo(now, 120),
+      },
+      {
+        tenantId,
+        sessionId: current.id,
+        type: 'SUPPLY',
+        amountCents: 5_000,
+        reason: 'Reforço de troco',
+        createdById: cashierId,
+        createdAt: minutesAgo(now, 60),
+      },
+    ],
+  });
+
+  /** Records a payment and keeps the order's paid amount and status in sync (like the API). */
+  async function pay(
+    order: { id: string; totalCents: number; publicCode: string },
+    method: PaymentMethod,
+    options: {
+      age: number;
+      sessionId: string | null;
+      userId: string;
+      amountCents?: number;
+      receivedCents?: number;
+      cardBrand?: CardBrand;
+      authorizationCode?: string;
+      externalRef?: string;
+    },
+  ) {
+    const amountCents = options.amountCents ?? order.totalCents;
+    const receivedCents = method === 'CASH' ? (options.receivedCents ?? amountCents) : null;
+    await prisma.payment.create({
+      data: {
+        tenantId,
+        orderId: order.id,
+        method,
+        amountCents,
+        receivedCents,
+        changeCents: receivedCents === null ? null : receivedCents - amountCents,
+        cashSessionId: options.sessionId,
+        externalRef: method === 'PIX' ? order.publicCode : (options.externalRef ?? null),
+        cardBrand: options.cardBrand ?? null,
+        authorizationCode: options.authorizationCode ?? null,
+        createdById: options.userId,
+        createdAt: minutesAgo(now, options.age),
+      },
+    });
+    const paid = await prisma.payment.aggregate({
+      where: { orderId: order.id, status: 'CONFIRMED' },
+      _sum: { amountCents: true },
+    });
+    const paidCents = paid._sum.amountCents ?? 0;
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        paidCents,
+        paymentStatus: paymentSummary(order.totalCents, [
+          { amountCents: paidCents, status: 'CONFIRMED' },
+        ]).status,
+      },
+    });
+  }
+  /** Cash handed over rounded up to the next R$ 10 (so the demo shows change). */
+  const roundUp = (cents: number) => Math.ceil(cents / 1_000) * 1_000;
   const point = { group: 'Ponto da carne', name: 'Ao ponto' };
 
-  // Finished earlier today
-  await createOrder({
+  // Finished earlier today (paid in the manager's morning register)
+  const pickup = await createOrder({
     type: 'TAKEOUT',
     status: 'DELIVERED',
     age: 180,
@@ -461,7 +564,8 @@ export async function seedOrders(
     payment: 'PIX',
     userId: cashierId,
   });
-  await createOrder({
+  await pay(pickup, 'PIX', { age: 175, sessionId: morning.id, userId: managerId });
+  const delivered = await createOrder({
     type: 'DELIVERY',
     status: 'DELIVERED',
     age: 150,
@@ -482,6 +586,13 @@ export async function seedOrders(
     payment: 'CREDIT_CARD',
     userId: cashierId,
   });
+  await pay(delivered, 'CREDIT_CARD', {
+    age: 110,
+    sessionId: morning.id,
+    userId: managerId,
+    cardBrand: 'MASTERCARD',
+    authorizationCode: '482913',
+  });
   await createOrder({
     type: 'TAKEOUT',
     status: 'CANCELED',
@@ -496,7 +607,7 @@ export async function seedOrders(
 
   // Table 4: closed tab with the service fee removed at the customer's request
   const closed = await session([tables[3]!.id], 140);
-  await createOrder({
+  const tableFour = await createOrder({
     type: 'DINE_IN',
     status: 'DELIVERED',
     age: 140,
@@ -513,6 +624,12 @@ export async function seedOrders(
     ],
     waiveServiceFee: 'Cliente pediu para retirar a taxa',
     userId: waiterId,
+  });
+  await pay(tableFour, 'CASH', {
+    age: 75,
+    sessionId: morning.id,
+    userId: managerId,
+    receivedCents: roundUp(tableFour.totalCents),
   });
   await prisma.tableSession.update({
     where: { id: closed.id },
@@ -546,7 +663,8 @@ export async function seedOrders(
     notes: 'Interfone quebrado, ligar quando chegar',
     userId: cashierId,
   });
-  await createOrder({
+  // Paid in the app: settled without a cash register (never in the register's totals).
+  const ifood = await createOrder({
     type: 'TAKEOUT',
     source: 'IFOOD',
     externalDisplayId: 'iFood 4821',
@@ -556,6 +674,12 @@ export async function seedOrders(
     customer: pedro,
     payment: 'ONLINE',
     userId: cashierId,
+  });
+  await pay(ifood, 'ONLINE', {
+    age: 4,
+    sessionId: null,
+    userId: cashierId,
+    externalRef: 'iFood 4821',
   });
   await createOrder({
     type: 'TAKEOUT',
@@ -670,7 +794,7 @@ export async function seedOrders(
     ],
     userId: waiterId,
   });
-  await createOrder({
+  const fernanda = await createOrder({
     type: 'DINE_IN',
     status: 'READY',
     age: 50,
@@ -687,6 +811,13 @@ export async function seedOrders(
       },
     ],
     userId: waiterId,
+  });
+  // Half of Fernanda's tab paid by PIX (even split by 2): the tab stays open, "Pago em parte".
+  await pay(fernanda, 'PIX', {
+    age: 6,
+    sessionId: current.id,
+    userId: cashierId,
+    amountCents: splitEvenly(fernanda.totalCents, 2)[0],
   });
 
   // Table 7: tab with a round not sent yet
@@ -709,8 +840,66 @@ export async function seedOrders(
     userId: waiterId,
   });
 
+  // Delivered by the courier, who still has to settle the cash ("Delivery a receber").
+  await createOrder({
+    type: 'DELIVERY',
+    status: 'DELIVERED',
+    age: 70,
+    rounds: [
+      {
+        sent: true,
+        age: 70,
+        items: [
+          { pricing: item('X-Salada', { quantity: 2, mods: [point] }) },
+          { pricing: item('Guaraná', { size: '2 L' }) },
+        ],
+      },
+    ],
+    customer: mariana,
+    courierId: courier.id,
+    deliveryFeeCents: 600,
+    payment: 'CASH',
+    changeForCents: 10_000,
+    userId: cashierId,
+  });
+
+  // The morning register closes with R$ 2,50 missing in cash (same rules as the API).
+  const received = await prisma.payment.findMany({ where: { cashSessionId: morning.id } });
+  const movements = await prisma.cashMovement.findMany({ where: { sessionId: morning.id } });
+  const totals = cashSessionTotals({
+    openingCents: morning.openingCents,
+    movements,
+    received,
+    refunded: [],
+  });
+  const count = cashSessionCount(
+    totals,
+    Object.fromEntries(
+      totals.methods.map((m) => [m.method, m.expectedCents - (m.method === 'CASH' ? 250 : 0)]),
+    ),
+  );
+  await prisma.cashSession.update({
+    where: { id: morning.id },
+    data: {
+      status: 'CLOSED',
+      openOperatorId: null,
+      closedAt: minutesAgo(now, 70),
+      closedById: managerId,
+      closingNotes: 'Faltaram moedas no troco',
+      version: 1,
+    },
+  });
+  await prisma.cashSessionCount.createMany({
+    data: count.lines.map((line) => ({ tenantId, sessionId: morning.id, ...line })),
+  });
+
   await prisma.orderSequence.create({ data: { tenantId, businessDate, lastNumber: number } });
   await prisma.coupon.update({ where: { id: bemVindo.id }, data: { usedCount: couponUses } });
 
-  return { orders: number, tables: tables.length, customers: savedCustomers.length };
+  return {
+    orders: number,
+    tables: tables.length,
+    customers: savedCustomers.length,
+    cashSessions: 2,
+  };
 }
