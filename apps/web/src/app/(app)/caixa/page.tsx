@@ -155,7 +155,7 @@ function MovementDialog({
     setBusy(true);
     try {
       await refresh(await addCashMovement({ type, amountCents: amount, reason: reason.trim() }));
-      toast.success(`${CASH_MOVEMENT_TYPE_LABELS[type]} registrado`);
+      toast.success(`Movimentação registrada: ${CASH_MOVEMENT_TYPE_LABELS[type].toLowerCase()}`);
       onOpenChange(false);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -556,13 +556,43 @@ function MovementsCard({ session }: { session: CashSessionDetailDto }) {
   );
 }
 
-/** Registers of a day (managers: everyone's), with report and reopening. */
-function SessionsCard({ onPrint }: { onPrint: (id: string) => void }) {
-  const { can } = useAuth();
+/** A manager closes another operator's register (shift change, operator gone). */
+function CloseOtherDialog({
+  sessionId,
+  onDone,
+  onClosed,
+}: {
+  sessionId: string;
+  onDone: () => void;
+  onClosed: (session: CashSessionDetailDto) => void;
+}) {
+  const { data: session } = useCashSession(sessionId);
+  if (!session) return null;
+  return (
+    <CloseCashDialog
+      session={session}
+      open
+      onOpenChange={(o) => !o && onDone()}
+      onClosed={onClosed}
+    />
+  );
+}
+
+/** Registers of a day (managers: everyone's), with report, closing and reopening. */
+function SessionsCard({
+  onPrint,
+  onClosed,
+}: {
+  onPrint: (id: string) => void;
+  onClosed: (session: CashSessionDetailDto) => void;
+}) {
+  const { can, session: auth } = useAuth();
   const refresh = useRefreshCash();
   const [date, setDate] = useState(() => toBusinessDate());
   const { data: sessions, isLoading } = useCashSessions(date);
   const [reopening, setReopening] = useState<CashSessionDto | null>(null);
+  const [closingOther, setClosingOther] = useState<string | null>(null);
+  const manager = can(Permission.CASH_MANAGE);
 
   return (
     <Card>
@@ -607,9 +637,14 @@ function SessionsCard({ onPrint }: { onPrint: (id: string) => void }) {
                 <Button size="sm" variant="ghost" onClick={() => onPrint(s.id)}>
                   <Printer /> Relatório
                 </Button>
-                {s.status === 'CLOSED' && can(Permission.CASH_MANAGE) && (
+                {s.status === 'CLOSED' && manager && (
                   <Button size="sm" variant="outline" onClick={() => setReopening(s)}>
                     Reabrir
+                  </Button>
+                )}
+                {s.status === 'OPEN' && manager && s.operatorId !== auth?.user.id && (
+                  <Button size="sm" variant="outline" onClick={() => setClosingOther(s.id)}>
+                    Fechar
                   </Button>
                 )}
               </li>
@@ -633,6 +668,13 @@ function SessionsCard({ onPrint }: { onPrint: (id: string) => void }) {
           }
         }}
       />
+      {closingOther && (
+        <CloseOtherDialog
+          sessionId={closingOther}
+          onDone={() => setClosingOther(null)}
+          onClosed={onClosed}
+        />
+      )}
     </Card>
   );
 }
@@ -722,7 +764,7 @@ export default function CashPage() {
           </div>
         </div>
       )}
-      <SessionsCard onPrint={setPrinting} />
+      <SessionsCard onPrint={setPrinting} onClosed={setClosed} />
 
       <MovementDialog type={movement} onOpenChange={(o) => !o && setMovement(null)} />
       {session && (

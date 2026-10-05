@@ -293,7 +293,9 @@ await step('pizza pricing rule in store settings', async () => {
 await step('cashier can pause but not edit', async () => {
   await logout();
   await login('caixa@demo.local');
-  await page.waitForURL('**/cardapio');
+  // The cashier lands on the orders board (feat/orders); the menu is one click away.
+  await page.waitForURL('**/pedidos');
+  await page.goto(`${WEB}/cardapio`);
   await productRow('X-Salada').getByRole('button', { name: 'Acabou' }).waitFor();
   if (await page.getByRole('link', { name: 'Produto', exact: true }).count())
     throw new Error('add product visible');

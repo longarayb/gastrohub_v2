@@ -63,7 +63,8 @@ export function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn('grid gap-1.5', className)}>
+    // content-start: a field stretched by a taller neighbour (hint, error) keeps its label on top.
+    <div className={cn('grid content-start gap-1.5', className)}>
       {label && <Label htmlFor={htmlFor}>{label}</Label>}
       {children}
       {error ? (

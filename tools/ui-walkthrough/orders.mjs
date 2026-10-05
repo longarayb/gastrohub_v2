@@ -248,7 +248,10 @@ await step('stale version shows a conflict message and reloads', async () => {
   await sheet().getByRole('button', { name: 'Marcar como pronto' }).click();
   await toast(/alterado por outra pessoa|atualize|versão/i);
   await page.unroute('**/api/orders/*');
-  await sheet().getByRole('button', { name: 'Confirmar retirada' }).waitFor({ timeout: 10_000 });
+  // READY takeout without payment: the next action is receiving (D023).
+  await sheet()
+    .getByRole('button', { name: /Receber e entregar/ })
+    .waitFor({ timeout: 10_000 });
   await closeSheet();
 });
 
@@ -360,8 +363,10 @@ await step('waiter has no access to discounts', async () => {
     throw new Error('discount visible to waiter');
   if (await sheet().getByRole('button', { name: 'Cancelar pedido' }).count())
     throw new Error('cancel visible to waiter');
-  await sheet().getByRole('button', { name: 'Fechar conta' }).click();
-  await sheet().getByText('Conta fechada').first().waitFor();
+  // Closing needs the balance received first, and waiters do not receive payments.
+  const receive = sheet().getByRole('button', { name: /Receber e fechar/ });
+  await receive.waitFor();
+  if (await receive.isEnabled()) throw new Error('waiter can receive payments');
   await closeSheet();
   await logout();
 });

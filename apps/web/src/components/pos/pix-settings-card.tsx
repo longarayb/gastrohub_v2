@@ -8,6 +8,7 @@ import {
   type PixKeyType,
   buildPixBrCode,
   normalizePixKey,
+  type PixSettingsInput,
   pixSettingsSchema,
 } from '@app/shared';
 import { Button } from '@app/ui/components/button';
@@ -29,7 +30,6 @@ import {
 } from '@app/ui/components/select';
 import { toast } from '@app/ui/components/sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import { Field, TextField, applyApiErrors, useZodForm } from '@/components/form';
 import { errorMessage } from '@/lib/api';
@@ -57,25 +57,24 @@ function testCode(key: string, merchantName: string, merchantCity: string): stri
 
 /** PIX key of the static QR Code (pre-bill and payment screen). */
 export function PixSettingsCard({ store }: { store: StoreDto }) {
-  const queryClient = useQueryClient();
-  const { data, isLoading } = usePixSettings();
-  const form = useZodForm(pixSettingsSchema, {
-    pixKeyType: null,
-    pixKey: '',
-    pixMerchantName: store.tradeName.slice(0, PIX_MERCHANT_NAME_MAX),
-    pixMerchantCity: store.address.city.slice(0, PIX_MERCHANT_CITY_MAX),
-  });
-
-  useEffect(() => {
-    if (data?.pixKeyType) {
-      form.reset({
+  const { data } = usePixSettings();
+  if (!data) return <Skeleton className="h-48" />;
+  // Mounted with the saved values (no reset after load); suggestions when there is no key yet.
+  return (
+    <PixSettingsForm
+      initial={{
         pixKeyType: data.pixKeyType,
         pixKey: data.pixKey ?? '',
-        pixMerchantName: data.pixMerchantName ?? '',
-        pixMerchantCity: data.pixMerchantCity ?? '',
-      });
-    }
-  }, [data, form]);
+        pixMerchantName: data.pixMerchantName ?? store.tradeName.slice(0, PIX_MERCHANT_NAME_MAX),
+        pixMerchantCity: data.pixMerchantCity ?? store.address.city.slice(0, PIX_MERCHANT_CITY_MAX),
+      }}
+    />
+  );
+}
+
+function PixSettingsForm({ initial }: { initial: PixSettingsInput }) {
+  const queryClient = useQueryClient();
+  const form = useZodForm(pixSettingsSchema, initial);
 
   const [type, key, name, city] = useWatch({
     control: form.control,
@@ -105,70 +104,66 @@ export function PixSettingsCard({ store }: { store: StoreDto }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <Skeleton className="h-40" />
-          ) : (
-            <div className="grid gap-4 md:grid-cols-[1fr_auto]">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Controller
-                  control={form.control}
-                  name="pixKeyType"
-                  render={({ field }) => (
-                    <Field label="Tipo de chave">
-                      <Select
-                        value={field.value ?? NONE}
-                        onValueChange={(v) => field.onChange(v === NONE ? null : v)}
-                      >
-                        <SelectTrigger aria-label="Tipo de chave" className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={NONE}>Sem PIX</SelectItem>
-                          {PIX_KEY_TYPES.map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {PIX_KEY_TYPE_LABELS[t]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  )}
-                />
-                {type && (
-                  <>
-                    <TextField
-                      control={form.control}
-                      name="pixKey"
-                      label="Chave"
-                      placeholder={KEY_PLACEHOLDERS[type]}
-                    />
-                    <TextField
-                      control={form.control}
-                      name="pixMerchantName"
-                      label="Nome do recebedor"
-                      hint={`Até ${PIX_MERCHANT_NAME_MAX} caracteres, como aparece no banco`}
-                      maxLength={PIX_MERCHANT_NAME_MAX}
-                    />
-                    <TextField
-                      control={form.control}
-                      name="pixMerchantCity"
-                      label="Cidade"
-                      hint={`Até ${PIX_MERCHANT_CITY_MAX} caracteres`}
-                      maxLength={PIX_MERCHANT_CITY_MAX}
-                    />
-                  </>
+          <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Controller
+                control={form.control}
+                name="pixKeyType"
+                render={({ field }) => (
+                  <Field label="Tipo de chave">
+                    <Select
+                      value={field.value ?? NONE}
+                      onValueChange={(v) => field.onChange(v === NONE ? null : v)}
+                    >
+                      <SelectTrigger aria-label="Tipo de chave" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>Sem PIX</SelectItem>
+                        {PIX_KEY_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {PIX_KEY_TYPE_LABELS[t]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
                 )}
-              </div>
-              {preview && (
-                <div className="flex flex-col items-center gap-1">
-                  <QrCode value={preview} className="size-32" />
-                  <p className="max-w-36 text-center text-xs text-muted-foreground">
-                    Teste: leia no app do banco e confira o recebedor (sem pagar).
-                  </p>
-                </div>
+              />
+              {type && (
+                <>
+                  <TextField
+                    control={form.control}
+                    name="pixKey"
+                    label="Chave"
+                    placeholder={KEY_PLACEHOLDERS[type]}
+                  />
+                  <TextField
+                    control={form.control}
+                    name="pixMerchantName"
+                    label="Nome do recebedor"
+                    hint={`Até ${PIX_MERCHANT_NAME_MAX} caracteres, como aparece no banco`}
+                    maxLength={PIX_MERCHANT_NAME_MAX}
+                  />
+                  <TextField
+                    control={form.control}
+                    name="pixMerchantCity"
+                    label="Cidade"
+                    hint={`Até ${PIX_MERCHANT_CITY_MAX} caracteres`}
+                    maxLength={PIX_MERCHANT_CITY_MAX}
+                  />
+                </>
               )}
             </div>
-          )}
+            {preview && (
+              <div className="flex flex-col items-center gap-1">
+                <QrCode value={preview} className="size-32" />
+                <p className="max-w-36 text-center text-xs text-muted-foreground">
+                  Teste: leia no app do banco e confira o recebedor (sem pagar).
+                </p>
+              </div>
+            )}
+          </div>
         </CardContent>
         <CardFooter className="justify-end border-t">
           <Button type="submit" loading={form.formState.isSubmitting}>

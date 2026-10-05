@@ -43,7 +43,9 @@ function TabReceipt({ order }: { order: OrderDetailDto }) {
       {items.map((item) => (
         <div key={item.id}>
           <ReceiptRow
-            label={`${item.quantity}x ${item.name}${item.sizeName ? ` (${item.sizeName})` : ''}`}
+            label={`${item.quantity}x ${item.name}${
+              item.sizeName && !item.name.includes(item.sizeName) ? ` (${item.sizeName})` : ''
+            }`}
             value={formatBRL(item.totalCents)}
           />
           <div className="pl-3 [&_*]:text-current">
