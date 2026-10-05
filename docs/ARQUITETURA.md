@@ -56,4 +56,16 @@
 - **Catálogo:** `CatalogService` monta o cardápio pronto para um canal (preços, grupos efetivos, disponibilidade com motivo). Usado pela pré-visualização e, depois, pelo PDV e pelo cardápio digital.
 - **Imagens:** `ImageService` (sharp → WebP 800 px + miniatura 240 px) sobre `StorageProvider` baseado em chaves (`put/copy/delete/publicUrl`).
 
-Detalhes de cada módulo serão adicionados conforme forem implementados.
+## Pedidos
+
+- **Modelo:** `Order` = uma conta. Mesa: `TableSession` (uma ou mais mesas via `TableSessionTable`) com várias contas abertas ao mesmo tempo; cada envio à produção é um `OrderRound`. Os itens guardam o `MenuItemSnapshot` e o status de produção (`DRAFT` = ainda não enviado). `OrderStatusHistory` registra cada transição; `Payment` já comporta vários pagamentos por pedido.
+- **Valores:** `calculateOrderTotals` (shared): descontos por item → desconto do pedido → cupom → taxa de serviço sobre o resultado (+ taxa de entrega). A API sempre recalcula a partir dos itens.
+- **Preço dos itens:** `priceCatalogItem` (shared) resolve o item contra o catálogo do canal (disponibilidade, tamanho, complementos, sabores). A API usa ao gravar; o painel usa para mostrar o total enquanto o pedido é montado.
+- **Concorrência:** `version` otimista (409 com mensagem em pt-BR), `Idempotency-Key` na criação, numeração diária atômica (`OrderSequence`, `INSERT ... ON CONFLICT`) pela data de negócio.
+- **Telas:** `/pedidos` (kanban + detalhe), `/pedidos/novo` (balcão, delivery e mesa; `?pedido=` adiciona rodada, `?mesa=` abre conta), `/mesas` e `/cupons`.
+
+## Tempo real
+
+- Gateway Socket.IO no namespace `/realtime`, autenticado pelo access token (`auth.token` no handshake); salas `tenant:{id}` e `tenant:{id}:sector:{id}`. Adapter Redis para várias instâncias da API.
+- Eventos (`order.created`, `order.updated`, `tables.updated`) são apenas notificações emitidas após o commit; o cliente refaz as consultas.
+- Web: `RealtimeProvider` (uma conexão por sessão) reconecta após renovar o token e refaz as consultas ao reconectar ou ao voltar o foco; `useOrderAlert` toca o aviso (WebAudio, botão "Ativar som") enquanto houver pedido pendente não aberto.

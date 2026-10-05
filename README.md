@@ -94,6 +94,8 @@ Unidade: **GastroHub Demo** (`${BRAND.name} Demo`, slug `demo`). Senha de todos 
 
 O seed pode ser rodado de novo: ele apaga e recria apenas a unidade de demonstração. Cardápio incluído: lanches com complementos herdados (e um produto que desliga um grupo herdado), combos com bebida (opção que referencia produto), porções e bebidas por tamanho, pizzas de 1 a 4 sabores com borda com preço por tamanho, sobremesas, almoço executivo só em dias úteis no almoço e um item pausado ("Onion rings").
 
+Pedidos do dia de negócio atual em todos os status (balcão, delivery e mesa): pendentes do cardápio digital e do iFood, uma mesa dupla com duas contas e duas rodadas, uma conta com itens não enviados, um pedido cancelado com motivo e uma conta fechada sem taxa de serviço. Também: 12 mesas em 2 áreas, clientes com endereço, entregadores e os cupons `BEMVINDO10` e `FRETEGRATIS`.
+
 ## Documentação
 
 - [docs/ARQUITETURA.md](docs/ARQUITETURA.md)
