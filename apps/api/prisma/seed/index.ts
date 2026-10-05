@@ -10,6 +10,7 @@ import argon2 from 'argon2';
 import { config as loadEnv } from 'dotenv';
 import { PrismaClient } from '../../src/generated/prisma/client.js';
 import { seedMenu } from './menu.js';
+import { seedOrders } from './orders.js';
 
 loadEnv({ path: path.join(import.meta.dirname, '..', '..', '..', '..', '.env'), quiet: true });
 
@@ -112,8 +113,9 @@ async function main(): Promise<void> {
     });
 
     const passwordHash = await argon2.hash(DEMO_PASSWORD, { type: argon2.argon2id });
+    const userIds: Record<string, string> = {};
     for (const user of DEMO_USERS) {
-      await prisma.user.create({
+      const created = await prisma.user.create({
         data: {
           name: user.name,
           email: user.email,
@@ -122,15 +124,23 @@ async function main(): Promise<void> {
           memberships: { create: { tenantId: store.id, role: user.role } },
         },
       });
+      userIds[user.role] = created.id;
     }
 
     const menu = await seedMenu(prisma, store.id);
+    const orders = await seedOrders(prisma, store.id, {
+      cashierId: userIds.CASHIER!,
+      waiterId: userIds.WAITER!,
+    });
 
     console.log(`\n✔ Unidade "${store.tradeName}" (slug: ${store.slug})`);
     console.log(`✔ ${DEMO_USERS.length} usuários — senha de demonstração: ${DEMO_PASSWORD}`);
     for (const u of DEMO_USERS) console.log(`    ${u.role.padEnd(8)} ${u.email}`);
     console.log(
-      `✔ Cardápio: ${menu.categories} categorias, ${menu.products} produtos, ${menu.groups} grupos de complementos\n`,
+      `✔ Cardápio: ${menu.categories} categorias, ${menu.products} produtos, ${menu.groups} grupos de complementos`,
+    );
+    console.log(
+      `✔ Pedidos de hoje: ${orders.orders} · ${orders.tables} mesas · ${orders.customers} clientes · cupons BEMVINDO10 e FRETEGRATIS\n`,
     );
   } finally {
     await prisma.$disconnect();
