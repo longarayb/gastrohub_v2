@@ -362,7 +362,8 @@ export async function seedOrders(
       });
       for (const [i, it] of round.items.entries()) {
         const line = totals.lines[lineIndex++]!;
-        // A later round of a ready tab is still being prepared.
+        // A tab with a new round goes back to PREPARING: earlier rounds stay READY
+        // (items are only marked served when the tab is closed).
         const status: OrderItemStatus = !round.sent
           ? 'DRAFT'
           : r > 0 && spec.status === 'PREPARING'
@@ -371,7 +372,7 @@ export async function seedOrders(
                 spec.type === 'DINE_IN' &&
                 spec.status === 'PREPARING' &&
                 spec.rounds.length > 1
-              ? 'SERVED'
+              ? 'READY'
               : ITEM_STATUS[
                   spec.status === 'CANCELED' ? (spec.canceledFrom ?? 'ACCEPTED') : spec.status
                 ];
