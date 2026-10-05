@@ -5,12 +5,11 @@ import type {
   OrderStatus,
   OrderType,
 } from '../domain/order-status.js';
+import type { OrderPaymentStatus } from '../domain/payments.js';
 import type { Address } from '../schemas/common.js';
 import type { PaymentMethod } from './schemas.js';
 
 /** Response DTOs of the orders API. Dates are ISO strings; money in cents. */
-
-export type OrderPaymentStatus = 'UNPAID' | 'PARTIAL' | 'PAID';
 
 export interface OrderSummaryDto {
   id: string;
