@@ -13,6 +13,8 @@ export * from './domain/order-status.js';
 export * from './domain/order-totals.js';
 export * from './domain/payments.js';
 export * from './domain/pix.js';
+export * from './delivery/schemas.js';
+export * from './delivery/types.js';
 export * from './errors.js';
 export * from './kds/schemas.js';
 export * from './kds/types.js';
