@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { type Socket, io } from 'socket.io-client';
 import { API_URL, getAccessToken, refreshSession } from './api';
 import { useAuth } from './auth';
+import { cashKeys } from './cash';
 import { orderKeys } from './orders';
 
 export type RealtimeStatus = 'connecting' | 'online' | 'offline';
@@ -49,6 +50,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     const refetchAll = () => {
       void queryClient.invalidateQueries({ queryKey: orderKeys.all });
       void queryClient.invalidateQueries({ queryKey: orderKeys.tables });
+      void queryClient.invalidateQueries({ queryKey: cashKeys.all });
     };
     // Server-side disconnects (expired token) are not retried automatically.
     const reconnectWithFreshToken = async () => {
@@ -77,6 +79,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       void queryClient.invalidateQueries({ queryKey: orderKeys.board });
       void queryClient.invalidateQueries({ queryKey: orderKeys.detail(event.id) });
       void queryClient.invalidateQueries({ queryKey: orderKeys.tables });
+      void queryClient.invalidateQueries({ queryKey: cashKeys.receivables });
+    });
+    socket.on(REALTIME_EVENTS.CASH_UPDATED, () => {
+      void queryClient.invalidateQueries({ queryKey: cashKeys.all });
     });
     socket.on(REALTIME_EVENTS.TABLES_UPDATED, () => {
       void queryClient.invalidateQueries({ queryKey: orderKeys.tables });

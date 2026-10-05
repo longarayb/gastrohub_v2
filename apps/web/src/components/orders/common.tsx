@@ -2,10 +2,13 @@
 
 import {
   ORDER_STATUS_LABELS,
+  type OrderDetailDto,
+  type OrderItemDto,
   type OrderStatus,
   type OrderType,
   deliveredLabel,
   elapsedMinutes,
+  formatBRL,
 } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import {
@@ -16,11 +19,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@app/ui/components/dialog';
+import { toast } from '@app/ui/components/sonner';
 import { Textarea } from '@app/ui/components/textarea';
 import { cn } from '@app/ui/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useState } from 'react';
 import { Field } from '@/components/form';
-import { STATUS_STYLES } from '@/lib/orders';
+import { ApiError, errorMessage } from '@/lib/api';
+import { STATUS_STYLES, orderKeys } from '@/lib/orders';
 
 export function statusLabel(status: OrderStatus, type: OrderType): string {
   return status === 'DELIVERED' ? deliveredLabel(type) : ORDER_STATUS_LABELS[status];
@@ -154,5 +160,52 @@ export function ReasonDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Runs an order mutation: updates the cache, refreshes lists and shows errors (409 included). */
+export function useOrderAction() {
+  const queryClient = useQueryClient();
+  return async (run: () => Promise<OrderDetailDto>, success?: string) => {
+    try {
+      const order = await run();
+      queryClient.setQueryData(orderKeys.detail(order.id), order);
+      void queryClient.invalidateQueries({ queryKey: orderKeys.board });
+      void queryClient.invalidateQueries({ queryKey: orderKeys.tables });
+      if (success) toast.success(success);
+      return order;
+    } catch (error) {
+      toast.error(errorMessage(error));
+      // Someone else changed the order: show the current version.
+      if (error instanceof ApiError && error.status === 409) {
+        void queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      }
+      throw error;
+    }
+  };
+}
+
+export function ItemDescription({ item }: { item: Pick<OrderItemDto, 'snapshot' | 'notes'> }) {
+  const { snapshot } = item;
+  const flavorCount = snapshot.flavors.length;
+  return (
+    <div className="space-y-0.5 text-xs text-muted-foreground">
+      {flavorCount > 0 &&
+        snapshot.flavors.map((f) => (
+          <p key={f.productId}>
+            {flavorCount > 1 ? `${f.fraction.numerator}/${f.fraction.denominator} ` : ''}
+            {f.name}
+            {f.note ? ` (${f.note})` : ''}
+          </p>
+        ))}
+      {snapshot.modifiers.map((m) => (
+        <p key={`${m.groupId}-${m.optionId}`}>
+          + {m.quantity > 1 ? `${m.quantity}× ` : ''}
+          {m.name}
+          {m.totalCents > 0 ? ` (${formatBRL(m.totalCents)})` : ''}
+        </p>
+      ))}
+      {snapshot.note && <p className="italic">Obs.: {snapshot.note}</p>}
+    </div>
   );
 }

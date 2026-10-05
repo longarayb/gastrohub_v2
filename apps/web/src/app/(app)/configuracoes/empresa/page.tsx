@@ -48,6 +48,7 @@ import {
   useZodForm,
 } from '@/components/form';
 import { Page } from '@/components/page';
+import { PixSettingsCard } from '@/components/pos/pix-settings-card';
 import { api, apiPatch, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { type StoreDto, storeKeys, useCurrentStore } from '@/lib/stores';
@@ -315,6 +316,21 @@ function SettingsForm({ store }: { store: StoreDto }) {
           />
           <Controller
             control={form.control}
+            name="blindCashClose"
+            render={({ field }) => (
+              <label className="flex items-center justify-between gap-4 rounded-lg border p-3">
+                <span>
+                  <span className="block text-sm font-medium">Fechamento de caixa cego</span>
+                  <span className="text-xs text-muted-foreground">
+                    O operador conta sem ver o valor esperado; a diferença aparece depois
+                  </span>
+                </span>
+                <Switch checked={field.value} onCheckedChange={field.onChange} />
+              </label>
+            )}
+          />
+          <Controller
+            control={form.control}
             name="pizzaPricingRule"
             render={({ field }) => (
               <Field
@@ -362,6 +378,7 @@ export default function CompanySettingsPage() {
           <LogoCard store={store} />
           <StoreDataForm store={store} />
           <SettingsForm store={store} />
+          <PixSettingsCard store={store} />
         </div>
       )}
     </Page>

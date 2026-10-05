@@ -11,6 +11,7 @@ import {
   TicketPercent,
   type LucideIcon,
   Users,
+  Wallet,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -43,6 +44,12 @@ export const NAV: NavGroup[] = [
         label: 'Pedidos',
         icon: ReceiptText,
         permissions: [Permission.ORDERS_READ],
+      },
+      {
+        href: '/caixa',
+        label: 'Caixa',
+        icon: Wallet,
+        permissions: [Permission.CASH_OPERATE],
       },
       {
         href: '/mesas',

@@ -42,8 +42,16 @@
   --status-dispatched: oklch(0.6 0.12 200);
   --status-delivered: oklch(0.55 0.02 60);
   --status-canceled: oklch(0.58 0.2 27);
+  /* Table map: occupied and waiting for payment (pre-bill printed). */
+  --table-occupied: var(--status-preparing);
+  --table-billing: var(--status-pending);
+  /* QR Codes are always dark on light (scanners need the contrast), in both themes. */
+  --qr-foreground: oklch(0 0 0);
+  --qr-background: oklch(1 0 0);
   /* Layout sizes used by operational screens. */
   --kanban-column-width: 20rem;
+  /* Thermal printer paper (pre-bill, cash report). */
+  --receipt-width: 72mm;
 }
 
 .dark {
@@ -117,7 +125,12 @@
   --color-status-dispatched: var(--status-dispatched);
   --color-status-delivered: var(--status-delivered);
   --color-status-canceled: var(--status-canceled);
+  --color-table-occupied: var(--table-occupied);
+  --color-table-billing: var(--table-billing);
+  --color-qr-foreground: var(--qr-foreground);
+  --color-qr-background: var(--qr-background);
   --width-kanban-column: var(--kanban-column-width);
+  --width-receipt: var(--receipt-width);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -134,5 +147,23 @@
   /* Tabular numbers for prices and totals */
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+  /* Browser printing (D012): only the receipt rendered in .print-area is printed. */
+  .print-area {
+    display: none;
+  }
+  @media print {
+    @page {
+      size: 80mm auto;
+      margin: 4mm;
+    }
+    body > *:not(.print-area) {
+      display: none !important;
+    }
+    .print-area {
+      display: block;
+      color: var(--qr-foreground);
+      background: var(--qr-background);
+    }
   }
 }

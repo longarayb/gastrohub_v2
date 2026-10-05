@@ -8,6 +8,7 @@ import {
   isFinalStatus,
   onlyDigits,
   primaryNextStatus,
+  requiresPaymentToClose,
 } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import { Input } from '@app/ui/components/input';
@@ -18,7 +19,8 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { StatusBadge, statusLabel, useNow } from '@/components/orders/common';
 import { OrderCard } from '@/components/orders/order-card';
-import { OrderDetailSheet, useOrderAction } from '@/components/orders/order-detail-sheet';
+import { useOrderAction } from '@/components/orders/common';
+import { OrderDetailSheet } from '@/components/orders/order-detail-sheet';
 import { Page } from '@/components/page';
 import { useAuth } from '@/lib/auth';
 import { useOrderAlert } from '@/lib/order-alert';
@@ -70,6 +72,7 @@ export default function OrdersPage() {
   const [type, setType] = useState<OrderType | 'ALL'>('ALL');
   const [q, setQ] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [payOnOpen, setPayOnOpen] = useState(false);
   const [advancing, setAdvancing] = useState<string | null>(null);
   const [showFinished, setShowFinished] = useState(false);
 
@@ -86,16 +89,20 @@ export default function OrdersPage() {
   const finished = visible.filter((o) => isFinalStatus(o.status));
   const canAdvance = can(Permission.ORDERS_UPDATE_STATUS);
 
-  function open(id: string) {
+  function open(id: string, pay = false) {
     alert.markSeen(id);
+    setPayOnOpen(pay);
     setOpenId(id);
   }
 
   async function advance(order: OrderSummaryDto) {
     const next = primaryNextStatus(order.type, order.status);
     if (!next) return;
-    // Closing a tab deserves a look at the bill first.
-    if (order.type === 'DINE_IN' && next === 'DELIVERED') return open(order.id);
+    // Dine-in and takeout only close paid: receive first (a tab also deserves a look).
+    if (next === 'DELIVERED' && requiresPaymentToClose(order.type)) {
+      const unpaid = order.totalCents > order.paidCents;
+      if (unpaid || order.type === 'DINE_IN') return open(order.id, unpaid);
+    }
     alert.markSeen(order.id);
     setAdvancing(order.id);
     try {
@@ -233,7 +240,11 @@ export default function OrdersPage() {
         )}
       </section>
 
-      <OrderDetailSheet orderId={openId} onOpenChange={(v) => !v && setOpenId(null)} />
+      <OrderDetailSheet
+        orderId={openId}
+        autoPay={payOnOpen}
+        onOpenChange={(v) => !v && setOpenId(null)}
+      />
     </Page>
   );
 }

@@ -14,6 +14,10 @@ describe('route access', () => {
     expect(canAccess('WAITER', '/pedidos/novo')).toBe(true);
     expect(canAccess('WAITER', '/mesas')).toBe(true);
     expect(canAccess('CASHIER', '/cupons')).toBe(false);
+    expect(canAccess('CASHIER', '/caixa')).toBe(true);
+    expect(canAccess('MANAGER', '/caixa')).toBe(true);
+    expect(canAccess('WAITER', '/caixa')).toBe(false);
+    expect(canAccess('KITCHEN', '/caixa')).toBe(false);
   });
 
   it('sends each role to its home', () => {

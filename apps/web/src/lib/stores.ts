@@ -33,6 +33,7 @@ export interface StoreDto {
     autoAcceptDigitalOrders: boolean;
     pizzaPricingRule: 'HIGHEST' | 'AVERAGE';
     serviceFeeOrderTypes: ('DINE_IN' | 'TAKEOUT' | 'DELIVERY')[];
+    blindCashClose: boolean;
   };
 }
 

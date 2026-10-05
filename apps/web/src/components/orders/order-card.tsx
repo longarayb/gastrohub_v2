@@ -6,6 +6,7 @@ import {
   PAYMENT_METHOD_LABELS,
   formatBRL,
   primaryNextStatus,
+  requiresPaymentToClose,
 } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import { cn } from '@app/ui/lib/utils';
@@ -41,6 +42,10 @@ export function OrderCard({
   const Icon = ORDER_TYPE_ICONS[order.type];
   const next = primaryNextStatus(order.type, order.status);
   const since = order.status === 'READY' && order.readyAt ? order.readyAt : order.createdAt;
+  const mustPay =
+    next === 'DELIVERED' &&
+    requiresPaymentToClose(order.type) &&
+    order.totalCents > order.paidCents;
 
   return (
     <article
@@ -101,7 +106,7 @@ export function OrderCard({
             loading={advancing}
             onClick={onAdvance}
           >
-            {statusActionLabel(order.type, next)}
+            {mustPay ? 'Receber' : statusActionLabel(order.type, next)}
           </Button>
         </div>
       )}
