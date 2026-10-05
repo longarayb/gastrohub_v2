@@ -2,7 +2,9 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-05**: ambiente novo instalado em `C:\GastroHub_v2` (Postgres na porta 5433 do host) e correção dos erros não tratados do e2e (`fix/e2e-unhandled-errors`).
+> Atualizado em **2026-10-05**: Surface configurado (`C:\GastroHub_v2`), correção dos erros não tratados do e2e (`fix/e2e-unhandled-errors`) e portas por máquina + regras de trabalho em duas máquinas (`chore/multi-machine-setup`).
+>
+> **Desktop de casa, na próxima sessão:** depois do `git pull`, compare o `.env` com o `.env.example` e acrescente as variáveis novas (`POSTGRES_PORT=5432`, `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`, `CHECK_CONCURRENCY`, `NEXT_BUILD_CPUS`). As URLs antigas com a porta escrita continuam funcionando; trocar para `${POSTGRES_PORT}` é opcional. Rode `pnpm install` (dependência nova `dotenv-expand`).
 
 ## Estado atual
 

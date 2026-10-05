@@ -12,7 +12,7 @@
     "start:lite": "node scripts/start-lite.mjs",
     "dev:apps": "turbo run dev --filter=./apps/* --filter=./packages/*",
     "build": "turbo run build",
-    "check": "node scripts/check-tracked-imports.mjs && turbo run build typecheck lint test --concurrency=2",
+    "check": "node scripts/check.mjs",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

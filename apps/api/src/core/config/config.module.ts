@@ -12,6 +12,8 @@ import { validateEnv } from './env.js';
       cache: true,
       // Single .env at the monorepo root; real environment variables take precedence.
       envFilePath: [path.join(process.cwd(), '.env'), path.join(process.cwd(), '..', '..', '.env')],
+      //  references (DATABASE_URL uses ), like Next's loader.
+      expandVariables: true,
       validate: validateEnv,
     }),
   ],

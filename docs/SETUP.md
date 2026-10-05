@@ -121,7 +121,7 @@ Copy-Item .env.example .env
 
 Os valores do `.env.example` são de **desenvolvimento** e funcionam sem alteração (banco `app_db`, usuário `app`/`app_dev`, Redis e Mailpit locais, segredos JWT fictícios). Nunca commite o `.env`.
 
-O Postgres do projeto fica na porta **5433** do computador (dentro do Docker continua 5432), para não disputar a 5432 com outro Postgres local (outro projeto ou instalação nativa).
+As portas do Docker no computador (`POSTGRES_PORT`, `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`) vêm do `.env` e as URLs as seguem (`DATABASE_URL=...localhost:${POSTGRES_PORT}/...`). Se alguma estiver ocupada nesta máquina, veja "Problemas comuns".
 
 ## 7. Instalar dependências
 
@@ -208,6 +208,7 @@ Roteiros visuais com Playwright (opcional): veja [tools/ui-walkthrough/README.md
 | `Docker não está rodando` | Abra o Docker Desktop e espere "Engine running" |
 | `pnpm` não é reconhecido | Rode `corepack enable pnpm` como administrador e reabra o PowerShell |
 | "a execução de scripts foi desabilitada" | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
-| Processo morre com `0xC0000409` / `3221226505` | Pouca memória: aumente o arquivo de paginação (passo 2), feche o navegador e use `pnpm start:lite` |
+| Processo morre com `0xC0000409` / `3221226505` | Pouca memória: aumente o arquivo de paginação (passo 2), feche o navegador e use `pnpm start:lite`. No `.env` da máquina, `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1` deixam `pnpm check` e o build do Next em série |
+| `port is already allocated` (5432, 6379, 1025 ou 8025) no `pnpm infra:up`/`bootstrap` | Outro serviço usa a porta (outro projeto Docker, Postgres/Redis instalado no Windows). Descubra com `docker ps` ou `Get-NetTCPConnection -LocalPort 5432 \| Select OwningProcess`. Em vez de parar o outro serviço, mude a porta **só nesta máquina**, no `.env`: `POSTGRES_PORT=5433` (ou `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`). `DATABASE_URL`, `REDIS_URL` e `SMTP_PORT` usam essas variáveis (`${POSTGRES_PORT}`), então nada mais muda. Depois: `pnpm infra:down` e `pnpm infra:up`. O `.env.example` fica com as portas padrão |
 | Porta 3000/3333 em uso | Um servidor antigo ficou aberto: `Get-NetTCPConnection -LocalPort 3000 \| Select OwningProcess` e `Stop-Process -Id <pid>` |
 | Login responde 429 | Limite de tentativas de login; espere 1 minuto ou reinicie a API |

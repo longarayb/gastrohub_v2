@@ -8,11 +8,14 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { BRAND } from '@app/shared';
 import argon2 from 'argon2';
 import { config as loadEnv } from 'dotenv';
+import { expand } from 'dotenv-expand';
 import { PrismaClient } from '../../src/generated/prisma/client.js';
 import { seedMenu } from './menu.js';
 import { seedOrders } from './orders.js';
 
-loadEnv({ path: path.join(import.meta.dirname, '..', '..', '..', '..', '.env'), quiet: true });
+expand(
+  loadEnv({ path: path.join(import.meta.dirname, '..', '..', '..', '..', '.env'), quiet: true }),
+);
 
 export const DEMO_SLUG = 'demo';
 export const DEMO_PASSWORD = 'Demo1234';
