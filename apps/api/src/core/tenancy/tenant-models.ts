@@ -35,4 +35,8 @@ export const TENANT_MODELS = new Set<string>([
   'OrderItem',
   'OrderStatusHistory',
   'Payment',
+  // Cash register
+  'CashSession',
+  'CashMovement',
+  'CashSessionCount',
 ]);
