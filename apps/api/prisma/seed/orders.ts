@@ -8,6 +8,7 @@ import {
   type BusinessHour,
   type CardBrand,
   type MenuItemPricing,
+  type MenuItemSnapshot,
   type OrderItemStatus,
   type OrderSource,
   type OrderStatus,
@@ -21,6 +22,7 @@ import {
   defaultServiceFeeBps,
   paymentSummary,
   priceMenuItem,
+  routeItem,
   splitEvenly,
 } from '@app/shared';
 import type { PrismaClient } from '../../src/generated/prisma/client.js';
@@ -79,7 +81,13 @@ export async function seedOrders(
   prisma: PrismaClient,
   tenantId: string,
   users: { cashierId: string; waiterId: string; managerId: string },
-): Promise<{ orders: number; tables: number; customers: number; cashSessions: number }> {
+): Promise<{
+  orders: number;
+  tables: number;
+  customers: number;
+  cashSessions: number;
+  kitchenTasks: number;
+}> {
   const store = await prisma.store.findUniqueOrThrow({ where: { id: tenantId } });
   const hours = (await prisma.businessHours.findMany({
     where: { tenantId },
@@ -693,6 +701,7 @@ export async function seedOrders(
           {
             pricing: item('Combo X-Burguer', {
               mods: [point, { group: 'Escolha a bebida', name: 'Guaraná lata' }],
+              note: 'sem cebola, capricha no molho',
             }),
           },
         ],
@@ -893,6 +902,59 @@ export async function seedOrders(
     data: count.lines.map((line) => ({ tenantId, sessionId: morning.id, ...line })),
   });
 
+  // ---- Kitchen display (D027): production tasks of every sent item, same routing as the API
+  // (the combo drink goes to the bar), with statuses matching the items ----
+  const TASK_STATUS: Partial<
+    Record<OrderItemStatus, 'QUEUED' | 'PREPARING' | 'READY' | 'CANCELED'>
+  > = {
+    QUEUED: 'QUEUED',
+    PREPARING: 'PREPARING',
+    READY: 'READY',
+    SERVED: 'READY',
+    CANCELED: 'CANCELED',
+  };
+  const sent = await prisma.orderItem.findMany({
+    where: { tenantId, status: { not: 'DRAFT' }, sectorId: { not: null } },
+    include: { round: true, order: { select: { status: true, canceledAt: true } } },
+  });
+  let taskCount = 0;
+  for (const it of sent) {
+    // A canceled order strikes every task (its items keep the status they had).
+    const status = it.order.status === 'CANCELED' ? 'CANCELED' : TASK_STATUS[it.status]!;
+    const sentAt = it.round.sentAt ?? it.createdAt;
+    const routed = routeItem(it.snapshot as unknown as MenuItemSnapshot, it.quantity, it.sectorId!);
+    await prisma.productionTask.createMany({
+      data: routed.map((task) => ({
+        tenantId,
+        orderId: it.orderId,
+        orderItemId: it.id,
+        roundId: it.roundId,
+        sectorId: task.sectorId,
+        kind: task.kind,
+        name: task.name,
+        quantity: task.quantity,
+        details: task.details as object,
+        status,
+        sentAt,
+        startedAt: status === 'QUEUED' || status === 'CANCELED' ? null : (it.startedAt ?? sentAt),
+        readyAt: status === 'READY' ? (it.readyAt ?? it.servedAt ?? now) : null,
+        canceledAt: status === 'CANCELED' ? (it.canceledAt ?? it.order.canceledAt ?? now) : null,
+      })),
+    });
+    taskCount += routed.length;
+  }
+  // A kitchen TV waiting to be paired (the manager generates the code in Setores).
+  const sectors = await prisma.productionSector.findMany({ where: { tenantId } });
+  await prisma.kdsDevice.create({
+    data: {
+      tenantId,
+      name: 'TV da cozinha',
+      sectorIds: sectors.filter((s) => s.name !== 'Bar').map((s) => s.id),
+      showsExpedition: true,
+      createdById: managerId,
+    },
+  });
+
   await prisma.orderSequence.create({ data: { tenantId, businessDate, lastNumber: number } });
   await prisma.coupon.update({ where: { id: bemVindo.id }, data: { usedCount: couponUses } });
 
@@ -901,5 +963,6 @@ export async function seedOrders(
     tables: tables.length,
     customers: savedCustomers.length,
     cashSessions: 2,
+    kitchenTasks: taskCount,
   };
 }
