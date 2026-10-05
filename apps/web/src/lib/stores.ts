@@ -32,6 +32,7 @@ export interface StoreDto {
     takeoutEtaMinutes: number;
     autoAcceptDigitalOrders: boolean;
     pizzaPricingRule: 'HIGHEST' | 'AVERAGE';
+    serviceFeeOrderTypes: ('DINE_IN' | 'TAKEOUT' | 'DELIVERY')[];
   };
 }
 

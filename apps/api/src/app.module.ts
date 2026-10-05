@@ -14,6 +14,8 @@ import { StorageModule } from './core/storage/storage.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { MenuModule } from './modules/menu/menu.module.js';
+import { OrdersModule } from './modules/orders/orders.module.js';
+import { RealtimeModule } from './modules/realtime/realtime.module.js';
 import { StoresModule } from './modules/stores/stores.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
@@ -62,6 +64,8 @@ const isTest = process.env.NODE_ENV === 'test';
     StoresModule,
     UsersModule,
     MenuModule,
+    RealtimeModule,
+    OrdersModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

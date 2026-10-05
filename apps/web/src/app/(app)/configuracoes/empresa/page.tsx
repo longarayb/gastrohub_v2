@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  ORDER_TYPES,
+  ORDER_TYPE_LABELS,
   PIZZA_PRICING_RULE_LABELS,
   type PizzaPricingRule,
   fetchAddressByCEP,
@@ -12,6 +14,8 @@ import {
   updateStoreSchema,
 } from '@app/shared';
 import { Button } from '@app/ui/components/button';
+import { Checkbox } from '@app/ui/components/checkbox';
+import { Label } from '@app/ui/components/label';
 import {
   Card,
   CardContent,
@@ -225,8 +229,40 @@ function SettingsForm({ store }: { store: StoreDto }) {
           <PercentField
             control={form.control}
             name="serviceFeeBps"
-            label="Taxa de serviço no salão (%)"
+            label="Taxa de serviço (%)"
             max={30}
+          />
+          <Controller
+            control={form.control}
+            name="serviceFeeOrderTypes"
+            render={({ field, fieldState }) => (
+              <Field
+                label="Cobrar taxa de serviço em"
+                hint="Pode ser retirada de um pedido a pedido do cliente"
+                error={fieldState.error?.message}
+              >
+                <div className="flex flex-wrap gap-4 pt-1" role="group">
+                  {ORDER_TYPES.map((type) => {
+                    const selected = field.value ?? [];
+                    return (
+                      <Label key={type} className="flex items-center gap-2 font-normal">
+                        <Checkbox
+                          checked={selected.includes(type)}
+                          onCheckedChange={(on) =>
+                            field.onChange(
+                              on === true
+                                ? [...selected, type]
+                                : selected.filter((t) => t !== type),
+                            )
+                          }
+                        />
+                        {ORDER_TYPE_LABELS[type]}
+                      </Label>
+                    );
+                  })}
+                </div>
+              </Field>
+            )}
           />
           <NumberField
             control={form.control}

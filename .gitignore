@@ -48,3 +48,6 @@ desktop.ini
 
 # Brand assets copied from packages/ui/assets/brand by scripts/sync-brand-assets.mjs
 apps/*/public/brand/
+
+# Local design references (may contain third-party/real data; never commit)
+/docs/design/

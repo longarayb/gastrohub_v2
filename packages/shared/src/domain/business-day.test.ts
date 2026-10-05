@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { zonedTimeToInstant } from '../utils/datetime.js';
-import { endOfBusinessDay, isWithinSchedule } from './business-day.js';
+import { currentBusinessDay, endOfBusinessDay, isWithinSchedule } from './business-day.js';
 
 // São Paulo is UTC-3 (no DST). 2026-10-09 is a Friday, 2026-10-10 a Saturday.
 const sp = (iso: string) => new Date(`${iso}-03:00`);
@@ -91,5 +91,30 @@ describe('isWithinSchedule', () => {
     expect(isWithinSchedule(lateMenu, sp('2026-10-09T23:00:00'))).toBe(true);
     expect(isWithinSchedule(lateMenu, sp('2026-10-10T01:59:00'))).toBe(true);
     expect(isWithinSchedule(lateMenu, sp('2026-10-10T02:00:00'))).toBe(false);
+  });
+});
+
+describe('currentBusinessDay', () => {
+  const hours = [
+    { weekday: 5, opensAt: '18:00', closesAt: '02:00' }, // Fri → Sat 02:00
+    { weekday: 6, opensAt: '18:00', closesAt: '02:00' }, // Sat → Sun 02:00
+  ];
+
+  it('an order at 01:30 on Saturday still belongs to Friday', () => {
+    expect(currentBusinessDay(hours, sp('2026-10-10T01:30:00')).date).toBe('2026-10-09');
+  });
+
+  it('an order after closing belongs to the next business day', () => {
+    expect(currentBusinessDay(hours, sp('2026-10-10T02:30:00')).date).toBe('2026-10-10');
+  });
+
+  it('matches the end used by "Acabou"', () => {
+    const day = currentBusinessDay(hours, sp('2026-10-09T23:00:00'));
+    expect(day).toEqual({ date: '2026-10-09', endsAt: sp('2026-10-10T02:00:00') });
+    expect(endOfBusinessDay(hours, sp('2026-10-09T23:00:00'))).toEqual(day.endsAt);
+  });
+
+  it('uses the calendar day without opening hours', () => {
+    expect(currentBusinessDay([], sp('2026-10-10T01:30:00')).date).toBe('2026-10-10');
   });
 });

@@ -188,6 +188,7 @@ describe('Multi-tenant isolation and RBAC (e2e)', () => {
         takeoutEtaMinutes: 25,
         autoAcceptDigitalOrders: false,
         pizzaPricingRule: 'AVERAGE',
+        serviceFeeOrderTypes: ['DINE_IN'],
       })
       .expect(200);
     expect(settings.body.settings.serviceFeeBps).toBe(1200);

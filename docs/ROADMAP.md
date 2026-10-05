@@ -9,14 +9,18 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Fundação do monorepo, Docker, tooling | `main` / `chore/foundation` | ✅ |
 | Autenticação, multi-tenant, empresa e usuários | `feat/auth-tenancy` | ✅ |
 | Cardápio (categorias, produtos, complementos, tamanhos, pizza) | `feat/menu` | ✅ |
-| Pedidos e tempo real (kanban, status, numeração) | `feat/orders` | ⏳ |
-| Salão, mesas, PDV e caixa | `feat/tables-pos` | ⏳ |
+| Pedidos e tempo real (kanban, status, numeração, contas de mesa, cupons) | `feat/orders` | ✅ |
+| Salão, mesas, PDV e caixa (mapa e contas básicas já entregues em `feat/orders`; faltam transferir/juntar mesas, mover itens entre contas, dividir conta, pagamentos e caixa) | `feat/tables-pos` | ⏳ |
 | KDS e setores de produção | `feat/kds` | ⏳ |
 | Delivery (clientes, áreas, entregadores) | `feat/delivery` | ⏳ |
 | Cardápio digital (app `menu`) | `feat/digital-menu` | ⏳ |
 | Impressão (comanda e cupom 80mm) | `feat/printing` | ⏳ |
 | Dashboard e relatórios | `feat/reports` | ⏳ |
 | Seed de demonstração e documentação | `chore/seed-docs` | ⏳ |
+
+## Redesign visual (planejado)
+
+O layout será refeito trocando o tema (`packages/ui/src/styles/globals.css`), sem reescrever as telas. Referência pedida pelo usuário (imagem não versionada, pois contém dados reais): dashboard escuro em azul-marinho, cards de KPI com borda lateral colorida, gráficos de barras e de rosca, tipografia limpa e bastante espaço entre os blocos. As telas usam apenas tokens do tema (`bg-card`, `text-muted-foreground`, `status-*`, `w-kanban-column`, raios de `--radius`).
 
 ## Fase 2+ (arquitetura preparada, não implementado)
 
