@@ -26,7 +26,6 @@ export interface StoreDto {
   };
   settings: {
     serviceFeeBps: number;
-    kdsLateAfterMinutes: number;
     digitalMenuEnabled: boolean;
     deliveryMinimumCents: number;
     takeoutEtaMinutes: number;

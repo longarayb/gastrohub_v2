@@ -182,7 +182,6 @@ describe('Multi-tenant isolation and RBAC (e2e)', () => {
       .set(bearer(storeB.accessToken))
       .send({
         serviceFeeBps: 1200,
-        kdsLateAfterMinutes: 15,
         digitalMenuEnabled: true,
         deliveryMinimumCents: 2000,
         takeoutEtaMinutes: 25,

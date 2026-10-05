@@ -74,7 +74,6 @@ model Store {
 
   // Settings
   serviceFeeBps           Int              @default(1000)
-  kdsLateAfterMinutes     Int              @default(20)
   digitalMenuEnabled      Boolean          @default(true)
   deliveryMinimumCents    Int              @default(0)
   takeoutEtaMinutes       Int              @default(20)
@@ -228,17 +227,21 @@ enum ProductKind {
 
 /// Kitchen, bar, pizza oven... Used by the KDS and printing to route items.
 model ProductionSector {
-  id        String   @id @default(cuid())
-  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
-  name      String
-  sortOrder Int      @default(0)
+  id               String   @id @default(cuid())
+  tenantId         String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name             String
+  sortOrder        Int      @default(0)
   /// Sector used for products without an explicit sector.
-  isDefault Boolean  @default(false)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isDefault        Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  /// KDS timer alerts, in minutes since the ticket was sent (yellow, then red).
+  warnAfterMinutes Int      @default(10)
+  lateAfterMinutes Int      @default(20)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   products Product[]
+  tasks    ProductionTask[]
 
   @@index([tenantId, sortOrder])
 }
@@ -748,6 +751,7 @@ model Order {
   items        OrderItem[]
   history      OrderStatusHistory[]
   payments     Payment[]
+  tasks        ProductionTask[]
 
   @@unique([tenantId, businessDate, number])
   @@unique([tenantId, idempotencyKey])
@@ -767,8 +771,9 @@ model OrderRound {
   sentById  String?
   createdAt DateTime  @default(now())
 
-  order Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
   items OrderItem[]
+  tasks ProductionTask[]
 
   @@unique([orderId, number])
 }
@@ -805,8 +810,9 @@ model OrderItem {
   cancelReason          String?
   createdAt             DateTime        @default(now())
 
-  order Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  round OrderRound @relation(fields: [roundId], references: [id])
+  order Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  round OrderRound       @relation(fields: [roundId], references: [id])
+  tasks ProductionTask[]
 
   @@index([tenantId, orderId])
   @@index([tenantId, sectorId, status])
@@ -946,4 +952,85 @@ model CashSessionCount {
 
   @@unique([sessionId, method])
   @@index([tenantId, sessionId])
+}
+
+// ============================================================================
+// Kitchen display (see docs/DECISOES.md D027–D028)
+// ============================================================================
+
+enum ProductionTaskStatus {
+  QUEUED
+  PREPARING
+  READY
+  CANCELED
+}
+
+enum ProductionTaskKind {
+  /// The order line itself, in its sector.
+  ITEM
+  /// A combo option whose product belongs to another sector (combo drink at the bar).
+  COMBO_PART
+}
+
+/// What one sector prepares of a sent order item. Created when the round is sent; a ticket is
+/// (round, sector). Feeds the KDS and, later, printing per sector.
+model ProductionTask {
+  id                String               @id @default(cuid())
+  tenantId          String               @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  orderId           String
+  orderItemId       String
+  roundId           String
+  sectorId          String
+  kind              ProductionTaskKind
+  name              String
+  quantity          Int
+  /// TaskDetails (shared/domain/kds.ts): flavors, options, note and removals at send time.
+  details           Json
+  status            ProductionTaskStatus @default(QUEUED)
+  sentAt            DateTime
+  startedAt         DateTime?
+  readyAt           DateTime?
+  canceledAt        DateTime?
+  /// How many times a "ready" was undone (mistakes; preparation time reports).
+  recallCount       Int                  @default(0)
+  /// Who marked it: a signed-in user or a KDS device.
+  startedByUserId   String?
+  startedByDeviceId String?
+  readyByUserId     String?
+  readyByDeviceId   String?
+
+  order  Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item   OrderItem        @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  round  OrderRound       @relation(fields: [roundId], references: [id])
+  sector ProductionSector @relation(fields: [sectorId], references: [id])
+
+  @@index([tenantId, sectorId, status])
+  @@index([tenantId, orderId])
+  @@index([orderItemId])
+}
+
+/// Tablet or TV bound to sectors, signed in without a person's password (D028).
+model KdsDevice {
+  id               String    @id @default(cuid())
+  tenantId         String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name             String
+  /// Sectors shown on this screen.
+  sectorIds        String[]
+  /// Also shows the expedition view (every sector, dispatch).
+  showsExpedition  Boolean   @default(false)
+  /// Hash of the long-lived device credential (httpOnly cookie, renewed on use).
+  tokenHash        String?   @unique
+  tokenExpiresAt   DateTime?
+  /// Hash of the 6-digit pairing code, valid for a few minutes and a few attempts.
+  pairingCodeHash  String?
+  pairingExpiresAt DateTime?
+  pairingFailures  Int       @default(0)
+  pairedAt         DateTime?
+  lastSeenAt       DateTime?
+  revokedAt        DateTime?
+  revokedById      String?
+  createdById      String
+  createdAt        DateTime  @default(now())
+
+  @@index([tenantId, revokedAt])
 }
