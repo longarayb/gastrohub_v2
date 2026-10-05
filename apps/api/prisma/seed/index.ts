@@ -30,6 +30,12 @@ export const DEMO_USERS = [
 
 /** Tenant tables in deletion order (children first). Store rows are tenant-scoped by tenantId. */
 const TENANT_TABLES = [
+  'CourierLedgerEntry',
+  'DeliveryStop',
+  'OrderDelivery',
+  'DeliveryRun',
+  'CourierSettlement',
+  'DeliveryArea',
   'ProductionTask',
   'KdsDevice',
   'Payment',
