@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { EmptyState, FullPageSpinner } from '@/components/page';
 import { AppShell } from '@/components/shell/app-shell';
 import { useAuth } from '@/lib/auth';
+import { RealtimeProvider } from '@/lib/realtime';
 import { canAccess, homeFor } from '@/lib/routes';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -24,23 +25,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (status !== 'authenticated' || !session) return <FullPageSpinner />;
 
   return (
-    <AppShell>
-      {canAccess(session.role, pathname) ? (
-        children
-      ) : (
-        <div className="p-6">
-          <EmptyState
-            icon={ShieldX}
-            title="Acesso não permitido"
-            description="Seu perfil não tem permissão para esta tela. Fale com o responsável pela unidade."
-            action={
-              <Button asChild variant="outline">
-                <Link href={homeFor(session.role) as never}>Ir para o início</Link>
-              </Button>
-            }
-          />
-        </div>
-      )}
-    </AppShell>
+    <RealtimeProvider>
+      <AppShell>
+        {canAccess(session.role, pathname) ? (
+          children
+        ) : (
+          <div className="p-6">
+            <EmptyState
+              icon={ShieldX}
+              title="Acesso não permitido"
+              description="Seu perfil não tem permissão para esta tela. Fale com o responsável pela unidade."
+              action={
+                <Button asChild variant="outline">
+                  <Link href={homeFor(session.role) as never}>Ir para o início</Link>
+                </Button>
+              }
+            />
+          </div>
+        )}
+      </AppShell>
+    </RealtimeProvider>
   );
 }
