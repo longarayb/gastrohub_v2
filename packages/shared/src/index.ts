@@ -4,6 +4,7 @@ export * from './auth/schemas.js';
 export * from './domain/bill-split.js';
 export * from './domain/business-day.js';
 export * from './domain/cash-session.js';
+export * from './domain/delivery.js';
 export * from './domain/kds.js';
 export * from './domain/menu-availability.js';
 export * from './domain/menu-modifiers.js';
