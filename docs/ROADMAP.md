@@ -11,7 +11,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Cardápio (categorias, produtos, complementos, tamanhos, pizza) | `feat/menu` | ✅ |
 | Pedidos e tempo real (kanban, status, numeração, contas de mesa, cupons) | `feat/orders` | ✅ |
 | Salão, mesas, PDV e caixa (pagamentos, troco, PIX estático, caixa por operador com fechamento cego, divisão da conta, transferir/juntar/separar mesas, pré-conta) | `feat/tables-pos` | ✅ |
-| KDS e setores de produção | `feat/kds` | ⏳ |
+| KDS e setores de produção (tickets por rodada e setor, combo dividido entre setores, status automático, expedição, telas vinculadas sem senha) | `feat/kds` | ✅ |
 | Delivery (clientes, áreas, entregadores) | `feat/delivery` | ⏳ |
 | Cardápio digital (app `menu`) | `feat/digital-menu` | ⏳ |
 | Impressão (comanda e cupom 80mm) | `feat/printing` | ⏳ |
