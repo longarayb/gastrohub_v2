@@ -2,12 +2,12 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-04**, ao fim da etapa `feat/orders`. A máquina de desenvolvimento vai mudar: o próximo ambiente é um **clone novo** (instalação em [SETUP.md](SETUP.md)).
+> Atualizado em **2026-10-05**: ambiente novo instalado em `C:\GastroHub_v2` (Postgres na porta 5433 do host) e correção dos erros não tratados do e2e (`fix/e2e-unhandled-errors`).
 
 ## Estado atual
 
 - `main` contém tudo o que foi feito até agora; todas as branches estão no GitHub (`longarayb/gastrohub_v2`, público).
-- Validação no último commit: `pnpm check` verde (18 tarefas; testes unitários: shared 114, api 15, web 5), `pnpm format:check` verde, `pnpm test:e2e` com 48 testes passando, roteiro visual de pedidos (`tools/ui-walkthrough/orders.mjs`) com 18/18 passos.
+- Validação em `fix/e2e-unhandled-errors` (máquina nova): `pnpm check` verde (18 tarefas), `pnpm format:check` verde, `pnpm test:e2e` 10 vezes seguidas com 48/48 e nenhum erro não tratado, mais 3 execuções com `--detectAsyncLeaks` sem erros. Roteiro visual de pedidos (`tools/ui-walkthrough/orders.mjs`) com 18/18 passos na máquina antiga (não reexecutado: a correção não toca telas).
 - Migrations: `auth_tenancy`, `menu`, `orders`. Um clone novo fica igual ao ambiente de hoje com `pnpm bootstrap` (ou migrations + `pnpm db:seed`): nenhuma imagem ou arquivo local é usado pelo seed. Os uploads ficam em `apps/api/uploads/` (ignorado; no ambiente antigo só havia arquivos de unidades de teste).
 
 ### Etapas concluídas
@@ -18,6 +18,10 @@
 | `feat/auth-tenancy` | Login com refresh token em cookie, recuperação de senha por e-mail, multiunidade (tenant = `Store`), papéis e permissões, empresa, horários, usuários |
 | `feat/menu` | Categorias (inclusive pizza com tamanhos), produtos simples e com tamanhos, complementos reutilizáveis com herança, combos, pausa "Acabou" até o fim do dia de negócio, canais, horários, fotos em WebP, catálogo resolvido por canal |
 | `feat/orders` | Pedidos de balcão, delivery e mesa; contas e rodadas de mesa; kanban em tempo real (Socket.IO) com som; compositor de pedido com total em tempo real; mesas; cupons; descontos e taxa de serviço com auditoria; versão otimista (409) e idempotência; seed com pedidos em todos os status |
+
+### Correção: erros não tratados no e2e (`fix/e2e-unhandled-errors`)
+
+Os "4 errors" intermitentes eram rejeições `Connection is closed` de comandos `PUNSUBSCRIBE`/`UNSUBSCRIBE` que o adapter Redis do Socket.IO envia sem aguardar ao fechar (2 namespaces × 2 comandos). O Nest chama `RedisIoAdapter.close()` duas vezes em paralelo e cada chamada dava `quit` nos clientes. Reproduz sempre com `--detectAsyncLeaks` (mais lento): 20 erros em 6 arquivos antes, 0 depois. Correções: encerramento do adapter memoizado; BullMQ com opções de conexão (a instância compartilhada vazava 1 conexão Redis por `app.close()`); handlers de erro não tratado no `main.ts` (log com stack) e no `test/setup-env.ts` (reprova o teste ou o arquivo); sockets do teste de tempo real fechados em `finally`.
 
 ### Decisões recentes (detalhes em DECISOES.md)
 
@@ -31,20 +35,7 @@
 
 ## Próximos passos (nesta ordem)
 
-### 1. Investigar os 4 erros não tratados do e2e
-
-Numa execução do `pnpm test:e2e` (logo após mudanças no pacote shared), os 48 testes passaram mas o Vitest relatou **"4 errors"** não tratados e terminou com código 1. Nas quatro execuções seguintes não se repetiu e o stack não foi guardado.
-
-Suspeitos: promessas não aguardadas; jobs do BullMQ (fila de e-mail, `apps/api/src/core/mail/mail.processor.ts`, `core/queue`) terminando depois de `app.close()`; eventos ou clientes Socket.IO (`orders.e2e.test.ts`, teste de tempo real) emitindo depois do teardown; conexões Redis/Prisma fechando fora de ordem.
-
-O que fazer:
-
-1. Na API (`apps/api/src/main.ts`, e também onde o app de teste é criado em `apps/api/test/utils.ts`), registrar `process.on('unhandledRejection')` e `process.on('uncaughtException')` logando o erro com **stack completo** (logger pino) e o contexto disponível.
-2. No e2e, garantir que qualquer erro desses **reprova a execução** e aponta o teste: o Vitest já sai com código 1 quando há erro não tratado, mas é preciso registrar o stack (por exemplo, handlers no `test/setup-env.ts` que guardam o erro e um `afterEach`/`afterAll` que falha mostrando-o, ou `onUnhandledError` do Vitest 4 em `vitest.config.ts`).
-3. Revisar o teardown de cada suíte: fechar clientes socket.io, `await app.close()`, esperar a fila do BullMQ esvaziar/fechar (`worker.close()`), desconectar Redis.
-4. Rodar `pnpm test:e2e` várias vezes seguidas (umas 10) para confirmar estabilidade. Commit em uma branch `fix/e2e-unhandled-errors`, merge e push.
-
-### 2. Etapa `feat/tables-pos` — apresentar o modelo ANTES de codar
+### 1. Etapa `feat/tables-pos` — apresentar o modelo ANTES de codar
 
 Mostrar ao usuário o modelo de dados (Prisma) e as regras, esperar aprovação, e só então seguir a ordem de sempre: funções puras com testes → schema → API com e2e → tempo real → telas → seed → validação visual → docs → merge e push.
 

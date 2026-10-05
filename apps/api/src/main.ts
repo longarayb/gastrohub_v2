@@ -9,7 +9,18 @@ import { setupApp } from './setup-app.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  app.useLogger(app.get(Logger));
+  const logger = app.get(Logger);
+  app.useLogger(logger);
+  // Errors outside any request (fire-and-forget promises, queue and socket callbacks):
+  // log them with the full stack. An uncaught exception leaves the process in an unknown
+  // state, so it exits after giving the logger time to flush (the supervisor restarts it).
+  process.on('unhandledRejection', (reason) => {
+    logger.error({ err: reason }, 'Promessa rejeitada sem tratamento');
+  });
+  process.on('uncaughtException', (err, origin) => {
+    logger.error({ err, origin }, 'Exceção não tratada; encerrando o processo');
+    setTimeout(() => process.exit(1), 500);
+  });
   setupApp(app);
 
   const config = app.get(AppConfig);
@@ -24,9 +35,7 @@ async function bootstrap(): Promise<void> {
 
   const port = config.get('API_PORT');
   await app.listen(port);
-  app
-    .get(Logger)
-    .log(`API em http://localhost:${port}/api — Swagger em http://localhost:${port}/docs`);
+  logger.log(`API em http://localhost:${port}/api — Swagger em http://localhost:${port}/docs`);
 }
 
 void bootstrap();

@@ -121,6 +121,8 @@ Copy-Item .env.example .env
 
 Os valores do `.env.example` são de **desenvolvimento** e funcionam sem alteração (banco `app_db`, usuário `app`/`app_dev`, Redis e Mailpit locais, segredos JWT fictícios). Nunca commite o `.env`.
 
+O Postgres do projeto fica na porta **5433** do computador (dentro do Docker continua 5432), para não disputar a 5432 com outro Postgres local (outro projeto ou instalação nativa).
+
 ## 7. Instalar dependências
 
 ```powershell

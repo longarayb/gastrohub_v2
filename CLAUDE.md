@@ -23,11 +23,12 @@ O nome **GastroHub é provisório**. Nada no código, nos pacotes ou na infraest
 - **Pacotes:** escopo neutro `@app/*` (`@app/shared`, `@app/ui`, `@app/config`, `@app/api`, `@app/web`, `@app/menu`). Raiz: `app-monorepo`.
 - **Infra:** projeto Compose `app` (containers `app-postgres-1` etc.), banco `app_db` / `app_db_test`, usuário `app`. Cookie de refresh `app_refresh`. Prefixo de log dos scripts `[app]`.
 - **Ambiente:** `APP_NAME` (opcional, sobrescreve `BRAND.name` em e-mails e Swagger) e `MAIL_FROM_ADDRESS`.
-- A pasta `D:\GastroHub_v2` e o repositório `gastrohub_v2` mantêm o nome original (não renomear sem pedido do usuário).
+- A pasta `GastroHub_v2` e o repositório `gastrohub_v2` mantêm o nome original (não renomear sem pedido do usuário).
 
 ## Ambiente
 
-- Windows, pasta `D:\GastroHub_v2` (raiz do monorepo — não criar subpasta).
+- Windows, pasta `C:\GastroHub_v2` (raiz do monorepo — não criar subpasta). A máquina original usava `D:\GastroHub_v2`.
+- Nesta máquina roda também outro projeto Docker (`gastrohub`, em `C:\GastroHub`) com Postgres na 5432; por isso o Postgres deste projeto fica na porta **5433** do host.
 - Repositório: https://github.com/longarayb/gastrohub_v2 (público), branch `main`.
 - Node 24 LTS, pnpm via corepack, Docker Desktop (WSL2), Git.
 - Scripts do `package.json` precisam funcionar em PowerShell e Git Bash: usar `cross-env`, `rimraf`, scripts Node em `scripts/`. Nada de `rm -rf`, `export`, `&&` dependente de shell Unix.
@@ -111,7 +112,9 @@ Validação completa antes de merge: `pnpm check` (imports versionados + build +
 - **Cardápio:** preço e snapshot do item só por `priceMenuItem` (shared); grupos efetivos por `effectiveModifierLinks`; disponibilidade por `getProductAvailability`; "Acabou" = `MenuContext.pauseState({ mode: 'END_OF_DAY' })` (fim do dia de negócio). Alteração de preço exige `prices:manage` e grava `product.price_changed` na auditoria. Pausar exige só `menu:pause` (caixa e cozinha podem).
 - **Pedidos:** toda mudança envia `expectedVersion` (409 = alterado por outra pessoa; o front recarrega). Criação com `Idempotency-Key` (uma chave por pedido em digitação). Preço de item só por `priceCatalogItem` (shared), igual na API e no compositor. Eventos de tempo real são notificações emitidas após o commit; o front invalida as queries (`orderKeys`). Mutations de pedido no front via `useOrderAction` (atualiza cache, mostra erro, trata 409).
 - **Tema:** cores, raios e larguras só por tokens (`globals.css` → `@theme inline`): `status-*` para status de pedido (`STATUS_STYLES` em `lib/orders.ts`), `w-kanban-column`. Nada de cores soltas nas telas (redesign = trocar o tema).
-- **Socket.IO:** versão fixada por `overrides` no `pnpm-workspace.yaml` (evita tipos duplicados com `@nestjs/platform-socket.io`).
+- **Socket.IO:** versão fixada por `overrides` no `pnpm-workspace.yaml` (evita tipos duplicados com `@nestjs/platform-socket.io`). O Nest chama `RedisIoAdapter.close()` uma vez por entrada de servidor (raiz e namespace), em paralelo: o encerramento é memoizado para dar `quit` nos clientes Redis uma única vez (senão os `UNSUBSCRIBE` do adapter viram rejeições não tratadas).
+- **Redis/BullMQ:** passe opções de conexão (`{ url }`), nunca uma instância `ioredis` — o BullMQ só fecha conexões que ele mesmo cria.
+- **Erros não tratados:** `main.ts` registra `unhandledRejection`/`uncaughtException` no logger com stack completo. No e2e, `test/setup-env.ts` reprova o teste em que o erro ocorreu (ou o arquivo, se vier do `app.close()`). Para caçar vazamentos: `npx vitest run --project e2e --detectAsyncLeaks` em `apps/api` (restam 1 `AsyncResource.bind` do Throttler por arquivo e, às vezes, uma promessa interna do BullMQ — benignos).
 - **Imagens:** sempre via `ImageService` (WebP); o banco guarda chaves (`imageKey`), nunca URLs.
 - **Seed:** `apps/api/prisma/seed` (re-executável; usa o client raw com `tenantId` explícito). Ao criar uma tabela de tenant nova, inclua-a em `TENANT_TABLES` do seed.
 - **.gitignore:** regras de pastas genéricas devem ser ancoradas na raiz (`/storage/`); `pnpm check` falha se um arquivo versionado importar um arquivo não versionado (`scripts/check-tracked-imports.mjs`).
