@@ -27,12 +27,29 @@ O nome **GastroHub é provisório**. Nada no código, nos pacotes ou na infraest
 
 ## Ambiente
 
-- Windows, pasta `C:\GastroHub_v2` (raiz do monorepo — não criar subpasta). A máquina original usava `D:\GastroHub_v2`.
-- Nesta máquina roda também outro projeto Docker (`gastrohub`, em `C:\GastroHub`) com Postgres na 5432; por isso o Postgres deste projeto fica na porta **5433** do host.
+- Windows, pasta raiz do monorepo (não criar subpasta): `C:\GastroHub_v2` no Surface, `D:\GastroHub_v2` no desktop de casa (ver "Trabalho em várias máquinas").
+- Portas do Docker no host vêm do `.env` de cada máquina (`POSTGRES_PORT`, `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`; padrão 5432/6379/1025/8025 no `.env.example`); `DATABASE_URL`, `REDIS_URL` e `SMTP_PORT` as referenciam com `${...}`. Quem lê o `.env` precisa expandir variáveis: Next (`@next/env`) já expande; na API, use `expand(loadEnv(...))` do `dotenv-expand` e `expandVariables: true` no `ConfigModule`. Nunca troque a porta no `.env.example` para resolver conflito de uma máquina.
 - Repositório: https://github.com/longarayb/gastrohub_v2 (público), branch `main`.
 - Node 24 LTS, pnpm via corepack, Docker Desktop (WSL2), Git.
 - Scripts do `package.json` precisam funcionar em PowerShell e Git Bash: usar `cross-env`, `rimraf`, scripts Node em `scripts/`. Nada de `rm -rf`, `export`, `&&` dependente de shell Unix.
 - Line endings: LF (`.gitattributes` + Prettier `endOfLine: "lf"`). `.ps1/.cmd` em CRLF.
+
+## Trabalho em várias máquinas (seguir sempre)
+
+O usuário alterna o projeto entre dois computadores, **um por vez**: o **Surface** durante o dia e o **desktop de casa** à noite. O GitHub é a única ponte entre eles.
+
+| Máquina | Pasta | `.env` local | Memória |
+|---|---|---|---|
+| Surface (hostname `Infra`) | `C:\GastroHub_v2` | `POSTGRES_PORT=5433` (outro projeto Docker, `C:\GastroHub`, usa a 5432), `CHECK_CONCURRENCY=1`, `NEXT_BUILD_CPUS=1` | 8 GB: concorrência 1 em testes e build |
+| Desktop de casa | `D:\GastroHub_v2` | portas padrão | concorrência padrão (2) |
+
+- **Ao iniciar uma sessão:** `git fetch`, `git pull` da branch atual e da `main` (sem reescrever histórico; se houver conflito ou divergência, parar e avisar o usuário) e ler `docs/HANDOFF.md`.
+- **Quando o usuário disser que vai trocar de computador ou encerrar o dia:**
+  1. Commit e push de **todas** as branches com trabalho (nada fica só local; o `.env` nunca vai para o git).
+  2. `docs/HANDOFF.md` atualizado: o que foi feito, o que está em andamento (branch e ponto exato), os próximos passos exatos e as pendências de decisão do usuário. Commit e push dele também.
+  3. Parar servidores de dev e containers **sem apagar volumes**: `pnpm infra:down` (equivale a `docker compose down`, que preserva os volumes). Nunca `docker compose down -v`.
+- **Nunca trabalhar direto na `main`:** todo trabalho em branch (`feat/`, `fix/`, `chore/`, `docs/`); a `main` só recebe merge `--no-ff`.
+- **Frentes em paralelo:** se houver mais de uma branch em andamento, o `HANDOFF.md` ganha a seção "Frentes em andamento", com cada branch, seu estado e **qual delas pode alterar o schema do Prisma** (só uma por vez, para não gerar migrations conflitantes).
 
 ## Fluxo Git
 
@@ -72,9 +89,9 @@ pnpm test:e2e                 # e2e da API (banco app_db_test, requer Docker)
 docker compose --profile full up --build   # tudo em containers
 ```
 
-Validação completa antes de merge: `pnpm check` (imports versionados + build + typecheck + lint + test com `--concurrency=2`) + `pnpm format:check` + `pnpm test:e2e`.
+Validação completa antes de merge: `pnpm check` (imports versionados + build + typecheck + lint + test; concorrência do Turborepo em `CHECK_CONCURRENCY`, padrão 2) + `pnpm format:check` + `pnpm test:e2e` (arquivos sempre em série).
 
-> **Memória nesta máquina:** o limite de commit do Windows (RAM + pagefile) é baixo; muitos processos Node/Next/Edge em paralelo derrubam processos com código 0xC0000409 (-1073740791 / 3221226505). Use sempre `pnpm check` (concorrência 2), Next build com 2 workers (`NEXT_BUILD_CPUS`) e Playwright headless, um navegador, sem paralelismo. Pare os servidores de dev antes de rodar builds.
+> **Memória:** as duas máquinas têm pouca memória para muitos processos Node/Next/Edge em paralelo; o Windows derruba processos com código 0xC0000409 (-1073740791 / 3221226505). No Surface (8 GB), o `.env` tem `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1`; não sobrescreva. Playwright sempre headless, um navegador, sem paralelismo. Pare os servidores de dev antes de rodar builds.
 
 ## Notas de toolchain (descobertas na fundação)
 
