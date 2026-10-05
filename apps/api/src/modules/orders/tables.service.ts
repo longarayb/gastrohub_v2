@@ -48,7 +48,14 @@ export class TablesService {
               include: {
                 orders: {
                   where: { status: { notIn: ['DELIVERED', 'CANCELED'] } },
-                  select: { id: true, number: true, tabLabel: true, totalCents: true },
+                  select: {
+                    id: true,
+                    number: true,
+                    tabLabel: true,
+                    totalCents: true,
+                    paidCents: true,
+                    paymentStatus: true,
+                  },
                   orderBy: { createdAt: 'asc' },
                 },
               },
@@ -70,11 +77,14 @@ export class TablesService {
           ? {
               id: link.session.id,
               openedAt: link.session.openedAt.toISOString(),
+              billRequestedAt: link.session.billRequestedAt?.toISOString() ?? null,
               tabs: link.session.orders.map((o) => ({
                 orderId: o.id,
                 number: o.number,
                 tabLabel: o.tabLabel,
                 totalCents: o.totalCents,
+                paidCents: o.paidCents,
+                paymentStatus: o.paymentStatus,
               })),
             }
           : null,

@@ -14,16 +14,19 @@ import {
   Permission,
   calculateOrderTotals,
   canTransition,
+  closeError,
   currentBusinessDay,
   defaultServiceFeeBps,
   discountAmount,
   effectiveDeliveryFeeCents,
   effectiveServiceFeeBps,
+  formatBRL,
   hasPermission,
   initialOrderStatus,
   isFinalStatus,
   isSentItem,
   onlyDigits,
+  paymentSummary,
   salesChannelFor,
   transitionError,
 } from '@app/shared';
@@ -62,6 +65,13 @@ const CONFLICT_MESSAGE =
 
 const hashRequest = (input: unknown) =>
   createHash('sha256').update(JSON.stringify(input)).digest('hex');
+
+/** Payment summary from the stored paid amount (kept in sync with the payments). */
+export const paymentSummaryOf = (totalCents: number, paidCents: number) =>
+  paymentSummary(
+    totalCents,
+    paidCents > 0 ? [{ amountCents: paidCents, status: 'CONFIRMED' }] : [],
+  );
 
 @Injectable()
 export class OrdersService {
@@ -106,7 +116,14 @@ export class OrdersService {
   }
 
   private async toDetail(order: OrderDetailRow): Promise<OrderDetailDto> {
-    const ids = [...new Set(order.history.map((h) => h.userId).filter(Boolean))] as string[];
+    const ids = [
+      ...new Set(
+        [
+          ...order.history.map((h) => h.userId),
+          ...order.payments.flatMap((p) => [p.createdById, p.refundedById]),
+        ].filter(Boolean),
+      ),
+    ] as string[];
     const users = ids.length
       ? await this.prisma.user.findMany({
           where: { id: { in: ids } },
@@ -116,8 +133,11 @@ export class OrdersService {
     return toOrderDetail(order, new Map(users.map((u) => [u.id, u.name])));
   }
 
-  /** Applies `data` only if the order still has `expectedVersion`; bumps the version. */
-  private async updateVersioned(
+  /**
+   * Applies `data` only if the order still has `expectedVersion`; bumps the version.
+   * Also used by the payment and tab services of the POS (same module family).
+   */
+  async updateVersioned(
     tx: DbTx,
     id: string,
     expectedVersion: number,
@@ -147,8 +167,11 @@ export class OrdersService {
       : null;
   }
 
-  /** Recomputes and stores the order totals from its items (backend is the source of truth). */
-  private async recalculate(tx: DbTx, orderId: string): Promise<void> {
+  /**
+   * Recomputes and stores the order totals from its items (backend is the source of truth).
+   * A change can never leave the total below what was already paid: refund first.
+   */
+  async recalculate(tx: DbTx, orderId: string): Promise<void> {
     const order = await tx.order.findFirst({ where: { id: orderId }, include: { items: true } });
     if (!order) throw new NotFoundError('Pedido');
     const totals = calculateOrderTotals({
@@ -166,6 +189,11 @@ export class OrdersService {
       serviceFeeBps: effectiveServiceFeeBps(order.serviceFeeBps, order.serviceFeeWaived),
       deliveryFeeCents: effectiveDeliveryFeeCents(order.type, order.deliveryFeeCents),
     });
+    if (totals.totalCents < order.paidCents) {
+      throw new ValidationError(
+        `O total ficaria abaixo do valor já pago (${formatBRL(order.paidCents)}). Estorne um pagamento antes.`,
+      );
+    }
     await tx.order.update({
       where: { id: orderId },
       data: {
@@ -176,6 +204,7 @@ export class OrdersService {
         serviceFeeCents: totals.serviceFeeCents,
         totalCents: totals.totalCents,
         promoSavingsCents: totals.promoSavingsCents,
+        paymentStatus: paymentSummaryOf(totals.totalCents, order.paidCents).status,
       },
     });
   }
@@ -237,7 +266,8 @@ export class OrdersService {
     return items.map((i) => i.sectorId!);
   }
 
-  private async publish(orderId: string, created = false): Promise<OrderDetailDto> {
+  /** Notifies realtime clients after the commit and returns the fresh detail. */
+  async publish(orderId: string, created = false): Promise<OrderDetailDto> {
     const order = await this.findDetail(orderId);
     const event = toOrderEvent(order);
     const sectors = await this.sectorIdsOf(orderId);
@@ -257,12 +287,19 @@ export class OrdersService {
     board?: boolean;
     q?: string;
     tableSessionId?: string;
+    receivable?: boolean;
   }): Promise<OrderSummaryDto[]> {
     const where: Prisma.OrderWhereInput = {
       ...(query.status?.length && { status: { in: query.status } }),
       ...(query.type && { type: query.type }),
       ...(query.businessDate && { businessDate: query.businessDate }),
       ...(query.tableSessionId && { tableSessionId: query.tableSessionId }),
+      // Delivered deliveries with an open balance: the courier still has to settle.
+      ...(query.receivable && {
+        type: 'DELIVERY',
+        status: 'DELIVERED',
+        paymentStatus: { not: 'PAID' },
+      }),
     };
     if (query.board) {
       // Open orders of any day + orders finished in the last 12 hours.
@@ -637,6 +674,13 @@ export class OrdersService {
       data: { sentAt: now, sentById: this.ctx.userId ?? null },
     });
     const order = await tx.order.findFirst({ where: { id: orderId } });
+    // A new round after the pre-bill: the table is no longer waiting for payment.
+    if (order?.tableSessionId) {
+      await tx.tableSession.updateMany({
+        where: { id: order.tableSessionId, billRequestedAt: { not: null } },
+        data: { billRequestedAt: null },
+      });
+    }
     if (order?.status === 'READY') {
       await tx.order.update({
         where: { id: orderId },
@@ -773,6 +817,14 @@ export class OrdersService {
               'Há itens não enviados para a cozinha. Envie ou remova antes de fechar.',
             );
           }
+          {
+            // Dine-in and takeout close only with a zero balance; delivery may stay receivable.
+            const unpaid = closeError(
+              order.type,
+              paymentSummaryOf(order.totalCents, order.paidCents),
+            );
+            if (unpaid) throw new ValidationError(unpaid);
+          }
           data.deliveredAt = now;
           await tx.orderItem.updateMany({
             where: { orderId: id, status: { in: ['QUEUED', 'PREPARING', 'READY'] } },
@@ -782,6 +834,9 @@ export class OrdersService {
         case 'CANCELED':
           this.require(Permission.ORDERS_CANCEL, 'Você não tem permissão para cancelar pedidos');
           if (!input.reason) throw new ValidationError('Informe o motivo do cancelamento');
+          if (order.paidCents > 0) {
+            throw new ValidationError('Estorne os pagamentos antes de cancelar o pedido');
+          }
           data.canceledAt = now;
           data.canceledById = this.ctx.userId ?? null;
           data.cancelReason = input.reason;
@@ -826,7 +881,7 @@ export class OrdersService {
   }
 
   /** Closes the table session when it has no open tabs left (frees the tables). */
-  private async closeSessionIfDone(tx: DbTx, sessionId: string, now: Date): Promise<void> {
+  async closeSessionIfDone(tx: DbTx, sessionId: string, now: Date): Promise<void> {
     const open = await tx.order.count({
       where: { tableSessionId: sessionId, status: { notIn: ['DELIVERED', 'CANCELED'] } },
     });

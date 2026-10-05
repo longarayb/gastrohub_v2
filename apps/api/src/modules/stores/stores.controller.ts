@@ -5,10 +5,12 @@ import {
   type BusinessHoursInput,
   type CreateStoreInput,
   Permission,
+  type PixSettingsDto,
   type StoreSettingsInput,
   type UpdateStoreInput,
   businessHoursSchema,
   createStoreSchema,
+  pixSettingsSchema,
   storeSettingsSchema,
   updateStoreSchema,
 } from '@app/shared';
@@ -47,6 +49,21 @@ export class StoresController {
   @ApiZodBody(storeSettingsSchema)
   updateSettings(@ZBody(storeSettingsSchema) body: StoreSettingsInput) {
     return this.stores.updateSettings(body);
+  }
+
+  @Get('current/pix')
+  @RequirePermissions(Permission.STORE_MANAGE)
+  @ApiOperation({ summary: 'Chave PIX do QR Code estático' })
+  getPix() {
+    return this.stores.getPix();
+  }
+
+  @Patch('current/pix')
+  @RequirePermissions(Permission.STORE_MANAGE)
+  @ApiOperation({ summary: 'Define ou remove a chave PIX (validada e normalizada)' })
+  @ApiZodBody(pixSettingsSchema)
+  updatePix(@ZBody(pixSettingsSchema) body: PixSettingsDto) {
+    return this.stores.updatePix(body);
   }
 
   @Post('current/logo')

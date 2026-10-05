@@ -14,9 +14,16 @@ export const AuditAction = {
   USER_CREATED: 'user.created',
   USER_UPDATED: 'user.updated',
   STORE_UPDATED: 'store.updated',
+  CASH_OPENED: 'cash.opened',
   CASH_CLOSED: 'cash.closed',
+  CASH_REOPENED: 'cash.reopened',
   CASH_MOVEMENT: 'cash.movement',
-  PAYMENT_REMOVED: 'payment.removed',
+  PAYMENT_REFUNDED: 'payment.refunded',
+  ORDER_ITEMS_MOVED: 'order.items_moved',
+  ORDER_TABLE_TRANSFERRED: 'order.table_transferred',
+  TABLES_MERGED: 'tables.merged',
+  TABLES_SPLIT: 'tables.split',
+  TABLE_CHANGED: 'tables.table_changed',
 } as const;
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 
