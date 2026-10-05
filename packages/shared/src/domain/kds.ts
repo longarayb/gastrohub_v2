@@ -99,7 +99,11 @@ export function routeItem(
     name: snapshot.name,
     quantity,
     details: {
-      size: snapshot.kind === 'PIZZA' ? null : (snapshot.size?.name ?? null),
+      // Pizzas and sized products already carry the size in their name.
+      size:
+        snapshot.kind === 'PIZZA' || !snapshot.size || snapshot.name.includes(snapshot.size.name)
+          ? null
+          : snapshot.size.name,
       flavors: snapshot.flavors.map((f) => ({
         name: f.name,
         fraction: flavorCount > 1 ? `${f.fraction.numerator}/${f.fraction.denominator}` : null,

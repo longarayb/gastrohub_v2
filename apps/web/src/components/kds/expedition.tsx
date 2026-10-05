@@ -90,9 +90,9 @@ function ExpeditionCard({
       </ul>
       <footer className="border-t p-3">
         {delivery ? (
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
             <Select value={courier} onValueChange={setCourier}>
-              <SelectTrigger aria-label="Entregador" className="h-12 flex-1 text-base">
+              <SelectTrigger aria-label="Entregador" className="h-12 w-full text-base">
                 <SelectValue placeholder="Entregador" />
               </SelectTrigger>
               <SelectContent className="dark">
@@ -118,6 +118,9 @@ function ExpeditionCard({
             onClick={() => onServe(ready.map((r) => r.roundId))}
           >
             <PackageCheck /> Entregue
+            {ready.length > 0 && ready.length < order.rounds.length
+              ? ` (rodada ${ready.map((r) => r.number).join(', ')})`
+              : ''}
           </Button>
         )}
       </footer>

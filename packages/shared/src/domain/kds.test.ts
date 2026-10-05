@@ -167,6 +167,15 @@ describe('routeItem', () => {
     );
     expect(task!.details.size).toBe('Meia');
   });
+
+  it('does not repeat a size already in the name', () => {
+    const [task] = routeItem(
+      snapshot({ kind: 'SIZED', name: 'Refrigerante cola 2 L', size: { id: 's', name: '2 L' } }),
+      1,
+      KITCHEN,
+    );
+    expect(task!.details.size).toBeNull();
+  });
 });
 
 describe('removals', () => {

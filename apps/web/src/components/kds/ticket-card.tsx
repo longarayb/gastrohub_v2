@@ -29,9 +29,10 @@ const TIMER_STYLE = {
   late: 'bg-destructive text-destructive-foreground animate-pulse',
 } as const;
 
-/** "mm:ss" (or "h:mm:ss") since the ticket was sent. */
-export function elapsed(sentAt: string, now: number): string {
-  const seconds = Math.max(0, Math.floor((now - new Date(sentAt).getTime()) / 1000));
+/** "mm:ss" (or "h:mm:ss") since the ticket was sent (until `now`, or until it was done). */
+export function elapsed(sentAt: string, now: number | string): string {
+  const end = typeof now === 'string' ? new Date(now).getTime() : now;
+  const seconds = Math.max(0, Math.floor((end - new Date(sentAt).getTime()) / 1000));
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = String(seconds % 60).padStart(2, '0');
@@ -145,10 +146,11 @@ export function TicketCard({
             'tabular shrink-0 rounded-md px-2 py-1 text-xl font-bold',
             TIMER_STYLE[level],
           )}
-          aria-label="Tempo desde o envio"
+          aria-label={ticket.doneAt ? 'Tempo de preparo' : 'Tempo desde o envio'}
         >
           {level === 'late' && <Flame className="mr-1 inline size-5" aria-hidden />}
-          {elapsed(ticket.sentAt, now)}
+          {/* A finished ticket shows how long it took (frozen), not a running clock. */}
+          {elapsed(ticket.sentAt, ticket.doneAt ?? now)}
         </span>
       </header>
 
