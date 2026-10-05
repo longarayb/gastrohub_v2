@@ -29,8 +29,19 @@ let onSessionExpired: (() => void) | null = null;
 export function setAccessToken(token: string | null): void {
   accessToken = token;
 }
+
+// ---- KDS device session (D028): takes precedence over a user session on this tab ----
+let deviceToken: string | null = null;
+let renewDevice: (() => Promise<boolean>) | null = null;
+
+/** Paired kitchen screen: its token and how to renew it (device cookie). */
+export function setDeviceSession(token: string | null, renew?: () => Promise<boolean>): void {
+  deviceToken = token;
+  renewDevice = token ? (renew ?? renewDevice) : null;
+}
+
 export function getAccessToken(): string | null {
-  return accessToken;
+  return deviceToken ?? accessToken;
 }
 export function setSessionHandlers(handlers: {
   refreshed: (session: AuthSession) => void;
@@ -87,7 +98,7 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
       credentials: 'include',
       headers: {
         ...(isForm || body === undefined ? {} : { 'Content-Type': 'application/json' }),
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
         ...headers,
       },
       body: isForm ? body : body === undefined ? undefined : JSON.stringify(body),
@@ -100,7 +111,9 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
     throw new ApiError(0, { message: 'Sem conexão com o servidor. Verifique sua internet.' });
   }
 
-  if (res.status === 401 && !noRetry && accessToken) {
+  if (res.status === 401 && !noRetry && deviceToken && renewDevice) {
+    if (await renewDevice()) res = await doFetch();
+  } else if (res.status === 401 && !noRetry && accessToken) {
     const session = await refreshSession();
     if (session) {
       res = await doFetch();

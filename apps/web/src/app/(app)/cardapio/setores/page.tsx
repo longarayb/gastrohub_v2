@@ -1,6 +1,6 @@
 'use client';
 
-import { Permission, type SectorDto } from '@app/shared';
+import { Permission, type SectorDto, sectorLimitsError } from '@app/shared';
 import { Badge } from '@app/ui/components/badge';
 import { Button } from '@app/ui/components/button';
 import { Card } from '@app/ui/components/card';
@@ -12,6 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Check, ChefHat, Plus, Star, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { DragHandle, SortableList } from '@/components/menu/sortable-list';
+import { KdsDevicesCard } from '@/components/kds/devices-card';
 import { EmptyState, Page } from '@/components/page';
 import { apiDelete, apiPatch, apiPost, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -20,7 +21,11 @@ import { menuKeys, useInvalidateMenu, useSectors } from '@/lib/menu';
 function SectorRow({ sector, canManage }: { sector: SectorDto; canManage: boolean }) {
   const invalidate = useInvalidateMenu();
   const [name, setName] = useState(sector.name);
+  const [warn, setWarn] = useState(String(sector.warnAfterMinutes));
+  const [late, setLate] = useState(String(sector.lateAfterMinutes));
   const [deleting, setDeleting] = useState(false);
+  const limitsChanged =
+    Number(warn) !== sector.warnAfterMinutes || Number(late) !== sector.lateAfterMinutes;
 
   const save = async (patch: Partial<SectorDto>) => {
     try {
@@ -28,6 +33,8 @@ function SectorRow({ sector, canManage }: { sector: SectorDto; canManage: boolea
         name: patch.name ?? sector.name,
         isDefault: patch.isDefault ?? false,
         isActive: sector.isActive,
+        warnAfterMinutes: patch.warnAfterMinutes ?? sector.warnAfterMinutes,
+        lateAfterMinutes: patch.lateAfterMinutes ?? sector.lateAfterMinutes,
       });
       await invalidate();
       toast.success('Setor atualizado');
@@ -62,6 +69,49 @@ function SectorRow({ sector, canManage }: { sector: SectorDto; canManage: boolea
         </Button>
       )}
       <div className="flex-1" />
+      <label
+        className="flex items-center gap-1 text-xs text-muted-foreground"
+        title="Tempo para o ticket ficar amarelo no KDS"
+      >
+        <span className="size-2 rounded-full bg-warning" aria-hidden />
+        <Input
+          type="number"
+          min={1}
+          value={warn}
+          disabled={!canManage}
+          aria-label={`Alerta amarelo de ${sector.name} (minutos)`}
+          className="h-8 w-16"
+          onChange={(e) => setWarn(e.target.value)}
+        />
+      </label>
+      <label
+        className="flex items-center gap-1 text-xs text-muted-foreground"
+        title="Tempo para o ticket ficar vermelho no KDS"
+      >
+        <span className="size-2 rounded-full bg-destructive" aria-hidden />
+        <Input
+          type="number"
+          min={2}
+          value={late}
+          disabled={!canManage}
+          aria-label={`Alerta vermelho de ${sector.name} (minutos)`}
+          className="h-8 w-16"
+          onChange={(e) => setLate(e.target.value)}
+        />
+        min
+      </label>
+      {limitsChanged && (
+        <Button
+          size="sm"
+          onClick={() => {
+            const error = sectorLimitsError(Number(warn), Number(late));
+            if (error) return toast.error(error);
+            void save({ warnAfterMinutes: Number(warn), lateAfterMinutes: Number(late) });
+          }}
+        >
+          <Check /> Salvar
+        </Button>
+      )}
       {sector.isDefault ? (
         <Badge>Setor padrão</Badge>
       ) : (
@@ -85,7 +135,7 @@ function SectorRow({ sector, canManage }: { sector: SectorDto; canManage: boolea
         open={deleting}
         onOpenChange={setDeleting}
         title="Excluir setor?"
-        description="Os produtos deste setor passam a usar o setor padrão."
+        description="Os produtos deste setor passam a usar o setor padrão. Setores que já receberam pedidos não podem ser excluídos: desative-os."
         confirmLabel="Excluir"
         destructive
         onConfirm={remove}
@@ -97,6 +147,7 @@ function SectorRow({ sector, canManage }: { sector: SectorDto; canManage: boolea
 export default function SectorsPage() {
   const { can } = useAuth();
   const canManage = can(Permission.MENU_MANAGE);
+  const canManageScreens = can(Permission.STORE_MANAGE);
   const invalidate = useInvalidateMenu();
   const queryClient = useQueryClient();
   const { data: sectors, isLoading } = useSectors();
@@ -131,7 +182,7 @@ export default function SectorsPage() {
     <Page
       title="Setores de produção"
       description="Para onde cada item vai na cozinha: tela do KDS e impressão por setor (ex.: Cozinha, Bar, Pizzaria)"
-      className="max-w-3xl"
+      className="max-w-4xl"
     >
       {canManage && (
         <form
@@ -178,6 +229,7 @@ export default function SectorsPage() {
           </div>
         )}
       </Card>
+      {canManageScreens && sectors && <KdsDevicesCard sectors={sectors} />}
     </Page>
   );
 }
