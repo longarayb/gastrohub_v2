@@ -6,6 +6,8 @@ Sistema SaaS de gestão para restaurantes, bares, lanchonetes, pizzarias e deliv
 
 > Em desenvolvimento — Fase 1 (MVP). Veja [docs/ROADMAP.md](docs/ROADMAP.md).
 
+> Computador novo? Siga o passo a passo completo em [docs/SETUP.md](docs/SETUP.md).
+
 ## Pré-requisitos (Windows)
 
 | Ferramenta | Versão | Instalação |
@@ -41,6 +43,8 @@ pnpm dev        # sobe a infraestrutura e todas as apps em modo watch
 | Comando | O que faz |
 |---|---|
 | `pnpm dev` | Sobe Docker (Postgres, Redis, Mailpit), aplica migrations e roda api/web/menu com hot reload |
+| `pnpm start:lite` | Modo leve: builds de produção da API e do painel, sem watchers (recomendado com pouca memória) |
+| `pnpm dev:lite` | Hot reload só da API, do painel e dos pacotes (sem o cardápio digital) |
 | `pnpm infra:up` / `pnpm infra:down` | Sobe/derruba só a infraestrutura Docker |
 | `pnpm build` | Build de todos os pacotes |
 | `pnpm lint` / `pnpm typecheck` | ESLint / TypeScript |
@@ -101,3 +105,5 @@ Pedidos do dia de negócio atual em todos os status (balcão, delivery e mesa): 
 - [docs/ARQUITETURA.md](docs/ARQUITETURA.md)
 - [docs/DECISOES.md](docs/DECISOES.md)
 - [docs/ROADMAP.md](docs/ROADMAP.md)
+- [docs/SETUP.md](docs/SETUP.md) (instalação em computador novo)
+- [docs/HANDOFF.md](docs/HANDOFF.md) (estado atual e próximos passos)

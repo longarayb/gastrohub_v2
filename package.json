@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "dev:lite": "turbo run dev --filter=@app/api --filter=@app/web --filter=./packages/* --concurrency=4",
+    "start:lite": "node scripts/start-lite.mjs",
     "dev:apps": "turbo run dev --filter=./apps/* --filter=./packages/*",
     "build": "turbo run build",
     "check": "node scripts/check-tracked-imports.mjs && turbo run build typecheck lint test --concurrency=2",

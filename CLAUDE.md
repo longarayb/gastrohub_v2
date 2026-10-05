@@ -2,6 +2,8 @@
 
 Memória do projeto para sessões do Claude Code. Mantenha este arquivo atualizado ao final de cada etapa.
 
+> **Comece por [docs/HANDOFF.md](docs/HANDOFF.md):** estado atual, decisões recentes e os próximos passos exatos. Instalação em máquina nova: [docs/SETUP.md](docs/SETUP.md).
+
 > **Requisitos completos do produto:** [docs/PROMPT_INICIAL.md](docs/PROMPT_INICIAL.md) (texto integral do prompt inicial, incluindo escopo da Fase 1, seção 0.1 sobre o nome provisório e o que fica fora do escopo). Consulte-o antes de começar cada etapa; este CLAUDE.md resume decisões e convenções, não substitui os requisitos.
 
 ## Produto
@@ -59,6 +61,8 @@ corepack enable pnpm          # uma vez
 pnpm install
 pnpm bootstrap                # .env + docker + migrations + seed (primeira vez)
 pnpm dev                      # sobe docker (postgres, redis, mailpit) + todas as apps
+pnpm start:lite               # modo leve: builds de produção da API (3333) e do painel (3000), sem watchers
+pnpm dev:lite                 # watch só de API, painel e pacotes (sem o cardápio digital); rode infra:up antes
 pnpm infra:up / infra:down    # apenas a infraestrutura Docker
 pnpm db:migrate               # prisma migrate dev (criar migration: pnpm db:migrate --name x)
 pnpm db:seed                  # dados de demonstração
@@ -111,7 +115,7 @@ Validação completa antes de merge: `pnpm check` (imports versionados + build +
 - **Imagens:** sempre via `ImageService` (WebP); o banco guarda chaves (`imageKey`), nunca URLs.
 - **Seed:** `apps/api/prisma/seed` (re-executável; usa o client raw com `tenantId` explícito). Ao criar uma tabela de tenant nova, inclua-a em `TENANT_TABLES` do seed.
 - **.gitignore:** regras de pastas genéricas devem ser ancoradas na raiz (`/storage/`); `pnpm check` falha se um arquivo versionado importar um arquivo não versionado (`scripts/check-tracked-imports.mjs`).
-- **Teste visual das telas:** script Playwright fora do repo (scratchpad) contra o build de produção (`node dist/main.js` + `node .next/standalone/apps/web/server.js` com `.next/static` copiado). Edge headless, um navegador, sem paralelismo.
+- **Teste visual das telas:** roteiros Playwright em `tools/ui-walkthrough/` (fora do workspace pnpm; `npm install` na pasta) contra o build de produção (`pnpm start:lite`) e o seed. Edge headless, um navegador, sem paralelismo. Ao criar uma etapa com telas, acrescente um roteiro novo ali.
 
 ## Estrutura
 
