@@ -1,9 +1,10 @@
 import path from 'node:path';
 import { config as loadEnv } from 'dotenv';
+import { expand } from 'dotenv-expand';
 import { defineConfig } from 'prisma/config';
 
 // The monorepo keeps a single .env at the repository root.
-loadEnv({ path: path.join(import.meta.dirname, '..', '..', '.env'), quiet: true });
+expand(loadEnv({ path: path.join(import.meta.dirname, '..', '..', '.env'), quiet: true }));
 
 export default defineConfig({
   schema: path.join('prisma', 'schema.prisma'),
