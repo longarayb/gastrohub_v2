@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import type { Role } from '@app/shared';
+import type { ActorRole } from '@app/shared';
 import { ClsService, type ClsStore } from 'nestjs-cls';
 import { UnauthorizedError } from '../errors/domain-error.js';
 
 export interface AppClsStore extends ClsStore {
   tenantId?: string;
   userId?: string;
-  role?: Role;
+  /** Paired KDS device (role KDS_DEVICE) instead of a user. */
+  deviceId?: string;
+  role?: ActorRole;
 }
 
 /** Request-scoped tenant and user information, backed by AsyncLocalStorage. */
@@ -29,13 +31,18 @@ export class TenantContext {
     return this.cls.isActive() ? this.cls.get('userId') : undefined;
   }
 
-  get role(): Role | undefined {
+  get deviceId(): string | undefined {
+    return this.cls.isActive() ? this.cls.get('deviceId') : undefined;
+  }
+
+  get role(): ActorRole | undefined {
     return this.cls.isActive() ? this.cls.get('role') : undefined;
   }
 
-  set(values: { tenantId: string; userId?: string; role?: Role }): void {
+  set(values: { tenantId: string; userId?: string; deviceId?: string; role?: ActorRole }): void {
     this.cls.set('tenantId', values.tenantId);
     if (values.userId) this.cls.set('userId', values.userId);
+    if (values.deviceId) this.cls.set('deviceId', values.deviceId);
     if (values.role) this.cls.set('role', values.role);
   }
 

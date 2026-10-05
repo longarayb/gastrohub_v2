@@ -84,12 +84,22 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   COURIER: [P.ORDERS_READ, P.DELIVERY_OPERATE],
 };
 
-export function hasPermission(role: Role | null | undefined, permission: Permission): boolean {
-  return role ? ROLE_PERMISSIONS[role].includes(permission) : false;
+/**
+ * Internal role of a paired KDS tablet/TV (D028): never a membership, only in access tokens.
+ * It can only work the kitchen display and mark products as sold out.
+ */
+export const KDS_DEVICE_ROLE = 'KDS_DEVICE' as const;
+export type ActorRole = Role | typeof KDS_DEVICE_ROLE;
+export const KDS_DEVICE_PERMISSIONS: readonly Permission[] = [P.KDS_OPERATE, P.MENU_PAUSE];
+
+export function hasPermission(role: ActorRole | null | undefined, permission: Permission): boolean {
+  if (!role) return false;
+  if (role === KDS_DEVICE_ROLE) return KDS_DEVICE_PERMISSIONS.includes(permission);
+  return ROLE_PERMISSIONS[role].includes(permission);
 }
 
 export function hasAnyPermission(
-  role: Role | null | undefined,
+  role: ActorRole | null | undefined,
   permissions: readonly Permission[],
 ): boolean {
   return permissions.some((p) => hasPermission(role, p));

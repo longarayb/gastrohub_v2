@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SALES_CHANNELS, type SalesChannel } from '../domain/menu-availability.js';
+import { DEFAULT_SECTOR_LATE_MINUTES, DEFAULT_SECTOR_WARN_MINUTES } from '../domain/kds.js';
 import { validateLinkLimits } from '../domain/menu-modifiers.js';
 import { zCents } from '../schemas/common.js';
 import { businessHourSchema } from '../stores/schemas.js';
@@ -39,11 +40,19 @@ const promoMessage = {
 };
 
 // ---- Sectors ----
-export const sectorSchema = z.object({
-  name: zName,
-  isDefault: z.boolean().default(false),
-  isActive: z.boolean().default(true),
-});
+export const sectorSchema = z
+  .object({
+    name: zName,
+    isDefault: z.boolean().default(false),
+    isActive: z.boolean().default(true),
+    /** KDS timer alerts in minutes since the ticket was sent (yellow, red). */
+    warnAfterMinutes: z.number().int().min(1).max(240).default(DEFAULT_SECTOR_WARN_MINUTES),
+    lateAfterMinutes: z.number().int().min(2).max(480).default(DEFAULT_SECTOR_LATE_MINUTES),
+  })
+  .refine((s) => s.lateAfterMinutes > s.warnAfterMinutes, {
+    message: 'O alerta vermelho deve vir depois do amarelo',
+    path: ['lateAfterMinutes'],
+  });
 export type SectorInput = z.input<typeof sectorSchema>;
 
 // ---- Pause / reorder ----

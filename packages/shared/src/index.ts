@@ -13,6 +13,8 @@ export * from './domain/order-totals.js';
 export * from './domain/payments.js';
 export * from './domain/pix.js';
 export * from './errors.js';
+export * from './kds/schemas.js';
+export * from './kds/types.js';
 export * from './menu/schemas.js';
 export * from './menu/types.js';
 export * from './orders/catalog-pricing.js';

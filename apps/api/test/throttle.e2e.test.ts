@@ -27,4 +27,13 @@ describe('Rate limiting (e2e)', () => {
       message: 'Muitas requisições. Aguarde um instante e tente novamente.',
     });
   });
+
+  it('limits KDS pairing attempts per IP (10 per minute)', async () => {
+    const attempt = () =>
+      ctx.http().post('/api/kds-device/pair').send({ store: 'nao-existe', code: '123456' });
+    for (let i = 0; i < 10; i++) {
+      await attempt().expect(400);
+    }
+    await attempt().expect(429);
+  });
 });

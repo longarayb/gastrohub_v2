@@ -15,6 +15,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
 import { newPublicCode, nextOrderNumber, toOrderEvent } from './orders.mapper.js';
 import { OrdersService } from './orders.service.js';
+import { ProductionService } from './production.service.js';
 import { TablesService } from './tables.service.js';
 
 const OPEN = { notIn: ['DELIVERED', 'CANCELED'] } satisfies Prisma.EnumOrderStatusFilter;
@@ -30,6 +31,7 @@ export class TabsService {
     @InjectDb() private readonly db: Db,
     private readonly ctx: TenantContext,
     private readonly orders: OrdersService,
+    private readonly production: ProductionService,
     private readonly tables: TablesService,
     private readonly audit: AuditService,
     private readonly realtime: RealtimeService,
@@ -187,9 +189,13 @@ export class TabsService {
       const moved: { name: string; quantity: number; totalCents: number }[] = [];
       for (const itemId of plan.whole) {
         const item = source.items.find((i) => i.id === itemId)!;
-        await tx.orderItem.update({
-          where: { id: itemId },
-          data: { orderId: target.id, roundId: await targetRound(item.roundId) },
+        const roundId = await targetRound(item.roundId);
+        await tx.orderItem.update({ where: { id: itemId }, data: { orderId: target.id, roundId } });
+        // Kitchen tasks follow the line (same tickets, same timers).
+        await this.production.moveWithItem(tx, {
+          itemId,
+          targetOrderId: target.id,
+          targetRoundId: roundId,
         });
         moved.push({ name: item.name, quantity: item.quantity, totalCents: item.totalCents });
       }
@@ -205,17 +211,26 @@ export class TabsService {
           },
         });
         const { id: _id, tenantId: _tenant, createdAt: _created, ...copy } = item;
-        await tx.orderItem.create({
+        const roundId = await targetRound(item.roundId);
+        const created = await tx.orderItem.create({
           data: {
             ...copy,
             snapshot: item.snapshot as Prisma.InputJsonValue,
             orderId: target.id,
-            roundId: await targetRound(item.roundId),
+            roundId,
             quantity: move.quantity,
             discountValue: move.discountValue,
             discountCents: move.discountCents,
             totalCents: move.totalCents,
           },
+        });
+        await this.production.splitWithItem(tx, {
+          itemId,
+          newItemId: created.id,
+          lineQuantity: item.quantity,
+          keepQuantity: keep.quantity,
+          targetOrderId: target.id,
+          targetRoundId: roundId,
         });
         moved.push({ name: item.name, quantity: move.quantity, totalCents: move.totalCents });
       }
@@ -226,6 +241,10 @@ export class TabsService {
       if (input.targetOrderId) {
         await this.orders.updateVersioned(tx, target.id, input.targetExpectedVersion ?? -1, {});
       }
+      // After the version checks: the kitchen state of both tabs may change their status.
+      const now = new Date();
+      await this.production.sync(tx, source.id, now);
+      await this.production.sync(tx, target.id, now);
       await this.audit.log(
         {
           action: AuditAction.ORDER_ITEMS_MOVED,

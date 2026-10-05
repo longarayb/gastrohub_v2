@@ -13,6 +13,9 @@ export interface SectorDto {
   sortOrder: number;
   isDefault: boolean;
   isActive: boolean;
+  /** KDS timer alerts (minutes since the ticket was sent). */
+  warnAfterMinutes: number;
+  lateAfterMinutes: number;
 }
 
 export interface ModifierLinkDto {

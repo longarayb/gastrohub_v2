@@ -1,10 +1,11 @@
 import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import type { AccessTokenPayload } from '@app/shared';
+import { type AccessTokenPayload, KDS_DEVICE_ROLE } from '@app/shared';
 import type { Request } from 'express';
 import { AppConfig } from '../../core/config/app-config.service.js';
 import { UnauthorizedError } from '../../core/errors/domain-error.js';
+import { PrismaService } from '../../core/prisma/prisma.service.js';
 import { TenantContext } from '../../core/tenancy/tenant-context.js';
 import { IS_PUBLIC_KEY } from './auth.decorators.js';
 
@@ -19,6 +20,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly jwt: JwtService,
     private readonly config: AppConfig,
     private readonly ctx: TenantContext,
+    private readonly prisma: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,6 +46,15 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     req.user = payload;
+    if (payload.role === KDS_DEVICE_ROLE) {
+      // A revoked tablet loses access right away, not only when its access token expires.
+      const active = await this.prisma.kdsDevice.count({
+        where: { id: payload.sub, tenantId: payload.tenantId, revokedAt: null },
+      });
+      if (!active) throw new UnauthorizedError('Esta tela foi desvinculada pelo gerente');
+      this.ctx.set({ tenantId: payload.tenantId, deviceId: payload.sub, role: payload.role });
+      return true;
+    }
     this.ctx.set({ tenantId: payload.tenantId, userId: payload.sub, role: payload.role });
     return true;
   }

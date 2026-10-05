@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { type CreateUserInput, Role, type UpdateUserInput, assignableRoles } from '@app/shared';
+import {
+  type CreateUserInput,
+  KDS_DEVICE_ROLE,
+  Role,
+  type UpdateUserInput,
+  assignableRoles,
+} from '@app/shared';
 import { AuditAction, AuditService } from '../../core/audit/audit.service.js';
 import {
   ConflictError,
@@ -155,7 +161,7 @@ export class UsersService {
 
   private assertCanAssign(role: Role): void {
     const current = this.ctx.role;
-    if (!current || !assignableRoles(current).includes(role)) {
+    if (!current || current === KDS_DEVICE_ROLE || !assignableRoles(current).includes(role)) {
       throw new ForbiddenError('Você não pode atribuir este papel');
     }
   }

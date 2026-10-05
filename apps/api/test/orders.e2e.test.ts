@@ -455,6 +455,8 @@ describe('Orders (e2e)', () => {
       }).expect(200)
     ).body;
     expect(tab.subtotalCents).toBe(2500);
+    // Round 1 was ready and the only pending item was canceled: the tab is ready again (D027).
+    expect(tab.status).toBe('READY');
     const itemAudit = await ctx.prisma.auditLog.findFirst({
       where: { tenantId: store.storeId, action: 'order.item_canceled', entityId: tab.id },
     });
@@ -476,12 +478,6 @@ describe('Orders (e2e)', () => {
     expect(tab).toMatchObject({ serviceFeeWaived: true, serviceFeeCents: 0, totalCents: 2500 });
 
     // Closing both tabs frees the table.
-    tab = (
-      await post(cashier, `/api/orders/${tab.id}/status`, {
-        expectedVersion: tab.version,
-        status: 'READY',
-      }).expect(200)
-    ).body;
     // A tab only closes with a zero balance: the cashier opens the register and receives.
     const unpaid = await post(cashier, `/api/orders/${tab.id}/status`, {
       expectedVersion: tab.version,
