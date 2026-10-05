@@ -20,6 +20,11 @@ export const envSchema = z.object({
     .default(BRAND.name),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_PORT: z.coerce.number().int().default(3333),
+  /** Login attempts per minute and IP (brute force protection). Production: 10. */
+  LOGIN_RATE_LIMIT_PER_MINUTE: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.coerce.number().int().min(1).default(10),
+  ),
   API_PUBLIC_URL: z.url().default('http://localhost:3333'),
   API_CORS_ORIGINS: csv,
 

@@ -15,6 +15,17 @@ describe('validateEnv', () => {
     expect(validateEnv({ ...base, APP_NAME: 'Outro Nome' }).APP_NAME).toBe('Outro Nome');
   });
 
+  it('keeps the production login limit (10/min) unless configured', () => {
+    expect(validateEnv(base).LOGIN_RATE_LIMIT_PER_MINUTE).toBe(10);
+    expect(
+      validateEnv({ ...base, LOGIN_RATE_LIMIT_PER_MINUTE: '' }).LOGIN_RATE_LIMIT_PER_MINUTE,
+    ).toBe(10);
+    expect(
+      validateEnv({ ...base, LOGIN_RATE_LIMIT_PER_MINUTE: '300' }).LOGIN_RATE_LIMIT_PER_MINUTE,
+    ).toBe(300);
+    expect(() => validateEnv({ ...base, LOGIN_RATE_LIMIT_PER_MINUTE: '0' })).toThrow();
+  });
+
   it('rejects short JWT secrets with a readable message', () => {
     expect(() => validateEnv({ ...base, JWT_ACCESS_SECRET: 'curto' })).toThrow(
       /Variáveis de ambiente inválidas/,

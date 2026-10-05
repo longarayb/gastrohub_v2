@@ -7,10 +7,13 @@ describe('Rate limiting (e2e)', () => {
     ctx = await createTestApp();
     await resetDatabase(ctx.prisma);
     process.env.THROTTLE_DISABLED = 'false';
+    // The production limit, whatever the local .env says.
+    process.env.LOGIN_RATE_LIMIT_PER_MINUTE = '10';
   });
 
   afterAll(async () => {
     process.env.THROTTLE_DISABLED = 'true';
+    delete process.env.LOGIN_RATE_LIMIT_PER_MINUTE;
     await ctx.app.close();
   });
 
