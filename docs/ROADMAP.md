@@ -10,7 +10,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Autenticação, multi-tenant, empresa e usuários | `feat/auth-tenancy` | ✅ |
 | Cardápio (categorias, produtos, complementos, tamanhos, pizza) | `feat/menu` | ✅ |
 | Pedidos e tempo real (kanban, status, numeração, contas de mesa, cupons) | `feat/orders` | ✅ |
-| Salão, mesas, PDV e caixa (mapa e contas básicas já entregues em `feat/orders`; faltam transferir/juntar mesas, mover itens entre contas, dividir conta, pagamentos e caixa) | `feat/tables-pos` | ⏳ |
+| Salão, mesas, PDV e caixa (pagamentos, troco, PIX estático, caixa por operador com fechamento cego, divisão da conta, transferir/juntar/separar mesas, pré-conta) | `feat/tables-pos` | ✅ |
 | KDS e setores de produção | `feat/kds` | ⏳ |
 | Delivery (clientes, áreas, entregadores) | `feat/delivery` | ⏳ |
 | Cardápio digital (app `menu`) | `feat/digital-menu` | ⏳ |

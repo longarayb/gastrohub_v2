@@ -191,6 +191,8 @@ Criadas pelo `pnpm db:seed`. **Apenas para desenvolvimento.** Unidade **Demo** (
 
 Cupons de demonstração: `BEMVINDO10` (10%, até R$ 20) e `FRETEGRATIS` (R$ 8 acima de R$ 50).
 
+Caixa de demonstração: a **Caixa** já entra com o caixa aberto (troco inicial R$ 200); o caixa do **Gerente** da manhã está fechado com diferença de −R$ 2,50. Há um delivery entregue "a receber" e um pedido do iFood pago online. A chave PIX de demonstração (`pix@demo.local`) gera QR Codes válidos que não pagam ninguém — troque na tela Empresa por uma chave real só em produção.
+
 ## Conferir se está tudo certo
 
 ```powershell
