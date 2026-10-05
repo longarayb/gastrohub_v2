@@ -10,6 +10,7 @@ export * from './domain/order-totals.js';
 export * from './errors.js';
 export * from './menu/schemas.js';
 export * from './menu/types.js';
+export * from './orders/catalog-pricing.js';
 export * from './orders/schemas.js';
 export * from './orders/types.js';
 export * from './stores/schemas.js';
