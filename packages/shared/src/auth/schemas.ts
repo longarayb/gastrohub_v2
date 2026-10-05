@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zCNPJ, zEmail, zPhone, zSlug } from '../schemas/common.js';
-import { ROLES, type Role } from './permissions.js';
+import { type ActorRole, ROLES, type Role } from './permissions.js';
 
 export const zPassword = z
   .string()
@@ -79,9 +79,10 @@ export type UpdateUserInput = z.input<typeof updateUserSchema>;
 
 /** Payload carried inside the access token. */
 export interface AccessTokenPayload {
+  /** User id, or the device id for KDS devices (role KDS_DEVICE). */
   sub: string;
   tenantId: string;
-  role: Role;
+  role: ActorRole;
 }
 
 export interface SessionUser {

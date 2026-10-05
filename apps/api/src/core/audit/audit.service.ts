@@ -24,6 +24,13 @@ export const AuditAction = {
   TABLES_MERGED: 'tables.merged',
   TABLES_SPLIT: 'tables.split',
   TABLE_CHANGED: 'tables.table_changed',
+  KDS_TASK_RECALLED: 'kds.task_recalled',
+  KDS_DEVICE_CREATED: 'kds.device_created',
+  KDS_DEVICE_UPDATED: 'kds.device_updated',
+  KDS_PAIRING_CODE: 'kds.pairing_code',
+  KDS_DEVICE_PAIRED: 'kds.device_paired',
+  KDS_PAIRING_FAILED: 'kds.pairing_failed',
+  KDS_DEVICE_REVOKED: 'kds.device_revoked',
 } as const;
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 

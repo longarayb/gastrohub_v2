@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { SectorDto, SectorInput } from '@app/shared';
-import { NotFoundError } from '../../core/errors/domain-error.js';
+import { ConflictError, NotFoundError } from '../../core/errors/domain-error.js';
 import { type Db, InjectDb } from '../../core/tenancy/db.provider.js';
 import type { ProductionSector } from '../../generated/prisma/client.js';
 import { applyOrder } from './menu-common.js';
@@ -11,6 +11,8 @@ const toDto = (s: ProductionSector): SectorDto => ({
   sortOrder: s.sortOrder,
   isDefault: s.isDefault,
   isActive: s.isActive,
+  warnAfterMinutes: s.warnAfterMinutes,
+  lateAfterMinutes: s.lateAfterMinutes,
 });
 
 @Injectable()
@@ -29,7 +31,14 @@ export class SectorsService {
       const isDefault = !!input.isDefault || count === 0;
       if (isDefault) await tx.productionSector.updateMany({ data: { isDefault: false } });
       const sector = await tx.productionSector.create({
-        data: { name: input.name, isActive: input.isActive ?? true, isDefault, sortOrder: count },
+        data: {
+          name: input.name,
+          isActive: input.isActive ?? true,
+          isDefault,
+          sortOrder: count,
+          ...(input.warnAfterMinutes && { warnAfterMinutes: input.warnAfterMinutes }),
+          ...(input.lateAfterMinutes && { lateAfterMinutes: input.lateAfterMinutes }),
+        },
       });
       return toDto(sector);
     });
@@ -52,6 +61,8 @@ export class SectorsService {
           name: input.name,
           isActive: input.isActive ?? current.isActive,
           isDefault: input.isDefault || current.isDefault,
+          warnAfterMinutes: input.warnAfterMinutes ?? current.warnAfterMinutes,
+          lateAfterMinutes: input.lateAfterMinutes ?? current.lateAfterMinutes,
         },
       });
       return toDto(sector);
@@ -63,6 +74,10 @@ export class SectorsService {
     await this.db.$transaction(async (tx) => {
       const current = await tx.productionSector.findUnique({ where: { id } });
       if (!current) throw new NotFoundError('Setor');
+      // Its tickets are the kitchen's history (preparation times): deactivate it instead.
+      if (await tx.productionTask.count({ where: { sectorId: id } })) {
+        throw new ConflictError('Este setor já recebeu pedidos. Desative-o em vez de excluir.');
+      }
       await tx.productionSector.delete({ where: { id } });
       if (current.isDefault) {
         const next = await tx.productionSector.findFirst({ orderBy: { sortOrder: 'asc' } });

@@ -45,6 +45,10 @@
   /* Table map: occupied and waiting for payment (pre-bill printed). */
   --table-occupied: var(--status-preparing);
   --table-billing: var(--status-pending);
+  /* Order type stripe on kitchen tickets (mesa, balcão, delivery). */
+  --order-dine-in: var(--status-accepted);
+  --order-takeout: var(--status-preparing);
+  --order-delivery: var(--status-dispatched);
   /* QR Codes are always dark on light (scanners need the contrast), in both themes. */
   --qr-foreground: oklch(0 0 0);
   --qr-background: oklch(1 0 0);
@@ -127,6 +131,9 @@
   --color-status-canceled: var(--status-canceled);
   --color-table-occupied: var(--table-occupied);
   --color-table-billing: var(--table-billing);
+  --color-order-dine-in: var(--order-dine-in);
+  --color-order-takeout: var(--order-takeout);
+  --color-order-delivery: var(--order-delivery);
   --color-qr-foreground: var(--qr-foreground);
   --color-qr-background: var(--qr-background);
   --width-kanban-column: var(--kanban-column-width);

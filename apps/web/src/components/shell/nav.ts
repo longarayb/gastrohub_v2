@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   ListPlus,
+  MonitorPlay,
   ReceiptText,
   TicketPercent,
   type LucideIcon,
@@ -56,6 +57,13 @@ export const NAV: NavGroup[] = [
         label: 'Mesas',
         icon: LayoutGrid,
         permissions: [Permission.TABLES_OPERATE, Permission.TABLES_MANAGE],
+      },
+      {
+        // Opens the kitchen display (its own full-screen layout, outside the shell).
+        href: '/kds',
+        label: 'Tela da cozinha',
+        icon: MonitorPlay,
+        permissions: [Permission.KDS_OPERATE],
       },
       {
         href: '/cupons',

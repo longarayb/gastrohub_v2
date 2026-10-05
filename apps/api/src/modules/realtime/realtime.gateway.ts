@@ -8,11 +8,14 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import type { AccessTokenPayload } from '@app/shared';
+import { type AccessTokenPayload, KDS_DEVICE_ROLE } from '@app/shared';
 import type { Server, Socket } from 'socket.io';
 import { AppConfig } from '../../core/config/app-config.service.js';
+import { PrismaService } from '../../core/prisma/prisma.service.js';
 
 export const tenantRoom = (tenantId: string) => `tenant:${tenantId}`;
+/** A paired KDS screen (revocation notice). */
+export const deviceRoom = (deviceId: string) => `device:${deviceId}`;
 export const sectorRoom = (tenantId: string, sectorId: string) =>
   `tenant:${tenantId}:sector:${sectorId}`;
 
@@ -37,6 +40,7 @@ export class RealtimeGateway implements OnGatewayConnection {
   constructor(
     private readonly jwt: JwtService,
     private readonly config: AppConfig,
+    private readonly prisma: PrismaService,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -48,6 +52,13 @@ export class RealtimeGateway implements OnGatewayConnection {
       const payload = await this.jwt.verifyAsync<AccessTokenPayload & { exp: number }>(token, {
         secret: this.config.get('JWT_ACCESS_SECRET'),
       });
+      if (payload.role === KDS_DEVICE_ROLE) {
+        const active = await this.prisma.kdsDevice.count({
+          where: { id: payload.sub, tenantId: payload.tenantId, revokedAt: null },
+        });
+        if (!active) throw new Error('revoked device');
+        await client.join(deviceRoom(payload.sub));
+      }
       (client.data as SocketData).user = payload;
       await client.join(tenantRoom(payload.tenantId));
       // Force a reconnect (with a refreshed token) when this one expires.

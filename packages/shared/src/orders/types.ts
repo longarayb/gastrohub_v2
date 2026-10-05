@@ -130,6 +130,8 @@ export const REALTIME_EVENTS = {
   TABLES_UPDATED: 'tables.updated',
   /** A cash register changed (payment, refund, movement, opening or closing). */
   CASH_UPDATED: 'cash.updated',
+  /** Sent to a revoked KDS device: the screen signs out right away. */
+  DEVICE_REVOKED: 'device.revoked',
 } as const;
 
 export interface AreaDto {

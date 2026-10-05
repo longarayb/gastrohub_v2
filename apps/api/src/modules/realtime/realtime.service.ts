@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { type OrderEvent, REALTIME_EVENTS } from '@app/shared';
-import { RealtimeGateway, sectorRoom, tenantRoom } from './realtime.gateway.js';
+import { RealtimeGateway, deviceRoom, sectorRoom, tenantRoom } from './realtime.gateway.js';
 
 /**
  * Publishes realtime notifications. Call it AFTER the database transaction commits, so a
@@ -29,6 +29,11 @@ export class RealtimeService {
   }
 
   /** A cash register changed; clients refetch the register screen. */
+  /** The manager revoked a KDS screen: it signs out right away. */
+  deviceRevoked(deviceId: string): void {
+    this.gateway.emit(deviceRoom(deviceId), REALTIME_EVENTS.DEVICE_REVOKED, {});
+  }
+
   cashUpdated(tenantId: string, sessionId: string): void {
     this.gateway.emit(tenantRoom(tenantId), REALTIME_EVENTS.CASH_UPDATED, { sessionId });
   }

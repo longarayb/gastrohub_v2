@@ -30,6 +30,8 @@ export const DEMO_USERS = [
 
 /** Tenant tables in deletion order (children first). Store rows are tenant-scoped by tenantId. */
 const TENANT_TABLES = [
+  'ProductionTask',
+  'KdsDevice',
   'Payment',
   'CashSessionCount',
   'CashMovement',
@@ -155,7 +157,10 @@ async function main(): Promise<void> {
       `✔ Pedidos de hoje: ${orders.orders} · ${orders.tables} mesas · ${orders.customers} clientes · cupons BEMVINDO10 e FRETEGRATIS`,
     );
     console.log(
-      `✔ Caixas: ${orders.cashSessions} (gerente: fechado com diferença; caixa: aberto) · PIX pix@demo.local\n`,
+      `✔ Caixas: ${orders.cashSessions} (gerente: fechado com diferença; caixa: aberto) · PIX pix@demo.local`,
+    );
+    console.log(
+      `✔ Cozinha: ${orders.kitchenTasks} tarefas de produção · tela "TV da cozinha" aguardando vínculo (Setores)\n`,
     );
   } finally {
     await prisma.$disconnect();

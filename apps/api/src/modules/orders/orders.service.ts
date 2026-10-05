@@ -44,6 +44,7 @@ import { Prisma } from '../../generated/prisma/client.js';
 import { MenuContext } from '../menu/menu-common.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
 import { OrderPricingService, type PricedOrderItem } from './order-pricing.service.js';
+import { ProductionService } from './production.service.js';
 import {
   type OrderDetailRow,
   newPublicCode,
@@ -84,6 +85,7 @@ export class OrdersService {
     private readonly pricing: OrderPricingService,
     private readonly audit: AuditService,
     private readonly realtime: RealtimeService,
+    private readonly production: ProductionService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -259,11 +261,14 @@ export class OrdersService {
   }
 
   private async sectorIdsOf(orderId: string): Promise<string[]> {
-    const items = await this.db.orderItem.findMany({
-      where: { orderId, sectorId: { not: null } },
-      select: { sectorId: true },
-    });
-    return items.map((i) => i.sectorId!);
+    const [items, tasks] = await Promise.all([
+      this.db.orderItem.findMany({
+        where: { orderId, sectorId: { not: null } },
+        select: { sectorId: true },
+      }),
+      this.db.productionTask.findMany({ where: { orderId }, select: { sectorId: true } }),
+    ]);
+    return [...new Set([...items.map((i) => i.sectorId!), ...tasks.map((t) => t.sectorId)])];
   }
 
   /** Notifies realtime clients after the commit and returns the fresh detail. */
@@ -458,6 +463,10 @@ export class OrdersService {
               now,
             ),
           });
+          if (send) {
+            const sent = await tx.orderItem.findMany({ where: { roundId: round.id } });
+            await this.production.createForItems(tx, sent, now);
+          }
         }
         await tx.orderStatusHistory.create({
           data: {
@@ -665,6 +674,7 @@ export class OrdersService {
   private async sendDrafts(tx: DbTx, orderId: string, now: Date): Promise<void> {
     const drafts = await tx.orderItem.findMany({ where: { orderId, status: 'DRAFT' } });
     if (drafts.length === 0) return;
+    await this.production.createForItems(tx, drafts, now);
     await tx.orderItem.updateMany({
       where: { orderId, status: 'DRAFT' },
       data: { status: 'QUEUED', sentAt: now },
@@ -758,6 +768,9 @@ export class OrdersService {
       });
       await this.recalculate(tx, id);
       await this.updateVersioned(tx, id, input.expectedVersion, {});
+      const now = new Date();
+      await this.production.cancelItems(tx, [itemId], now);
+      await this.production.sync(tx, id, now);
       await this.audit.log(
         {
           action: AuditAction.ORDER_ITEM_CANCELED,
@@ -803,6 +816,7 @@ export class OrdersService {
           break;
         case 'READY':
           data.readyAt = now;
+          await this.production.completeOrder(tx, id, now);
           await tx.orderItem.updateMany({
             where: { orderId: id, status: { in: ['QUEUED', 'PREPARING'] } },
             data: { status: 'READY', readyAt: now },
@@ -810,6 +824,7 @@ export class OrdersService {
           break;
         case 'DISPATCHED':
           data.dispatchedAt = now;
+          await this.production.completeOrder(tx, id, now);
           break;
         case 'DELIVERED':
           if (order.items.some((i) => i.status === 'DRAFT')) {
@@ -826,6 +841,7 @@ export class OrdersService {
             if (unpaid) throw new ValidationError(unpaid);
           }
           data.deliveredAt = now;
+          await this.production.completeOrder(tx, id, now);
           await tx.orderItem.updateMany({
             where: { orderId: id, status: { in: ['QUEUED', 'PREPARING', 'READY'] } },
             data: { status: 'SERVED', servedAt: now },
@@ -840,6 +856,7 @@ export class OrdersService {
           data.canceledAt = now;
           data.canceledById = this.ctx.userId ?? null;
           data.cancelReason = input.reason;
+          await this.production.cancelOrder(tx, id, now);
           if (order.couponId) {
             await tx.coupon.updateMany({
               where: { id: order.couponId, usedCount: { gt: 0 } },

@@ -6,7 +6,7 @@ const REPEAT_MS = 10_000;
 const STORAGE_KEY = 'order-alert-sound';
 
 /** Short two-tone chime with WebAudio (no audio file to ship or cache). */
-function chime(ctx: AudioContext) {
+export function chime(ctx: AudioContext) {
   const now = ctx.currentTime;
   for (const [i, freq] of [880, 1320].entries()) {
     const osc = ctx.createOscillator();

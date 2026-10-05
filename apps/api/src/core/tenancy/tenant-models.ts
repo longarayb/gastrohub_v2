@@ -39,4 +39,7 @@ export const TENANT_MODELS = new Set<string>([
   'CashSession',
   'CashMovement',
   'CashSessionCount',
+  // Kitchen display
+  'ProductionTask',
+  'KdsDevice',
 ]);

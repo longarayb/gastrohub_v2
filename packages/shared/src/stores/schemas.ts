@@ -26,8 +26,6 @@ export type UpdateStoreInput = z.input<typeof updateStoreSchema>;
 export const storeSettingsSchema = z.object({
   /** Service fee in basis points (1000 = 10%). Applied to dine-in orders. */
   serviceFeeBps: z.number().int().min(0).max(3000),
-  /** Minutes after which a KDS ticket is highlighted as late. */
-  kdsLateAfterMinutes: z.number().int().min(1).max(240),
   /** Whether the digital menu accepts orders. */
   digitalMenuEnabled: z.boolean(),
   /** Minimum order value for delivery, in cents. */

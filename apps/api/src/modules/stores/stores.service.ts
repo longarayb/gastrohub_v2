@@ -43,7 +43,6 @@ export function toStoreDto(store: Store) {
     },
     settings: {
       serviceFeeBps: store.serviceFeeBps,
-      kdsLateAfterMinutes: store.kdsLateAfterMinutes,
       digitalMenuEnabled: store.digitalMenuEnabled,
       deliveryMinimumCents: store.deliveryMinimumCents,
       takeoutEtaMinutes: store.takeoutEtaMinutes,

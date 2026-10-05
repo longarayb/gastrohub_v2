@@ -12,6 +12,7 @@ import {
 } from './orders.controller.js';
 import { OrdersService } from './orders.service.js';
 import { TablesService } from './tables.service.js';
+import { ProductionService } from './production.service.js';
 import { TabsService } from './tabs.service.js';
 
 @Module({
@@ -28,9 +29,10 @@ import { TabsService } from './tabs.service.js';
     OrderPricingService,
     TablesService,
     TabsService,
+    ProductionService,
     CustomersService,
     CouponsService,
   ],
-  exports: [OrdersService],
+  exports: [OrdersService, ProductionService],
 })
 export class OrdersModule {}

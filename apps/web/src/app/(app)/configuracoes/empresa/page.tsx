@@ -267,12 +267,6 @@ function SettingsForm({ store }: { store: StoreDto }) {
           />
           <NumberField
             control={form.control}
-            name="kdsLateAfterMinutes"
-            label="Alerta de atraso na cozinha (minutos)"
-            min={1}
-          />
-          <NumberField
-            control={form.control}
             name="takeoutEtaMinutes"
             label="Tempo de preparo para retirada (minutos)"
             min={0}
