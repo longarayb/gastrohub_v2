@@ -89,8 +89,10 @@ export function paymentSummary(
     .filter((p) => p.status === 'CONFIRMED')
     .reduce((sum, p) => sum + p.amountCents, 0);
   const balanceCents = Math.max(totalCents - paidCents, 0);
+  // An empty tab (nothing ordered, nothing paid) is not shown as paid; it closes anyway
+  // because its balance is zero.
   const status: OrderPaymentStatus =
-    balanceCents === 0 ? 'PAID' : paidCents > 0 ? 'PARTIAL' : 'UNPAID';
+    paidCents === 0 ? 'UNPAID' : balanceCents === 0 ? 'PAID' : 'PARTIAL';
   return { paidCents, balanceCents, status };
 }
 

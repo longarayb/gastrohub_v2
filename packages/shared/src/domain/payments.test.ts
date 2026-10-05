@@ -28,8 +28,9 @@ describe('paymentSummary', () => {
     });
   });
 
-  it('treats an order with nothing to pay as paid', () => {
-    expect(paymentSummary(0, []).status).toBe('PAID');
+  it('keeps an empty order unpaid but with nothing to receive', () => {
+    expect(paymentSummary(0, [])).toEqual({ paidCents: 0, balanceCents: 0, status: 'UNPAID' });
+    expect(closeError('DINE_IN', paymentSummary(0, []))).toBeNull();
   });
 });
 

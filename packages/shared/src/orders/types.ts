@@ -6,6 +6,7 @@ import type {
   OrderType,
 } from '../domain/order-status.js';
 import type { OrderPaymentStatus } from '../domain/payments.js';
+import type { PaymentDto } from '../pos/types.js';
 import type { Address } from '../schemas/common.js';
 import type { PaymentMethod } from './schemas.js';
 
@@ -31,6 +32,7 @@ export interface OrderSummaryDto {
   /** Items in a round not yet sent to the kitchen. */
   draftItemCount: number;
   totalCents: number;
+  paidCents: number;
   paymentStatus: OrderPaymentStatus;
   expectedPaymentMethod: PaymentMethod | null;
   notes: string | null;
@@ -98,7 +100,8 @@ export interface OrderDetailDto extends OrderSummaryDto {
   serviceFeeCents: number;
   deliveryFeeCents: number;
   promoSavingsCents: number;
-  paidCents: number;
+  /** What is still owed (total − confirmed payments). */
+  balanceCents: number;
   changeForCents: number | null;
   estimatedReadyAt: string | null;
   dispatchedAt: string | null;
@@ -108,6 +111,7 @@ export interface OrderDetailDto extends OrderSummaryDto {
   rounds: OrderRoundDto[];
   items: OrderItemDto[];
   history: OrderHistoryDto[];
+  payments: PaymentDto[];
 }
 
 /** Realtime event payload: a notification, clients refetch what they need. */
@@ -124,6 +128,8 @@ export const REALTIME_EVENTS = {
   ORDER_CREATED: 'order.created',
   ORDER_UPDATED: 'order.updated',
   TABLES_UPDATED: 'tables.updated',
+  /** A cash register changed (payment, refund, movement, opening or closing). */
+  CASH_UPDATED: 'cash.updated',
 } as const;
 
 export interface AreaDto {
@@ -143,7 +149,16 @@ export interface TableDto {
   session: {
     id: string;
     openedAt: string;
-    tabs: { orderId: string; number: number; tabLabel: string | null; totalCents: number }[];
+    /** Pre-bill printed: "aguardando pagamento" until a new round is sent. */
+    billRequestedAt: string | null;
+    tabs: {
+      orderId: string;
+      number: number;
+      tabLabel: string | null;
+      totalCents: number;
+      paidCents: number;
+      paymentStatus: OrderPaymentStatus;
+    }[];
   } | null;
 }
 

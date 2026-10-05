@@ -17,6 +17,8 @@ export * from './menu/types.js';
 export * from './orders/catalog-pricing.js';
 export * from './orders/schemas.js';
 export * from './orders/types.js';
+export * from './pos/schemas.js';
+export * from './pos/types.js';
 export * from './stores/schemas.js';
 export * from './schemas/common.js';
 export * from './utils/cep.js';
