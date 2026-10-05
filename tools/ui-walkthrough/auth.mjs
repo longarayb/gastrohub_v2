@@ -109,7 +109,7 @@ await step('CEP lookup fills address and store data saves', async () => {
 });
 
 await step('settings save (service fee 12%)', async () => {
-  await page.getByLabel('Taxa de serviço no salão (%)').fill('12');
+  await page.getByLabel('Taxa de serviço (%)').fill('12');
   await page.getByRole('button', { name: 'Salvar configurações' }).click();
   await toast('Configurações salvas');
 });
@@ -131,7 +131,7 @@ await step('logo upload', async () => {
 await step('session survives a full reload (refresh cookie)', async () => {
   await page.reload();
   await page.getByText('Dados da empresa').first().waitFor({ timeout: 15_000 });
-  const fee = await page.getByLabel('Taxa de serviço no salão (%)').inputValue();
+  const fee = await page.getByLabel('Taxa de serviço (%)').inputValue();
   if (fee !== '12') throw new Error(`fee after reload=${fee}`);
   const number = await page.locator('input[name="address.number"]').inputValue();
   if (number !== '1000') throw new Error(`number after reload=${number}`);
@@ -199,7 +199,8 @@ await step('waiter login hides admin menu', async () => {
 });
 
 await step('waiter landed on own home, not on the forbidden ?next page', async () => {
-  if (new URL(page.url()).pathname !== '/cardapio') throw new Error(`landed on ${page.url()}`);
+  // Since feat/orders the waiter's home is the orders board.
+  if (new URL(page.url()).pathname !== '/pedidos') throw new Error(`landed on ${page.url()}`);
 });
 
 await step('forbidden page shows access denied', async () => {
@@ -217,7 +218,7 @@ await step('login ignores external ?next (open redirect)', async () => {
   await page.getByLabel('E-mail').fill(waiter.email);
   await page.getByLabel('Senha').fill(waiter.password);
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await page.waitForURL('**/cardapio', { timeout: 15_000 });
+  await page.waitForURL('**/pedidos', { timeout: 15_000 });
   if (new URL(page.url()).origin !== WEB) throw new Error(`left origin: ${page.url()}`);
 });
 

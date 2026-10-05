@@ -5,6 +5,7 @@ import type {
   OrderDetailDto,
   OrderEvent,
   OrderSummaryDto,
+  PaymentDto,
   PaymentMethod,
 } from '@app/shared';
 import type { Prisma } from '../../generated/prisma/client.js';
@@ -25,6 +26,7 @@ export const orderDetailInclude = {
   rounds: { orderBy: { number: 'asc' } },
   items: { orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }], include: { round: true } },
   history: { orderBy: { createdAt: 'asc' } },
+  payments: { orderBy: { createdAt: 'asc' } },
 } satisfies Prisma.OrderInclude;
 
 export type OrderSummaryRow = Prisma.OrderGetPayload<{ include: typeof orderSummaryInclude }>;
@@ -54,6 +56,7 @@ export function toOrderSummary(o: OrderSummaryRow): OrderSummaryDto {
     itemCount: active.reduce((sum, i) => sum + i.quantity, 0),
     draftItemCount: active.filter((i) => i.status === 'DRAFT').length,
     totalCents: o.totalCents,
+    paidCents: o.paidCents,
     paymentStatus: o.paymentStatus,
     expectedPaymentMethod: o.expectedPaymentMethod as PaymentMethod | null,
     notes: o.notes,
@@ -87,7 +90,7 @@ export function toOrderDetail(o: OrderDetailRow, userNames: Map<string, string>)
     serviceFeeCents: o.serviceFeeCents,
     deliveryFeeCents: o.deliveryFeeCents,
     promoSavingsCents: o.promoSavingsCents,
-    paidCents: o.paidCents,
+    balanceCents: Math.max(o.totalCents - o.paidCents, 0),
     changeForCents: o.changeForCents,
     estimatedReadyAt: iso(o.estimatedReadyAt),
     dispatchedAt: iso(o.dispatchedAt),
@@ -124,6 +127,31 @@ export function toOrderDetail(o: OrderDetailRow, userNames: Map<string, string>)
       reason: h.reason,
       createdAt: h.createdAt.toISOString(),
     })),
+    payments: o.payments.map((p) => toPaymentDto(p, userNames)),
+  };
+}
+
+export function toPaymentDto(
+  p: Prisma.PaymentGetPayload<object>,
+  userNames: Map<string, string>,
+): PaymentDto {
+  const name = (id: string | null) => (id ? (userNames.get(id) ?? null) : null);
+  return {
+    id: p.id,
+    method: p.method,
+    amountCents: p.amountCents,
+    receivedCents: p.receivedCents,
+    changeCents: p.changeCents,
+    status: p.status,
+    cashSessionId: p.cashSessionId,
+    cardBrand: p.cardBrand as PaymentDto['cardBrand'],
+    authorizationCode: p.authorizationCode,
+    externalRef: p.externalRef,
+    createdByName: name(p.createdById),
+    createdAt: p.createdAt.toISOString(),
+    refundedAt: iso(p.refundedAt),
+    refundedByName: name(p.refundedById),
+    refundReason: p.refundReason,
   };
 }
 

@@ -83,3 +83,28 @@ Número sequencial por unidade e dia de negócio via `OrderSequence` com `INSERT
 - Pedido com `version`: alterações enviam a versão vista; `UPDATE … WHERE version = ?`; conflito → 409 com mensagem em pt-BR.
 - Criação com `Idempotency-Key` (obrigatória no cardápio digital): mesma chave + mesmo corpo devolve o pedido existente; corpo diferente → 409.
 - Socket.IO autenticado por access token, salas por unidade e por setor; eventos são avisos (`{ id, version, status }`) emitidos após o commit; a tela refaz a busca ao reconectar ou voltar o foco. Som de novo pedido liberado por clique ("Ativar som") por causa do bloqueio de áudio dos navegadores.
+
+## D023 — Pagamentos
+- Vários pagamentos por pedido; pagamento parcial deixa a conta aberta. O valor aplicado nunca passa do saldo; **só dinheiro** pode ser entregue a mais, e o excedente é o troco (`receivedCents − amountCents`). `paidCents` e `paymentStatus` são recalculados na transação, com `expectedVersion` (funções em `shared/domain/payments.ts`).
+- **Fechamento:** mesa e balcão só fecham (`DELIVERED`) com saldo zero. Delivery pode ser entregue com saldo — fica em "a receber" (`GET /orders?receivable=true`) até o entregador prestar contas.
+- **Online/marketplace (`ONLINE`):** pedidos já pagos fora do sistema (iFood e similares; no futuro, o pagamento online do cardápio digital) são quitados sem caixa aberto e nunca entram no valor esperado do caixa.
+- **Cartão:** bandeira e código de autorização/NSU opcionais (crédito ou débito é a própria forma), para a conciliação com a maquininha e o financeiro.
+- **Estorno:** permissão `payments:refund` (dono e gerente), motivo obrigatório e auditoria (`payment.refunded`); só em contas abertas (ou delivery a receber). Cancelar um pedido exige estornar os pagamentos antes; nenhuma alteração pode deixar o total abaixo do valor já pago.
+
+## D024 — Caixa por operador
+- Um caixa aberto por operador (garantido no banco por `openOperatorId` único, preenchido só enquanto aberto). Na troca de turno, um fecha e o outro abre; quem tem `cash:manage` pode fechar o caixa de outro operador.
+- **Esperado por forma** = pagamentos recebidos naquele caixa − estornos feitos nele; no dinheiro, + troco inicial + suprimentos − sangrias (o dinheiro entra líquido do troco). Sangria e estorno em dinheiro não podem passar do dinheiro esperado na gaveta.
+- **Um caixa fechado nunca muda:** o estorno sai do caixa aberto de quem estorna (`Payment.refundSessionId`).
+- **Fechamento cego** (configurável na tela Empresa, ligado por padrão): enquanto o caixa está aberto, quem não tem `cash:manage` não vê os totais nem os valores dos pagamentos; a diferença aparece depois de confirmar a contagem. A contagem fica em `CashSessionCount` (esperado congelado, contado, diferença).
+- **Concorrência:** cada pagamento, estorno e movimento incrementa a `version` do caixa aberto (o que trava a linha); o fechamento usa `expectedVersion`. Um pagamento nunca entra num caixa que está sendo fechado: ou ele falha ("Abra o caixa"), ou o fechamento recebe 409 e a tela recarrega.
+- **Reabertura:** só `cash:manage`, com motivo; a contagem anterior vai para a auditoria (`cash.reopened`) e é refeita no novo fechamento.
+
+## D025 — Divisão da conta e operações de mesa
+- **Por igual:** calculadora de pagamentos parciais sobre a mesma conta (`splitEvenly`; centavos que sobram vão para as primeiras partes). Não cria contas novas.
+- **Por itens:** move linhas (ou parte da quantidade) para outra conta da mesma sessão ou para uma conta nova. Desconto em valor da linha é repartido proporcionalmente; percentual vale nas duas partes. Cada conta recalcula a própria taxa de serviço; desconto e cupom do pedido ficam na conta de origem. Rodadas são recriadas na conta de destino com o mesmo horário de envio. Auditoria `order.items_moved`. Dividir um único item (meia pizza para cada um) fica fora da Fase 1.
+- **Mesas:** transferir conta (vai para a sessão da mesa destino ou abre uma), trocar a mesa do grupo por uma livre, juntar sessões (mesas e contas vão para uma, a outra fecha) e separar (a mesa sai com as contas escolhidas; sem contas, fica livre). Todas auditadas.
+- **Pré-conta:** 80 mm pelo navegador (D012), com itens, "taxa de serviço (opcional)", sugestão de divisão e QR PIX opcional; ao imprimir, a mesa fica "aguardando pagamento" (`TableSession.billRequestedAt`) até uma nova rodada.
+- **Atalhos do caixa:** F2 busca, F4 receber, 1–7 forma de pagamento, Enter confirma, Esc volta, F8 pré-conta, F9 sangria (`useHotkeys`; teclas comuns não disparam enquanto se digita).
+
+## D026 — PIX estático
+QR Code estático no padrão BR Code (EMV), montado por função pura (`buildPixBrCode`, CRC16-CCITT conferido com o exemplo do manual do Banco Central). Chave validada e normalizada por tipo (CPF/CNPJ só dígitos, e-mail minúsculo, celular `+55…`, aleatória minúscula); nome até 25 e cidade até 15 caracteres, sem acentos. O **txid é o `publicCode` do pedido** (8 caracteres alfanuméricos, dentro do limite de 25) e fica no pagamento (`externalRef`). Confirmação manual pelo operador; PIX dinâmico com confirmação automática fica para o `PaymentGateway` (Fase 2).

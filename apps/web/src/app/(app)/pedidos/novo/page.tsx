@@ -51,7 +51,7 @@ import {
   type CartLine,
   ItemBuilderDialog,
 } from '@/components/orders/item-builder-dialog';
-import { ItemDescription, useOrderAction } from '@/components/orders/order-detail-sheet';
+import { ItemDescription, useOrderAction } from '@/components/orders/common';
 import { DiscountInput } from '@/components/orders/order-discount-dialog';
 import { Page } from '@/components/page';
 import { ApiError, errorMessage } from '@/lib/api';

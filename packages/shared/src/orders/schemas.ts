@@ -237,6 +237,11 @@ export const orderListQuerySchema = z.object({
     .transform((v) => v === 'true'),
   q: z.string().trim().max(60).optional(),
   tableSessionId: z.string().optional(),
+  /** Delivered deliveries with an open balance ("a receber"). */
+  receivable: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
 });
 export type OrderListQuery = z.input<typeof orderListQuerySchema>;
 

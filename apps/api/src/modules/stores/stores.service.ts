@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   type BusinessHour,
   type CreateStoreInput,
+  type PixSettingsDto,
   type StoreSettingsInput,
   type UpdateStoreInput,
   isOpenAt,
@@ -49,7 +50,17 @@ export function toStoreDto(store: Store) {
       autoAcceptDigitalOrders: store.autoAcceptDigitalOrders,
       pizzaPricingRule: store.pizzaPricingRule,
       serviceFeeOrderTypes: store.serviceFeeOrderTypes,
+      blindCashClose: store.blindCashClose,
     },
+  };
+}
+
+export function toPixSettingsDto(store: Store): PixSettingsDto {
+  return {
+    pixKeyType: store.pixKeyType,
+    pixKey: store.pixKey,
+    pixMerchantName: store.pixMerchantName,
+    pixMerchantCity: store.pixMerchantCity,
   };
 }
 export type StoreDto = ReturnType<typeof toStoreDto>;
@@ -126,6 +137,24 @@ export class StoresService {
       after: toStoreDto(store).settings,
     });
     return toStoreDto(store);
+  }
+
+  async getPix(): Promise<PixSettingsDto> {
+    return toPixSettingsDto(await this.current());
+  }
+
+  /** PIX key of the static QR Code (already normalized by the schema). */
+  async updatePix(input: PixSettingsDto): Promise<PixSettingsDto> {
+    const before = await this.current();
+    const store = await this.prisma.store.update({ where: { id: before.id }, data: input });
+    await this.audit.log({
+      action: AuditAction.STORE_UPDATED,
+      entity: 'Store',
+      entityId: store.id,
+      before: toPixSettingsDto(before),
+      after: toPixSettingsDto(store),
+    });
+    return toPixSettingsDto(store);
   }
 
   async updateLogo(file: UploadedImage): Promise<StoreDto> {

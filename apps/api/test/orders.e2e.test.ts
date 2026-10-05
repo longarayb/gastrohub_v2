@@ -482,6 +482,21 @@ describe('Orders (e2e)', () => {
         status: 'READY',
       }).expect(200)
     ).body;
+    // A tab only closes with a zero balance: the cashier opens the register and receives.
+    const unpaid = await post(cashier, `/api/orders/${tab.id}/status`, {
+      expectedVersion: tab.version,
+      status: 'DELIVERED',
+    }).expect(400);
+    expect(unpaid.body.message).toBe('Falta receber R$ 25,00 para fechar a conta');
+    await post(cashier, '/api/cash-sessions', { openingCents: 0 }).expect(201);
+    tab = (
+      await post(cashier, `/api/orders/${tab.id}/payments`, {
+        expectedVersion: tab.version,
+        method: 'PIX',
+        amountCents: 2500,
+      }).expect(201)
+    ).body;
+    expect(tab).toMatchObject({ paidCents: 2500, balanceCents: 0, paymentStatus: 'PAID' });
     await post(cashier, `/api/orders/${tab.id}/status`, {
       expectedVersion: tab.version,
       status: 'DELIVERED',

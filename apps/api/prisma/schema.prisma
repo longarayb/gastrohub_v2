@@ -82,6 +82,15 @@ model Store {
   pizzaPricingRule        PizzaPricingRule @default(HIGHEST)
   /// Order types that get the service fee by default (dine-in only unless configured).
   serviceFeeOrderTypes    OrderType[]      @default([DINE_IN])
+  /// Blind cash close: the operator counts without seeing the expected amounts.
+  blindCashClose          Boolean          @default(true)
+
+  /// PIX key for the static QR Code (normalized: digits, lowercase e-mail, +55 phone).
+  pixKeyType      PixKeyType?
+  pixKey          String?
+  /// BR Code limits: name up to 25 characters, city up to 15.
+  pixMerchantName String?
+  pixMerchantCity String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -504,7 +513,7 @@ enum PaymentMethod {
 enum PaymentStatus {
   PENDING
   CONFIRMED
-  CANCELED
+  REFUNDED
 }
 
 enum OrderPaymentStatus {
@@ -545,13 +554,15 @@ model Table {
 
 /// Physical occupation of one or more tables; may hold several open tabs (orders).
 model TableSession {
-  id         String    @id @default(cuid())
-  tenantId   String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
-  openedAt   DateTime  @default(now())
-  closedAt   DateTime?
-  guests     Int?
-  waiterId   String?
-  openedById String?
+  id              String    @id @default(cuid())
+  tenantId        String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  openedAt        DateTime  @default(now())
+  closedAt        DateTime?
+  guests          Int?
+  waiterId        String?
+  openedById      String?
+  /// Pre-bill printed: the table is "aguardando pagamento" until a new round is sent.
+  billRequestedAt DateTime?
 
   tables TableSessionTable[]
   orders Order[]
@@ -817,24 +828,122 @@ model OrderStatusHistory {
 }
 
 model Payment {
-  id            String        @id @default(cuid())
-  tenantId      String        @default(dbgenerated("current_setting('app.tenant_id'::text)"))
-  orderId       String
-  method        PaymentMethod
-  amountCents   Int
-  receivedCents Int?
-  changeCents   Int?
-  status        PaymentStatus @default(CONFIRMED)
-  /// Cash register session (next stage).
-  cashSessionId String?
-  externalRef   String?
-  createdById   String?
-  createdAt     DateTime      @default(now())
-  canceledAt    DateTime?
-  canceledById  String?
-  cancelReason  String?
+  id                String        @id @default(cuid())
+  tenantId          String        @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  orderId           String
+  method            PaymentMethod
+  amountCents       Int
+  receivedCents     Int?
+  changeCents       Int?
+  status            PaymentStatus @default(CONFIRMED)
+  /// Cash register that received it; null for online/marketplace payments (D024).
+  cashSessionId     String?
+  /// PIX txid (order public code), marketplace payment id, etc.
+  externalRef       String?
+  /// Card payments (optional, for reconciliation with the terminal): brand and
+  /// authorization code / NSU. Credit or debit is the method itself.
+  cardBrand         String?
+  authorizationCode String?
+  createdById       String?
+  createdAt         DateTime      @default(now())
+  refundedAt        DateTime?
+  refundedById      String?
+  refundReason      String?
+  /// Cash register the refund left: the one open when it happened (a closed one never changes).
+  refundSessionId   String?
 
-  order Order @relation(fields: [orderId], references: [id])
+  order         Order        @relation(fields: [orderId], references: [id])
+  cashSession   CashSession? @relation("PaymentReceived", fields: [cashSessionId], references: [id], onDelete: Restrict)
+  refundSession CashSession? @relation("PaymentRefunded", fields: [refundSessionId], references: [id], onDelete: Restrict)
 
   @@index([tenantId, orderId])
+  @@index([tenantId, cashSessionId])
+  @@index([tenantId, refundSessionId])
+}
+
+// ============================================================================
+// Cash register (see docs/DECISOES.md D023–D025)
+// ============================================================================
+
+enum PixKeyType {
+  CPF
+  CNPJ
+  EMAIL
+  PHONE
+  RANDOM
+}
+
+enum CashSessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum CashMovementType {
+  SUPPLY
+  WITHDRAWAL
+}
+
+/// Cash register ("caixa") of one operator: opening float, payments, supplies and
+/// withdrawals, closing count per payment method.
+model CashSession {
+  id             String            @id @default(cuid())
+  tenantId       String            @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  /// Business day of the opening (YYYY-MM-DD).
+  businessDate   String
+  operatorId     String
+  status         CashSessionStatus @default(OPEN)
+  /// operatorId while OPEN, null when closed: one open register per operator (unique).
+  openOperatorId String?
+  openingCents   Int
+  openedAt       DateTime          @default(now())
+  openedById     String
+  closedAt       DateTime?
+  closedById     String?
+  closingNotes   String?
+  reopenedAt     DateTime?
+  reopenedById   String?
+  reopenReason   String?
+  version        Int               @default(0)
+
+  movements CashMovement[]
+  counts    CashSessionCount[]
+  payments  Payment[]          @relation("PaymentReceived")
+  refunds   Payment[]          @relation("PaymentRefunded")
+
+  @@unique([tenantId, openOperatorId])
+  @@index([tenantId, status])
+  @@index([tenantId, businessDate])
+}
+
+/// Supply ("suprimento") or withdrawal ("sangria") of cash.
+model CashMovement {
+  id          String           @id @default(cuid())
+  tenantId    String           @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  sessionId   String
+  type        CashMovementType
+  amountCents Int
+  reason      String
+  createdById String
+  createdAt   DateTime         @default(now())
+
+  session CashSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, sessionId])
+}
+
+/// Closing count, one row per payment method (expected frozen at closing time).
+model CashSessionCount {
+  id              String        @id @default(cuid())
+  tenantId        String        @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  sessionId       String
+  method          PaymentMethod
+  expectedCents   Int
+  countedCents    Int
+  /// counted − expected (negative = missing).
+  differenceCents Int
+
+  session CashSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, method])
+  @@index([tenantId, sessionId])
 }

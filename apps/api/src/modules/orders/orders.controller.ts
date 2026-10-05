@@ -17,16 +17,21 @@ import {
   assignCourierSchema,
   cancelItemSchema,
   changeStatusSchema,
+  changeTableSchema,
   courierSchema,
   couponSchema,
   createOrderSchema,
   customerAddressSchema,
   customerSchema,
+  mergeSessionsSchema,
+  moveItemsSchema,
   orderDiscountSchema,
   orderListQuerySchema,
   sendRoundSchema,
   serviceFeeSchema,
+  splitSessionSchema,
   tableSchema,
+  transferOrderSchema,
 } from '@app/shared';
 import { z } from 'zod';
 import { ValidationError } from '../../core/errors/domain-error.js';
@@ -36,6 +41,7 @@ import { CouponsService } from './coupons.service.js';
 import { CustomersService } from './customers.service.js';
 import { OrdersService } from './orders.service.js';
 import { TablesService } from './tables.service.js';
+import { TabsService } from './tabs.service.js';
 
 const zVersionBody = z.object({ expectedVersion: z.number().int().min(0) });
 
@@ -51,7 +57,10 @@ function idempotencyKey(value: string | undefined): string | null {
 @ApiBearerAuth()
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly orders: OrdersService) {}
+  constructor(
+    private readonly orders: OrdersService,
+    private readonly tabs: TabsService,
+  ) {}
 
   @Get()
   @RequirePermissions(Permission.ORDERS_READ)
@@ -158,6 +167,32 @@ export class OrdersController {
     return this.orders.setServiceFee(id, body);
   }
 
+  @Post(':id/move-items')
+  @HttpCode(200)
+  @RequirePermissions(Permission.TABLES_OPERATE)
+  @ApiOperation({
+    summary: 'Move itens (ou parte da quantidade) para outra conta da mesa ou uma conta nova',
+  })
+  @ApiZodBody(moveItemsSchema)
+  moveItems(
+    @Param('id') id: string,
+    @ZBody(moveItemsSchema) body: z.output<typeof moveItemsSchema>,
+  ) {
+    return this.tabs.moveItems(id, body);
+  }
+
+  @Post(':id/transfer')
+  @HttpCode(200)
+  @RequirePermissions(Permission.TABLES_OPERATE)
+  @ApiOperation({ summary: 'Transfere a conta para outra mesa' })
+  @ApiZodBody(transferOrderSchema)
+  transfer(
+    @Param('id') id: string,
+    @ZBody(transferOrderSchema) body: z.output<typeof transferOrderSchema>,
+  ) {
+    return this.tabs.transferOrder(id, body);
+  }
+
   @Post(':id/courier')
   @HttpCode(200)
   @RequirePermissions(Permission.ORDERS_UPDATE_STATUS)
@@ -174,7 +209,10 @@ export class OrdersController {
 @ApiBearerAuth()
 @Controller('tables')
 export class TablesController {
-  constructor(private readonly tables: TablesService) {}
+  constructor(
+    private readonly tables: TablesService,
+    private readonly tabs: TabsService,
+  ) {}
 
   @Get()
   @RequirePermissions(Permission.ORDERS_READ)
@@ -195,6 +233,50 @@ export class TablesController {
   @ApiZodBody(tableSchema)
   update(@Param('id') id: string, @ZBody(tableSchema) body: z.output<typeof tableSchema>) {
     return this.tables.updateTable(id, body);
+  }
+
+  @Post('sessions/:sessionId/change-table')
+  @HttpCode(200)
+  @RequirePermissions(Permission.TABLES_OPERATE)
+  @ApiOperation({ summary: 'Troca a mesa da sessão por outra livre' })
+  @ApiZodBody(changeTableSchema)
+  changeTable(
+    @Param('sessionId') sessionId: string,
+    @ZBody(changeTableSchema) body: z.output<typeof changeTableSchema>,
+  ) {
+    return this.tabs.changeTable(sessionId, body);
+  }
+
+  @Post('sessions/:sessionId/merge')
+  @HttpCode(200)
+  @RequirePermissions(Permission.TABLES_OPERATE)
+  @ApiOperation({ summary: 'Junta outra mesa (sessão) a esta: mesas e contas' })
+  @ApiZodBody(mergeSessionsSchema)
+  merge(
+    @Param('sessionId') sessionId: string,
+    @ZBody(mergeSessionsSchema) body: z.output<typeof mergeSessionsSchema>,
+  ) {
+    return this.tabs.merge(sessionId, body);
+  }
+
+  @Post('sessions/:sessionId/split')
+  @HttpCode(200)
+  @RequirePermissions(Permission.TABLES_OPERATE)
+  @ApiOperation({ summary: 'Separa uma mesa juntada, levando as contas escolhidas' })
+  @ApiZodBody(splitSessionSchema)
+  split(
+    @Param('sessionId') sessionId: string,
+    @ZBody(splitSessionSchema) body: z.output<typeof splitSessionSchema>,
+  ) {
+    return this.tabs.split(sessionId, body);
+  }
+
+  @Post('sessions/:sessionId/bill-request')
+  @HttpCode(200)
+  @RequirePermissions(Permission.ORDERS_READ)
+  @ApiOperation({ summary: 'Marca a mesa como aguardando pagamento (pré-conta impressa)' })
+  requestBill(@Param('sessionId') sessionId: string) {
+    return this.tabs.requestBill(sessionId);
   }
 
   @Get('areas')

@@ -189,9 +189,11 @@ describe('Multi-tenant isolation and RBAC (e2e)', () => {
         autoAcceptDigitalOrders: false,
         pizzaPricingRule: 'AVERAGE',
         serviceFeeOrderTypes: ['DINE_IN'],
+        blindCashClose: false,
       })
       .expect(200);
     expect(settings.body.settings.serviceFeeBps).toBe(1200);
+    expect(settings.body.settings.blindCashClose).toBe(false);
 
     const audit = await ctx.prisma.auditLog.findMany({ where: { tenantId: storeB.storeId } });
     expect(audit.some((a) => a.action === 'store.updated')).toBe(true);

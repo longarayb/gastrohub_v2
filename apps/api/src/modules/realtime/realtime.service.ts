@@ -27,4 +27,9 @@ export class RealtimeService {
   tablesUpdated(tenantId: string): void {
     this.gateway.emit(tenantRoom(tenantId), REALTIME_EVENTS.TABLES_UPDATED, {});
   }
+
+  /** A cash register changed; clients refetch the register screen. */
+  cashUpdated(tenantId: string, sessionId: string): void {
+    this.gateway.emit(tenantRoom(tenantId), REALTIME_EVENTS.CASH_UPDATED, { sessionId });
+  }
 }

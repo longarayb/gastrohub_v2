@@ -2,6 +2,7 @@
 
 import {
   ORDER_ITEM_STATUS_LABELS,
+  ORDER_PAYMENT_STATUS_LABELS,
   ORDER_SOURCE_LABELS,
   ORDER_TYPE_LABELS,
   type OrderDetailDto,
@@ -15,6 +16,7 @@ import {
   isFinalStatus,
   nextStatuses,
   primaryNextStatus,
+  requiresPaymentToClose,
 } from '@app/shared';
 import { Badge } from '@app/ui/components/badge';
 import { Button } from '@app/ui/components/button';
@@ -33,19 +35,31 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@app/ui/components/sheet';
-import { toast } from '@app/ui/components/sonner';
 import { cn } from '@app/ui/lib/utils';
-import { useQueryClient } from '@tanstack/react-query';
-import { Ban, Percent, Plus, Send, Trash2, X } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Ban,
+  Percent,
+  Plus,
+  Printer,
+  Send,
+  Split,
+  Trash2,
+  Wallet,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
-import { ApiError, errorMessage } from '@/lib/api';
+import { useEffect, useState } from 'react';
+import { Kbd } from '@/components/pos/common';
+import { PaymentDialog } from '@/components/pos/payment-dialog';
+import { PreBillDialog } from '@/components/pos/pre-bill';
+import { MoveItemsDialog, TransferTabDialog } from '@/components/pos/table-actions';
 import { useAuth } from '@/lib/auth';
+import { useHotkeys } from '@/lib/hotkeys';
 import {
   assignCourier,
   cancelOrderItem,
   changeOrderStatus,
-  orderKeys,
   orderTitle,
   removeDraftItem,
   sendOrderRound,
@@ -53,8 +67,16 @@ import {
   setServiceFee,
   useCouriers,
   useOrder,
+  useTables,
 } from '@/lib/orders';
-import { ReasonDialog, StatusBadge, formatClock, statusLabel } from './common';
+import {
+  ItemDescription,
+  ReasonDialog,
+  StatusBadge,
+  formatClock,
+  statusLabel,
+  useOrderAction,
+} from './common';
 import { OrderDiscountDialog } from './order-discount-dialog';
 
 /** Label of the button that moves an order to `to`. */
@@ -77,53 +99,6 @@ export function statusActionLabel(type: OrderType, to: OrderStatus): string {
     default:
       return statusLabel(to, type);
   }
-}
-
-/** Runs an order mutation: updates the cache, refreshes lists and shows errors (409 included). */
-export function useOrderAction() {
-  const queryClient = useQueryClient();
-  return async (run: () => Promise<OrderDetailDto>, success?: string) => {
-    try {
-      const order = await run();
-      queryClient.setQueryData(orderKeys.detail(order.id), order);
-      void queryClient.invalidateQueries({ queryKey: orderKeys.board });
-      void queryClient.invalidateQueries({ queryKey: orderKeys.tables });
-      if (success) toast.success(success);
-      return order;
-    } catch (error) {
-      toast.error(errorMessage(error));
-      // Someone else changed the order: show the current version.
-      if (error instanceof ApiError && error.status === 409) {
-        void queryClient.invalidateQueries({ queryKey: orderKeys.all });
-      }
-      throw error;
-    }
-  };
-}
-
-export function ItemDescription({ item }: { item: Pick<OrderItemDto, 'snapshot' | 'notes'> }) {
-  const { snapshot } = item;
-  const flavorCount = snapshot.flavors.length;
-  return (
-    <div className="space-y-0.5 text-xs text-muted-foreground">
-      {flavorCount > 0 &&
-        snapshot.flavors.map((f) => (
-          <p key={f.productId}>
-            {flavorCount > 1 ? `${f.fraction.numerator}/${f.fraction.denominator} ` : ''}
-            {f.name}
-            {f.note ? ` (${f.note})` : ''}
-          </p>
-        ))}
-      {snapshot.modifiers.map((m) => (
-        <p key={`${m.groupId}-${m.optionId}`}>
-          + {m.quantity > 1 ? `${m.quantity}× ` : ''}
-          {m.name}
-          {m.totalCents > 0 ? ` (${formatBRL(m.totalCents)})` : ''}
-        </p>
-      ))}
-      {snapshot.note && <p className="italic">Obs.: {snapshot.note}</p>}
-    </div>
-  );
 }
 
 function TotalRow({
@@ -161,12 +136,17 @@ type Prompt =
   | { kind: 'waive-fee' }
   | null;
 
+type Panel = 'pay' | 'pre-bill' | 'move-items' | 'transfer' | null;
+
 export function OrderDetailSheet({
   orderId,
   onOpenChange,
+  autoPay,
 }: {
   orderId: string | null;
   onOpenChange: (open: boolean) => void;
+  /** Open the payment dialog right away (closing an unpaid order from the board). */
+  autoPay?: boolean;
 }) {
   const { can } = useAuth();
   const { data: order, isLoading } = useOrder(orderId);
@@ -174,7 +154,13 @@ export function OrderDetailSheet({
   const [prompt, setPrompt] = useState<Prompt>(null);
   const [discountOpen, setDiscountOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [panel, setPanel] = useState<Panel>(null);
   const couriers = useCouriers(!!order && order.type === 'DELIVERY');
+  const tables = useTables();
+
+  useEffect(() => {
+    setPanel(autoPay && orderId ? 'pay' : null);
+  }, [orderId, autoPay]);
 
   async function act(fn: () => Promise<OrderDetailDto>, success?: string) {
     setBusy(true);
@@ -190,6 +176,23 @@ export function OrderDetailSheet({
   const canCreate = can(Permission.ORDERS_CREATE);
   const canCancel = can(Permission.ORDERS_CANCEL);
   const canDiscount = can(Permission.ORDERS_DISCOUNT);
+  const canReceive = can(Permission.CASH_OPERATE);
+  const canTables = can(Permission.TABLES_OPERATE);
+  const isTab = !!order && order.type === 'DINE_IN' && !!order.tableSessionId && !final;
+  const table = isTab
+    ? (tables.data?.find((t) => t.session?.id === order!.tableSessionId) ?? null)
+    : null;
+  // Dine-in and takeout only close with a zero balance: closing means receiving first.
+  const mustPay = !!order && !final && requiresPaymentToClose(order.type) && order.balanceCents > 0;
+  const canPay = !!order && order.status !== 'CANCELED' && order.balanceCents > 0 && canReceive;
+
+  useHotkeys(
+    {
+      F4: () => canPay && setPanel('pay'),
+      F8: () => table && setPanel('pre-bill'),
+    },
+    !!orderId && !panel && !prompt && !discountOpen,
+  );
 
   const primary = order ? primaryNextStatus(order.type, order.status) : null;
   const others = order ? nextStatuses(order.type, order.status).filter((s) => s !== primary) : [];
@@ -230,29 +233,39 @@ export function OrderDetailSheet({
               {/* Status actions */}
               {!final && (canStatus || canCancel) && (
                 <div className="flex flex-wrap gap-2">
-                  {canStatus && primary && (
-                    <Button
-                      loading={busy}
-                      onClick={() =>
-                        void act(() => changeOrderStatus(order, primary)).catch(() => undefined)
-                      }
-                    >
-                      {statusActionLabel(order.type, primary)}
+                  {canStatus && primary === 'DELIVERED' && mustPay ? (
+                    <Button disabled={!canReceive} onClick={() => setPanel('pay')}>
+                      <Wallet /> Receber e {order.type === 'TAKEOUT' ? 'entregar' : 'fechar'}
+                      <Kbd className="bg-primary-foreground/20 text-primary-foreground">F4</Kbd>
                     </Button>
-                  )}
-                  {canStatus &&
-                    others.map((s) => (
+                  ) : (
+                    canStatus &&
+                    primary && (
                       <Button
-                        key={s}
-                        variant="outline"
-                        disabled={busy}
+                        loading={busy}
                         onClick={() =>
-                          void act(() => changeOrderStatus(order, s)).catch(() => undefined)
+                          void act(() => changeOrderStatus(order, primary)).catch(() => undefined)
                         }
                       >
-                        {statusActionLabel(order.type, s)}
+                        {statusActionLabel(order.type, primary)}
                       </Button>
-                    ))}
+                    )
+                  )}
+                  {canStatus &&
+                    others
+                      .filter((s) => !(s === 'DELIVERED' && mustPay))
+                      .map((s) => (
+                        <Button
+                          key={s}
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() =>
+                            void act(() => changeOrderStatus(order, s)).catch(() => undefined)
+                          }
+                        >
+                          {statusActionLabel(order.type, s)}
+                        </Button>
+                      ))}
                   {canCancel && (
                     <Button
                       variant="ghost"
@@ -515,6 +528,60 @@ export function OrderDetailSheet({
                 )}
               </section>
 
+              {/* Payment */}
+              {order.status !== 'CANCELED' && (
+                <section className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-medium">Pagamento</h3>
+                    <Badge variant={order.paymentStatus === 'PAID' ? 'secondary' : 'outline'}>
+                      {ORDER_PAYMENT_STATUS_LABELS[order.paymentStatus]}
+                    </Badge>
+                  </div>
+                  <TotalRow label="Pago" value={order.paidCents} />
+                  <TotalRow label="Saldo" value={order.balanceCents} strong />
+                  {order.payments.length > 0 && (
+                    <ul className="space-y-1 text-xs text-muted-foreground">
+                      {order.payments.map((p) => (
+                        <li
+                          key={p.id}
+                          className={cn(
+                            'flex justify-between',
+                            p.status === 'REFUNDED' && 'line-through',
+                          )}
+                        >
+                          <span>
+                            {PAYMENT_METHOD_LABELS[p.method]} · {formatClock(p.createdAt)}
+                          </span>
+                          <span className="tabular">{formatBRL(p.amountCents)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {(canPay || (order.payments.length > 0 && canReceive)) && (
+                      <Button size="sm" variant="outline" onClick={() => setPanel('pay')}>
+                        <Wallet /> {canPay ? 'Receber' : 'Pagamentos'} <Kbd>F4</Kbd>
+                      </Button>
+                    )}
+                    {table && (
+                      <Button size="sm" variant="outline" onClick={() => setPanel('pre-bill')}>
+                        <Printer /> Pré-conta <Kbd>F8</Kbd>
+                      </Button>
+                    )}
+                    {isTab && canTables && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => setPanel('move-items')}>
+                          <Split /> Dividir por itens
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setPanel('transfer')}>
+                          <ArrowLeftRight /> Transferir mesa
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </section>
+              )}
+
               {/* History */}
               <section className="space-y-2 text-sm">
                 <h3 className="font-medium">Histórico</h3>
@@ -577,6 +644,20 @@ export function OrderDetailSheet({
                 act(() => setOrderDiscount(order, discount, reason), 'Desconto atualizado')
               }
             />
+            <PaymentDialog
+              order={order}
+              open={panel === 'pay'}
+              onOpenChange={(o) => !o && setPanel(null)}
+            />
+            {panel === 'pre-bill' && table && (
+              <PreBillDialog table={table} open onOpenChange={(o) => !o && setPanel(null)} />
+            )}
+            {panel === 'move-items' && (
+              <MoveItemsDialog order={order} open onOpenChange={(o) => !o && setPanel(null)} />
+            )}
+            {panel === 'transfer' && (
+              <TransferTabDialog order={order} open onOpenChange={(o) => !o && setPanel(null)} />
+            )}
           </>
         )}
       </SheetContent>

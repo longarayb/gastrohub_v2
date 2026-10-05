@@ -1,6 +1,12 @@
 'use client';
 
-import { Permission, type TableDto, formatBRL, tableSchema } from '@app/shared';
+import {
+  ORDER_PAYMENT_STATUS_LABELS,
+  Permission,
+  type TableDto,
+  formatBRL,
+  tableSchema,
+} from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import { Checkbox } from '@app/ui/components/checkbox';
 import { ConfirmDialog } from '@app/ui/components/confirm-dialog';
@@ -25,7 +31,17 @@ import {
 import { toast } from '@app/ui/components/sonner';
 import { cn } from '@app/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { LayoutGrid, Pencil, Plus, Settings2, Trash2 } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Combine,
+  LayoutGrid,
+  Pencil,
+  Plus,
+  Printer,
+  Settings2,
+  Split,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
 import { Controller } from 'react-hook-form';
@@ -33,6 +49,8 @@ import { Field, NumberField, TextField, applyApiErrors, useZodForm } from '@/com
 import { elapsedLabel, useNow } from '@/components/orders/common';
 import { OrderDetailSheet } from '@/components/orders/order-detail-sheet';
 import { EmptyState, Page } from '@/components/page';
+import { PreBillDialog } from '@/components/pos/pre-bill';
+import { SessionActionDialog, sessionTables } from '@/components/pos/table-actions';
 import { errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import {
@@ -236,19 +254,27 @@ function TableDialog({
 }) {
   const { can } = useAuth();
   const now = useNow();
+  const { data: tables = [] } = useTables();
+  const [panel, setPanel] = useState<'pre-bill' | 'change' | 'merge' | 'split' | null>(null);
   const session = table?.session;
+  const linked = session ? sessionTables(tables, session.id) : [];
+  const canOperate = can(Permission.TABLES_OPERATE);
   return (
     <Dialog open={!!table} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Mesa {table?.name}</DialogTitle>
+          <DialogTitle>
+            Mesa {linked.length > 1 ? linked.map((t) => t.name).join(' + ') : table?.name}
+          </DialogTitle>
           <DialogDescription>
             {session
-              ? `Aberta há ${elapsedLabel(session.openedAt, now)} · ${session.tabs.length} conta(s)`
+              ? `Aberta há ${elapsedLabel(session.openedAt, now)} · ${session.tabs.length} conta(s)${
+                  session.billRequestedAt ? ' · aguardando pagamento' : ''
+                }`
               : 'Mesa livre'}
           </DialogDescription>
         </DialogHeader>
-        {session && (
+        {session && session.tabs.length > 0 && (
           <ul className="divide-y rounded-md border">
             {session.tabs.map((tab) => (
               <li key={tab.orderId}>
@@ -260,12 +286,36 @@ function TableDialog({
                   <span>
                     <span className="font-medium">#{tab.number}</span>
                     {tab.tabLabel ? ` · ${tab.tabLabel}` : ''}
+                    <span className="block text-xs text-muted-foreground">
+                      {ORDER_PAYMENT_STATUS_LABELS[tab.paymentStatus]}
+                      {tab.paidCents > 0 ? ` · pago ${formatBRL(tab.paidCents)}` : ''}
+                    </span>
                   </span>
-                  <span className="tabular">{formatBRL(tab.totalCents)}</span>
+                  <span className="tabular">{formatBRL(tab.totalCents - tab.paidCents)}</span>
                 </button>
               </li>
             ))}
           </ul>
+        )}
+        {table && session && canOperate && (
+          <div className="flex flex-wrap gap-2">
+            {session.tabs.length > 0 && (
+              <Button size="sm" variant="outline" onClick={() => setPanel('pre-bill')}>
+                <Printer /> Pré-conta
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => setPanel('change')}>
+              <ArrowLeftRight /> Trocar mesa
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setPanel('merge')}>
+              <Combine /> Juntar mesas
+            </Button>
+            {linked.length > 1 && (
+              <Button size="sm" variant="outline" onClick={() => setPanel('split')}>
+                <Split /> Separar
+              </Button>
+            )}
+          </div>
         )}
         {table && can(Permission.ORDERS_CREATE) && (
           <DialogFooter>
@@ -275,6 +325,16 @@ function TableDialog({
               </Link>
             </Button>
           </DialogFooter>
+        )}
+        {table && panel === 'pre-bill' && (
+          <PreBillDialog table={table} open onOpenChange={(o) => !o && setPanel(null)} />
+        )}
+        {table && session && panel && panel !== 'pre-bill' && (
+          <SessionActionDialog
+            table={table}
+            action={panel}
+            onOpenChange={(o) => !o && setPanel(null)}
+          />
         )}
       </DialogContent>
     </Dialog>
@@ -299,11 +359,16 @@ export default function TablesPage() {
   }
   const selectedTable = tables?.find((t) => t.id === selected) ?? null;
   const occupied = visible.filter((t) => t.session).length;
+  const awaiting = visible.filter((t) => t.session?.billRequestedAt).length;
 
   return (
     <Page
       title="Mesas"
-      description={tables ? `${occupied} de ${visible.length} ocupadas` : undefined}
+      description={
+        tables
+          ? `${occupied} de ${visible.length} ocupadas${awaiting ? ` · ${awaiting} aguardando pagamento` : ''}`
+          : undefined
+      }
       className="max-w-none"
       actions={
         canManage && (
@@ -332,7 +397,10 @@ export default function TablesPage() {
             <h2 className="text-sm font-semibold text-muted-foreground">{area}</h2>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-3">
               {items.map((t) => {
-                const total = t.session?.tabs.reduce((sum, tab) => sum + tab.totalCents, 0) ?? 0;
+                const total =
+                  t.session?.tabs.reduce((sum, tab) => sum + tab.totalCents - tab.paidCents, 0) ??
+                  0;
+                const billing = !!t.session?.billRequestedAt;
                 return (
                   <div key={t.id} className="relative">
                     <button
@@ -340,9 +408,11 @@ export default function TablesPage() {
                       onClick={() => setSelected(t.id)}
                       className={cn(
                         'flex h-28 w-full flex-col justify-between rounded-xl border p-3 text-left transition-colors',
-                        t.session
-                          ? 'border-status-preparing bg-status-preparing/10 hover:bg-status-preparing/15'
-                          : 'bg-card hover:bg-accent',
+                        !t.session
+                          ? 'bg-card hover:bg-accent'
+                          : billing
+                            ? 'border-table-billing bg-table-billing/10 hover:bg-table-billing/15'
+                            : 'border-table-occupied bg-table-occupied/10 hover:bg-table-occupied/15',
                         !t.isActive && 'opacity-50',
                       )}
                     >
@@ -351,8 +421,8 @@ export default function TablesPage() {
                         <span className="space-y-0.5 text-xs">
                           <span className="tabular block font-medium">{formatBRL(total)}</span>
                           <span className="block text-muted-foreground">
-                            {t.session.tabs.length} conta(s) ·{' '}
-                            {elapsedLabel(t.session.openedAt, now)}
+                            {billing ? 'Aguardando pagamento' : `${t.session.tabs.length} conta(s)`}{' '}
+                            · {elapsedLabel(t.session.openedAt, now)}
                           </span>
                         </span>
                       ) : (

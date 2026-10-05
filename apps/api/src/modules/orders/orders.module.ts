@@ -12,6 +12,7 @@ import {
 } from './orders.controller.js';
 import { OrdersService } from './orders.service.js';
 import { TablesService } from './tables.service.js';
+import { TabsService } from './tabs.service.js';
 
 @Module({
   imports: [MenuModule],
@@ -22,7 +23,14 @@ import { TablesService } from './tables.service.js';
     CouriersController,
     CouponsController,
   ],
-  providers: [OrdersService, OrderPricingService, TablesService, CustomersService, CouponsService],
+  providers: [
+    OrdersService,
+    OrderPricingService,
+    TablesService,
+    TabsService,
+    CustomersService,
+    CouponsService,
+  ],
   exports: [OrdersService],
 })
 export class OrdersModule {}

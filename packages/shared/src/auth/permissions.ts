@@ -39,6 +39,8 @@ export const Permission = {
   TABLES_MANAGE: 'tables:manage',
   CASH_OPERATE: 'cash:operate',
   CASH_MANAGE: 'cash:manage',
+  /** Refund a payment (owner and manager). */
+  PAYMENTS_REFUND: 'payments:refund',
   KDS_OPERATE: 'kds:operate',
   CUSTOMERS_READ: 'customers:read',
   CUSTOMERS_MANAGE: 'customers:manage',

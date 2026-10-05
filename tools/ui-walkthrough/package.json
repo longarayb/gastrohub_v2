@@ -6,7 +6,8 @@
   "scripts": {
     "auth": "node auth.mjs",
     "menu": "node menu.mjs",
-    "orders": "node orders.mjs"
+    "orders": "node orders.mjs",
+    "pos": "node pos.mjs"
   },
   "dependencies": {
     "playwright-core": "^1.63.0"

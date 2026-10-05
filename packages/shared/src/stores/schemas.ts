@@ -42,6 +42,8 @@ export const storeSettingsSchema = z.object({
   serviceFeeOrderTypes: z
     .array(z.enum(['DINE_IN', 'TAKEOUT', 'DELIVERY']))
     .transform((list) => [...new Set(list)]),
+  /** Blind cash close: operators count without seeing the expected amounts. */
+  blindCashClose: z.boolean(),
 });
 export type StoreSettingsInput = z.input<typeof storeSettingsSchema>;
 
