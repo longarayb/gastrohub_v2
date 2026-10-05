@@ -566,27 +566,30 @@ describe('Orders (e2e)', () => {
 
     const mine: Socket = connect(store.accessToken);
     const theirs: Socket = connect(other.accessToken);
-    await Promise.all(
-      [mine, theirs].map((s) => new Promise<void>((resolve) => s.on('ready', () => resolve()))),
-    );
-    const received: unknown[] = [];
-    const leaked: unknown[] = [];
-    theirs.on('order.created', (e) => leaked.push(e));
-    const event = new Promise<{ id: string; status: string; version: number }>((resolve) =>
-      mine.on('order.created', (e) => {
-        received.push(e);
-        resolve(e);
-      }),
-    );
-
-    const created = await post(owner, '/api/orders', { type: 'TAKEOUT', items: [burger()] }).expect(
-      201,
-    );
-    const payload = await event;
-    expect(payload).toMatchObject({ id: created.body.id, status: 'ACCEPTED', version: 0 });
-    await new Promise((r) => setTimeout(r, 300));
-    expect(leaked).toEqual([]);
-    mine.close();
-    theirs.close();
+    try {
+      await Promise.all(
+        [mine, theirs].map((s) => new Promise<void>((resolve) => s.on('ready', () => resolve()))),
+      );
+      const received: unknown[] = [];
+      const leaked: unknown[] = [];
+      theirs.on('order.created', (e) => leaked.push(e));
+      const event = new Promise<{ id: string; status: string; version: number }>((resolve) =>
+        mine.on('order.created', (e) => {
+          received.push(e);
+          resolve(e);
+        }),
+      );
+      const created = await post(owner, '/api/orders', {
+        type: 'TAKEOUT',
+        items: [burger()],
+      }).expect(201);
+      const payload = await event;
+      expect(payload).toMatchObject({ id: created.body.id, status: 'ACCEPTED', version: 0 });
+      await new Promise((r) => setTimeout(r, 300));
+      expect(leaked).toEqual([]);
+    } finally {
+      mine.close();
+      theirs.close();
+    }
   });
 });
