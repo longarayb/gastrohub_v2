@@ -23,6 +23,12 @@ import { AuthService, type RequestMeta, type SessionWithRefresh } from './auth.s
 
 export const REFRESH_COOKIE = 'app_refresh';
 
+/**
+ * Login attempts per minute and IP, read per request: 10 in production (default); development
+ * and the visual walkthroughs raise it with LOGIN_RATE_LIMIT_PER_MINUTE.
+ */
+export const loginRateLimit = () => Number(process.env.LOGIN_RATE_LIMIT_PER_MINUTE) || 10;
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -47,7 +53,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(200)
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: loginRateLimit, ttl: 60_000 } })
   @ApiOperation({ summary: 'Login com e-mail e senha' })
   @ApiZodBody(loginSchema)
   async login(

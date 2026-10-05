@@ -22,6 +22,6 @@ Cada roteiro imprime `PASS`/`FAIL` por passo e os erros HTTP/console vistos; cap
 - `pos.mjs`: caixa (abertura, fechamento cego, sangria, relatório, reabertura), recebimento com troco, divisão e PIX, delivery a receber, pré-conta, dividir por itens, transferir/trocar/juntar/separar mesas, estorno e chave PIX. A impressão é simulada (`window.print` vira o evento `afterprint`).
 - `kds.mjs`: limites por setor, tela nova com código, vínculo do tablet (código errado e certo) sem login, iniciar/pronto/desfazer, ticket novo e cancelamento em tempo real com os sons conferidos (`AudioContext` instrumentado), remoções em destaque, consolidado, "Acabou", expedição (entregue e saiu para entrega), revogação imediata e layout de TV.
 
-Rodar vários roteiros seguidos estoura o limite de login (10 por minuto): espere um minuto entre eles ou reinicie a API.
+Os roteiros podem rodar em sequência: o `.env` de desenvolvimento eleva o limite de login (`LOGIN_RATE_LIMIT_PER_MINUTE=300`; em produção é 10).
 
-O login tem limite de tentativas (429): ao rodar várias vezes seguidas, reinicie a API.
+Se aparecer 429 no login, confira se o seu `.env` tem `LOGIN_RATE_LIMIT_PER_MINUTE` (veja o `.env.example`) e reinicie a API.

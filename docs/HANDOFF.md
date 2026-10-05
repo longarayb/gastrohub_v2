@@ -7,13 +7,13 @@
 ## Estado atual
 
 - `main` contém tudo o que foi feito; todas as branches estão no GitHub (`longarayb/gastrohub_v2`, público). Nenhuma frente em paralelo.
-- Validação no último commit da `feat/kds`: `pnpm check` verde (18 tarefas; unitários: shared 174, api 15, web 5), `pnpm format:check` verde, `pnpm test:e2e` com 70 testes, roteiros visuais `kds.mjs` 8/8, `pos.mjs` 12/12, `orders.mjs` 18/18, `menu.mjs` 15/15 e `auth.mjs` 19/19 (rodando um por vez: em sequência o login estoura o limite de 10 por minuto).
+- Validação no último commit da `feat/kds`: `pnpm check` verde (18 tarefas; unitários: shared 174, api 15, web 5), `pnpm format:check` verde, `pnpm test:e2e` com 70 testes, roteiros visuais `kds.mjs` 8/8, `pos.mjs` 12/12, `orders.mjs` 18/18, `menu.mjs` 15/15 e `auth.mjs` 19/19.
 - Migrations: `auth_tenancy`, `menu`, `orders`, `tables_pos`, `kds`. Um clone novo fica igual com `pnpm bootstrap` (ou `pnpm --filter @app/api db:deploy` + `pnpm db:seed`).
 
 ### Desktop de casa, na próxima sessão
 
 1. `git pull` na `main` e `pnpm install` (dependências novas: `dotenv-expand` na API e `qrcode` no painel).
-2. Compare o `.env` com o `.env.example` e acrescente as variáveis novas (`POSTGRES_PORT=5432`, `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`, `CHECK_CONCURRENCY`, `NEXT_BUILD_CPUS`). As URLs antigas com a porta escrita continuam funcionando.
+2. Compare o `.env` com o `.env.example` e acrescente as variáveis novas (`POSTGRES_PORT=5432`, `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`, `CHECK_CONCURRENCY`, `NEXT_BUILD_CPUS`, `LOGIN_RATE_LIMIT_PER_MINUTE=300`). As URLs antigas com a porta escrita continuam funcionando.
 3. `pnpm --filter @app/api db:deploy` (migrations `tables_pos` e `kds`) e `pnpm db:seed`.
 4. Para os roteiros visuais: `npm install` em `tools/ui-walkthrough` não é necessário de novo (sem dependências novas).
 
@@ -60,5 +60,5 @@ Nenhuma no momento.
 ## Lembretes de ambiente
 
 - Surface (8 GB): `.env` com `POSTGRES_PORT=5433`, `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1`. Playwright headless, um navegador, sem paralelismo; pare os servidores antes de builds.
-- O login tem limite de tentativas: rodar vários roteiros visuais seguidos pode gerar 429; reinicie a API.
+- Limite de login configurável (`LOGIN_RATE_LIMIT_PER_MINUTE`, 10 em produção, 300 no `.env` de desenvolvimento): os roteiros visuais rodam em sequência. No desktop de casa, acrescente a variável ao `.env`.
 - Repositório público: nunca commitar `.env`, segredos ou dados reais; conferir `git diff --cached` antes de cada push.
