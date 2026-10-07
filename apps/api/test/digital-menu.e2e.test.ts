@@ -248,6 +248,9 @@ describe('Digital menu (e2e)', () => {
       ['Moema', 'OUT_OF_AREA'],
       ['Pinheiros', 'PAUSED'],
     ]);
+    // Out-of-area searches show up in "Bairros sem área" (a paused area is not missing).
+    const unmatched = (await get(owner, '/api/delivery/areas/unmatched').expect(200)).body;
+    expect(unmatched.map((u: { neighborhood: string }) => u.neighborhood)).toEqual(['Moema']);
 
     const gone = (
       await preview({ type: 'TAKEOUT', items: [{ productId: 'nao-existe', quantity: 1 }] }).expect(
