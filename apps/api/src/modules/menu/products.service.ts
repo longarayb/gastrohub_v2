@@ -32,6 +32,7 @@ import {
   iso,
   priceRange,
 } from './menu-common.js';
+import { findFirstSequential } from '../../core/prisma/sequential.js';
 
 const productInclude = {
   category: { select: { id: true, name: true, kind: true, deletedAt: true } },
@@ -156,7 +157,7 @@ export class ProductsService {
   }
 
   private async findRow(id: string, client: Db | DbTx = this.db): Promise<ProductRow> {
-    const product = await client.product.findFirst({
+    const product = await findFirstSequential<ProductRow>(client.product, {
       where: { id, deletedAt: null },
       include: productInclude,
     });

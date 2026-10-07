@@ -11,6 +11,7 @@ import { ConflictError, NotFoundError, ValidationError } from '../../core/errors
 import { type Db, type DbTx, InjectDb } from '../../core/tenancy/db.provider.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { MenuContext, type PauseState, RESUMED, applyOrder, iso } from './menu-common.js';
+import { findFirstSequential } from '../../core/prisma/sequential.js';
 
 type CategoryData = z.output<typeof categorySchema>;
 
@@ -77,7 +78,10 @@ export class CategoriesService {
   }
 
   private findRaw(id: string, client: Db | DbTx = this.db): Promise<CategoryRow | null> {
-    return client.category.findFirst({ where: { id, deletedAt: null }, include: categoryInclude });
+    return findFirstSequential<CategoryRow>(client.category, {
+      where: { id, deletedAt: null },
+      include: categoryInclude,
+    });
   }
 
   async get(id: string): Promise<CategoryDto> {

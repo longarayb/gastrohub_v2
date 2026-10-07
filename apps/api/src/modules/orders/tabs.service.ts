@@ -17,6 +17,13 @@ import { newPublicCode, nextOrderNumber, toOrderEvent } from './orders.mapper.js
 import { OrdersService } from './orders.service.js';
 import { ProductionService } from './production.service.js';
 import { TablesService } from './tables.service.js';
+import { findFirstSequential } from '../../core/prisma/sequential.js';
+
+const tabInclude = {
+  items: true,
+  rounds: { orderBy: { number: 'asc' } },
+} satisfies Prisma.OrderInclude;
+type TabRow = Prisma.OrderGetPayload<{ include: typeof tabInclude }>;
 
 const OPEN = { notIn: ['DELIVERED', 'CANCELED'] } satisfies Prisma.EnumOrderStatusFilter;
 
@@ -38,9 +45,9 @@ export class TabsService {
   ) {}
 
   private async openTab(tx: DbTx, id: string) {
-    const order = await tx.order.findFirst({
+    const order = await findFirstSequential<TabRow>(tx.order, {
       where: { id },
-      include: { items: true, rounds: { orderBy: { number: 'asc' } } },
+      include: tabInclude,
     });
     if (!order) throw new NotFoundError('Conta');
     if (order.type !== 'DINE_IN' || !order.tableSessionId) {

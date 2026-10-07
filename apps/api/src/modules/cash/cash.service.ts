@@ -22,6 +22,7 @@ import {
   ValidationError,
 } from '../../core/errors/domain-error.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';
+import { findFirstSequential } from '../../core/prisma/sequential.js';
 import { type Db, type DbTx, InjectDb } from '../../core/tenancy/db.provider.js';
 import { TenantContext } from '../../core/tenancy/tenant-context.js';
 import { Prisma, type CashSession } from '../../generated/prisma/client.js';
@@ -102,7 +103,7 @@ export class CashService {
 
   /** Current totals of a register, inside a transaction. */
   async totals(tx: DbTx, sessionId: string): Promise<CashSessionTotals> {
-    const session = await tx.cashSession.findFirst({
+    const session = await findFirstSequential<SessionRow>(tx.cashSession, {
       where: { id: sessionId },
       include: sessionInclude,
     });
@@ -118,7 +119,10 @@ export class CashService {
   // Queries
 
   private async findRow(id: string, client: Db | DbTx = this.db): Promise<SessionRow> {
-    const session = await client.cashSession.findFirst({ where: { id }, include: sessionInclude });
+    const session = await findFirstSequential<SessionRow>(client.cashSession, {
+      where: { id },
+      include: sessionInclude,
+    });
     if (!session) throw new NotFoundError('Caixa');
     if (session.operatorId !== this.ctx.userId && !this.canManage()) {
       throw new ForbiddenError('Este caixa é de outro operador');
