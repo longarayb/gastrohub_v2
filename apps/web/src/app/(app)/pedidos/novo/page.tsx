@@ -519,7 +519,18 @@ function Composer() {
                   state={quoteState}
                   subtotalCents={itemsSubtotal}
                   choice={delivery}
-                  onChange={setDelivery}
+                  onChange={(next) => {
+                    setDelivery(next);
+                    // Editing the fee or the area clears their errors from the last submit.
+                    setErrors(
+                      ({
+                        deliveryFeeReason: _r,
+                        deliveryAreaId: _a,
+                        deliveryFeeCents: _f,
+                        ...rest
+                      }) => rest,
+                    );
+                  }}
                   canReduce={canDiscount}
                   errors={errors}
                 />

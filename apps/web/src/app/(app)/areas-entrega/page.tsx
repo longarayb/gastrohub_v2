@@ -165,7 +165,7 @@ function UnmatchedCard({ areas }: { areas: DeliveryAreaDto[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ul className="divide-y text-sm">
+        <ul className="divide-y text-sm" aria-label="Bairros sem área">
           {data.map((u) => {
             const key = `${u.city}|${u.neighborhood}`;
             return (

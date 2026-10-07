@@ -182,7 +182,11 @@ await step('composer: half-and-half pizza for delivery with saved customer', asy
   await dialog.getByRole('button', { name: /^Marguerita/ }).click();
   await dialog.getByRole('button', { name: /^Catupiry/ }).click();
   await dialog.getByRole('button', { name: /^Adicionar · R\$/ }).click();
-  await page.getByLabel('Taxa de entrega').fill('600');
+  // The fee comes from the delivery area of the address (D029).
+  await page
+    .getByRole('region', { name: 'Taxa de entrega' })
+    .getByText('Centro expandido')
+    .waitFor();
   await page.getByLabel('Forma de pagamento').click();
   await page.getByRole('option', { name: 'PIX' }).click();
   await shot('05-composer-delivery');
