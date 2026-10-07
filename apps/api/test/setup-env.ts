@@ -12,6 +12,8 @@ process.env.THROTTLE_DISABLED = 'true';
 process.env.GEOCODING_PROVIDER = 'none';
 // No calls to the menu app from tests (its cache refresh is fire-and-forget).
 process.env.MENU_REVALIDATE_SECRET = '';
+// Own queue keys: a dev API running on the same Redis must not take the tests' jobs (e-mails).
+process.env.QUEUE_PREFIX = 'e2e';
 if (process.env.DATABASE_URL_TEST) {
   process.env.DATABASE_URL = process.env.DATABASE_URL_TEST;
 }

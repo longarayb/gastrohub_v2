@@ -30,6 +30,8 @@ export const envSchema = z.object({
 
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
+  /** Prefix of the BullMQ keys in Redis (tests use their own, apart from a running dev API). */
+  QUEUE_PREFIX: z.string().min(1).default('bull'),
 
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
