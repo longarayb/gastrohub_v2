@@ -39,9 +39,9 @@
 - Anteriores: D027–D028 (KDS e telas da cozinha), D023–D026 (pagamentos, caixa, divisão, PIX), D019–D022 (pedidos).
 - O **redesign** (dashboard escuro azul-marinho, descrito no ROADMAP) continua planejado para depois das funcionalidades, trocando só o tema.
 
-### Observação conhecida (não bloqueia)
+### Consultas em paralelo na mesma conexão (corrigido em `fix/pg-concurrent-queries`)
 
-- Nas suítes e2e do PDV e de entrega aparece uma vez o aviso `DeprecationWarning: Calling client.query() when the client is already executing a query` do `pg`. Vem do Prisma 7 com `@prisma/adapter-pg` ao carregar relações dentro de transações interativas (já acontecia na `main` antes da entrega). Os testes passam; vale reavaliar ao atualizar o Prisma ou o `pg` 9 (que transforma o aviso em erro).
+- O aviso `client.query() when the client is already executing a query` vinha de leituras com várias relações (`include`) dentro de `$transaction`: o Prisma 7 busca as relações em paralelo na conexão da transação (caixa: `CashService.totals`/`findRow`; cardápio: carregadores de categoria, produto e grupo; contas de mesa: `openTab`). Nenhum `Promise.all` nosso estava dentro de transação. Essas leituras agora usam `findFirstSequential`, e o e2e reprova qualquer nova ocorrência.
 
 ## Próximos passos (nesta ordem)
 

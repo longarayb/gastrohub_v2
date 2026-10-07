@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { config as loadEnv } from 'dotenv';
 import { expand } from 'dotenv-expand';
+import pg from 'pg';
 
 // e2e tests run against the dedicated test database.
 expand(loadEnv({ path: path.join(import.meta.dirname, '..', '..', '..', '.env'), quiet: true }));
@@ -21,6 +22,35 @@ let where = 'preparação do arquivo (beforeAll)';
 const record = (error: unknown) => unhandled.push({ where, error });
 process.on('unhandledRejection', record);
 process.on('uncaughtException', record);
+
+// Two queries at once on one pg connection (Promise.all or an unawaited query inside
+// $transaction, or a read with several relations inside a transaction): pg 8 only warns once
+// per process and pg 9 will throw. Fail the test that did it, with the SQL of both queries.
+// Fix: sequential queries; reads with several relations use findFirstSequential.
+const sqlOf = (query: unknown) =>
+  String((query as { text?: string } | null)?.text ?? query ?? '')
+    .replace(/\s+/g, ' ')
+    .slice(0, 160);
+type QueuedClient = { _queryQueue?: unknown[]; activeQuery?: unknown; pipeline?: boolean };
+const originalQuery = pg.Client.prototype.query;
+pg.Client.prototype.query = function (this: QueuedClient, ...args: unknown[]) {
+  const queued = this._queryQueue ?? [];
+  if (queued.length > 0 && !this.pipeline) {
+    record(
+      new Error(
+        'Consultas em paralelo na mesma conexão do Postgres:\n' +
+          `  em andamento: ${sqlOf(this.activeQuery ?? queued[0])}\n` +
+          `  nova: ${sqlOf(args[0])}`,
+      ),
+    );
+  }
+  return (originalQuery as (...a: unknown[]) => unknown).apply(this, args);
+} as typeof pg.Client.prototype.query;
+process.on('warning', (warning) => {
+  if (warning.name === 'DeprecationWarning' && /client\.query\(\)/.test(warning.message)) {
+    record(warning);
+  }
+});
 
 function failOnUnhandled(): void {
   if (unhandled.length === 0) return;

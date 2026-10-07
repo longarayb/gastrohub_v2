@@ -12,6 +12,7 @@ import { type Db, type DbTx, InjectDb } from '../../core/tenancy/db.provider.js'
 import { TenantContext } from '../../core/tenancy/tenant-context.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { MenuContext, RESUMED, iso } from './menu-common.js';
+import { findFirstSequential } from '../../core/prisma/sequential.js';
 
 const groupInclude = {
   options: {
@@ -79,7 +80,7 @@ export class ModifierGroupsService {
   }
 
   private async findRow(id: string, client: Db | DbTx = this.db): Promise<GroupRow> {
-    const group = await client.modifierGroup.findFirst({
+    const group = await findFirstSequential<GroupRow>(client.modifierGroup, {
       where: { id, deletedAt: null },
       include: groupInclude,
     });
