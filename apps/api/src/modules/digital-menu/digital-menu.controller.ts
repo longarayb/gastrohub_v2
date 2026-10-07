@@ -30,6 +30,7 @@ import {
 } from '../../core/storage/image.service.js';
 import { ApiZodBody, ZBody } from '../../core/validation/zod.js';
 import { Public, RequirePermissions } from '../auth/auth.decorators.js';
+import { PrismaService } from '../../core/prisma/prisma.service.js';
 import { DigitalMenuAdminService } from './digital-menu-admin.service.js';
 import { PublicMenuService } from './public-menu.service.js';
 import { PublicStoreGuard } from './public-store.guard.js';
@@ -153,5 +154,24 @@ export class DigitalMenuAdminController {
   @RequirePermissions(Permission.STORE_MANAGE)
   unblock(@Param('id') id: string) {
     return this.admin.unblockPhone(id);
+  }
+}
+
+/** Restaurants with a public menu, for the menu app sitemap (slug and last change only). */
+@ApiTags('public')
+@Public()
+@Controller('public-directory')
+export class PublicDirectoryController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Get()
+  async list() {
+    const stores = await this.prisma.store.findMany({
+      where: { isActive: true },
+      select: { slug: true, updatedAt: true },
+      orderBy: { slug: 'asc' },
+      take: 5000,
+    });
+    return stores.map((s) => ({ slug: s.slug, updatedAt: s.updatedAt.toISOString() }));
   }
 }

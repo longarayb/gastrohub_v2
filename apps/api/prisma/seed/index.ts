@@ -12,6 +12,7 @@ import { expand } from 'dotenv-expand';
 import { PrismaClient } from '../../src/generated/prisma/client.js';
 import { seedMenu } from './menu.js';
 import { seedDelivery } from './delivery.js';
+import { seedDigitalMenu } from './digital-menu.js';
 import { seedOrders } from './orders.js';
 
 expand(
@@ -160,6 +161,7 @@ async function main(): Promise<void> {
       managerId: userIds.MANAGER!,
       cashierId: userIds.CASHIER!,
     });
+    const digital = await seedDigitalMenu(prisma, store.id, { managerId: userIds.MANAGER! });
 
     console.log(`\n✔ Unidade "${store.tradeName}" (slug: ${store.slug})`);
     console.log(`✔ ${DEMO_USERS.length} usuários — senha de demonstração: ${DEMO_PASSWORD}`);
@@ -175,6 +177,9 @@ async function main(): Promise<void> {
     );
     console.log(
       `✔ Entregas: ${delivery.areas} áreas (uma suspensa) · ${delivery.runs} saídas (uma acertada, uma aguardando acerto, uma em rota) · app do entregador: entregador@demo.local`,
+    );
+    console.log(
+      `✔ Cardápio digital: http://localhost:3001/${store.slug} · ${digital.menuOrders} pedidos pelo cardápio · telefone bloqueado (11) 90000-0000`,
     );
     console.log(
       `✔ Cozinha: ${orders.kitchenTasks} tarefas de produção · tela "TV da cozinha" aguardando vínculo (Setores)\n`,
