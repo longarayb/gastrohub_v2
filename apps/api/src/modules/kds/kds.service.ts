@@ -323,10 +323,16 @@ export class KdsService {
     const now = new Date();
     const orders = await this.db.order.findMany({
       where: {
-        status: { in: ['ACCEPTED', 'PREPARING', 'READY'] },
-        // Rounds with something sent and not handed over yet.
-        items: { some: { status: { in: ['QUEUED', 'PREPARING', 'READY'] } } },
-        tasks: { some: {} },
+        OR: [
+          {
+            status: { in: ['ACCEPTED', 'PREPARING', 'READY'] },
+            // Rounds with something sent and not handed over yet.
+            items: { some: { status: { in: ['QUEUED', 'PREPARING', 'READY'] } } },
+            tasks: { some: {} },
+          },
+          // Deliveries back from a failed attempt (items already handed over).
+          { type: 'DELIVERY', status: 'READY', stops: { some: { failedAt: { not: null } } } },
+        ],
       },
       include: {
         courier: { select: { name: true } },
@@ -338,6 +344,11 @@ export class KdsService {
         rounds: { orderBy: { number: 'asc' } },
         items: { select: { roundId: true, status: true } },
         tasks: { select: { roundId: true, sectorId: true, status: true } },
+        stops: {
+          orderBy: { dispatchedAt: 'desc' },
+          take: 1,
+          select: { failedAt: true, failureReason: true, failureNote: true },
+        },
       },
       orderBy: { createdAt: 'asc' },
       take: 100,
@@ -374,6 +385,15 @@ export class KdsService {
           };
         })
         .filter((r) => r.sectors.length > 0);
+      const last = o.stops[0];
+      const deliveryFailure =
+        o.status === 'READY' && last?.failedAt && last.failureReason
+          ? {
+              reason: last.failureReason,
+              note: last.failureNote,
+              at: last.failedAt.toISOString(),
+            }
+          : null;
       return {
         orderId: o.id,
         number: o.number,
@@ -383,8 +403,9 @@ export class KdsService {
         title: orderTitle(o),
         courierId: o.courierId,
         courierName: o.courier?.name ?? null,
+        deliveryFailure,
         rounds,
-        complete: rounds.length > 0 && rounds.every((r) => r.complete),
+        complete: !!deliveryFailure || (rounds.length > 0 && rounds.every((r) => r.complete)),
       };
     });
     const couriers = await this.db.courier.findMany({
@@ -393,7 +414,7 @@ export class KdsService {
       orderBy: { name: 'asc' },
     });
     return {
-      orders: result.filter((o) => o.rounds.length > 0),
+      orders: result.filter((o) => o.rounds.length > 0 || o.deliveryFailure),
       couriers,
       serverTime: now.toISOString(),
     };

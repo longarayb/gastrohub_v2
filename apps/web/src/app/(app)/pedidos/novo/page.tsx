@@ -40,6 +40,12 @@ import { ArrowLeft, Pizza, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+  DeliveryQuoteField,
+  EMPTY_DELIVERY_CHOICE,
+  effectiveQuote,
+  useDeliveryQuote,
+} from '@/components/delivery/delivery-quote-field';
 import { Field, MoneyInput } from '@/components/form';
 import {
   CustomerSection,
@@ -200,7 +206,7 @@ function Composer() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [builder, setBuilder] = useState<BuilderTarget | null>(null);
   const [sendNow, setSendNow] = useState(true);
-  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [delivery, setDelivery] = useState(EMPTY_DELIVERY_CHOICE);
   const [orderDiscount, setOrderDiscount] = useState<DiscountData>({ type: 'VALUE', value: 0 });
   const [orderDiscountReason, setOrderDiscountReason] = useState('');
   const [couponCode, setCouponCode] = useState('');
@@ -213,7 +219,7 @@ function Composer() {
   const [busy, setBusy] = useState(false);
   // One key per order being typed: a double click or a retry never creates two orders.
   const idempotencyKey = useRef(newKey());
-  const ids = { tab: useId(), notes: useId(), coupon: useId(), discount: useId(), fee: useId() };
+  const ids = { tab: useId(), notes: useId(), coupon: useId(), discount: useId() };
 
   const order = existing.data;
   const effectiveType: OrderType = order ? order.type : type;
@@ -239,6 +245,29 @@ function Composer() {
 
   const serviceFeeBps =
     order || !store ? 0 : waiveFee ? 0 : defaultServiceFeeBps(effectiveType, store.settings);
+  const isDelivery = !order && type === 'DELIVERY';
+  const quoteState = useDeliveryQuote(
+    customer.address,
+    customer.addressId === 'new' ? null : customer.addressId,
+    isDelivery,
+  );
+  const itemsSubtotal = calculateOrderTotals({
+    lines: cart.map((l) => ({
+      quantity: l.input.quantity,
+      unitChargedPriceCents: l.pricing.unitChargedPriceCents,
+      unitFullPriceCents: l.pricing.unitFullPriceCents,
+      discount: l.input.discount,
+    })),
+    orderDiscount: null,
+    coupon: null,
+    serviceFeeBps: 0,
+    deliveryFeeCents: 0,
+  }).subtotalCents;
+  const areaQuote = effectiveQuote(quoteState.quote, delivery, itemsSubtotal);
+  const noAreas = !quoteState.quote || quoteState.quote.reason === 'NO_AREAS';
+  const deliveryFee = isDelivery
+    ? (delivery.feeCents ?? (noAreas ? 0 : (areaQuote?.quote.feeCents ?? 0)))
+    : 0;
   const totals = calculateOrderTotals({
     lines: cart.map((l) => ({
       quantity: l.input.quantity,
@@ -268,7 +297,15 @@ function Composer() {
           ? { name: customer.name, phone: customer.phone, document: null }
           : undefined,
       deliveryAddress: type === 'DELIVERY' ? customer.address : undefined,
-      deliveryFeeCents: type === 'DELIVERY' ? deliveryFee : 0,
+      // Omitted = the fee of the area (the API resolves it again and audits a change).
+      deliveryFeeCents:
+        type === 'DELIVERY'
+          ? noAreas
+            ? (delivery.feeCents ?? 0)
+            : (delivery.feeCents ?? undefined)
+          : undefined,
+      deliveryAreaId: type === 'DELIVERY' ? (delivery.areaId ?? undefined) : undefined,
+      deliveryFeeReason: type === 'DELIVERY' ? delivery.reason.trim() || null : null,
       items: cart.map((l) => l.input),
       sendNow,
       orderDiscount: orderDiscount.value > 0 ? orderDiscount : null,
@@ -312,6 +349,17 @@ function Composer() {
       const found = issuesToErrors(parsed.error.issues);
       setErrors(found);
       return toast.error(Object.values(found)[0] ?? 'Revise os dados do pedido');
+    }
+    if (
+      type === 'DELIVERY' &&
+      !noAreas &&
+      areaQuote &&
+      delivery.feeCents != null &&
+      delivery.feeCents < areaQuote.quote.feeCents &&
+      delivery.reason.trim().length < 3
+    ) {
+      setErrors({ deliveryFeeReason: 'Informe o motivo para reduzir a taxa de entrega' });
+      return toast.error('Informe o motivo para reduzir a taxa de entrega');
     }
     if (orderDiscount.value > 0 && orderDiscountReason.trim().length < 3) {
       setErrors({ orderDiscountReason: 'Informe o motivo do desconto' });
@@ -467,9 +515,14 @@ function Composer() {
           {!order && (
             <>
               {type === 'DELIVERY' && (
-                <Field label="Taxa de entrega" htmlFor={ids.fee}>
-                  <MoneyInput id={ids.fee} value={deliveryFee} onChange={setDeliveryFee} />
-                </Field>
+                <DeliveryQuoteField
+                  state={quoteState}
+                  subtotalCents={itemsSubtotal}
+                  choice={delivery}
+                  onChange={setDelivery}
+                  canReduce={canDiscount}
+                  errors={errors}
+                />
               )}
               {canDiscount && (
                 <div className="grid gap-3 sm:grid-cols-2">

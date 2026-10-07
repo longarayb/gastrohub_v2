@@ -148,6 +148,8 @@ export class DeliveryPricingService {
       name: a.name,
       feeCents: a.feeCents,
       etaMinutes: a.etaMinutes,
+      minimumOrderCents: a.minimumOrderCents,
+      freeAboveCents: a.freeAboveCents,
       paused: isAreaPaused(a, now),
     }));
     if (areas.length === 0) {
@@ -159,6 +161,7 @@ export class DeliveryPricingService {
         coordinates,
         distanceMeters: null,
         areas: [],
+        storeMinimumCents: store.minimumCents,
       };
     }
     const resolution = resolveDeliveryArea({ ...address, coordinates }, areas, {
@@ -174,6 +177,7 @@ export class DeliveryPricingService {
         coordinates,
         distanceMeters: null,
         areas: choices,
+        storeMinimumCents: store.minimumCents,
       };
     }
     return {
@@ -184,6 +188,7 @@ export class DeliveryPricingService {
       coordinates,
       distanceMeters: resolution.distanceMeters,
       areas: choices,
+      storeMinimumCents: store.minimumCents,
     };
   }
 

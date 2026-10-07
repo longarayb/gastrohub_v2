@@ -18,12 +18,21 @@ describe('route access', () => {
     expect(canAccess('MANAGER', '/caixa')).toBe(true);
     expect(canAccess('WAITER', '/caixa')).toBe(false);
     expect(canAccess('KITCHEN', '/caixa')).toBe(false);
+    // Couriers see only their own route; no board, no orders (LGPD).
+    expect(canAccess('COURIER', '/entregas')).toBe(true);
+    expect(canAccess('COURIER', '/pedidos')).toBe(false);
+    expect(canAccess('COURIER', '/entregadores')).toBe(false);
+    expect(canAccess('OWNER', '/entregas')).toBe(false);
+    expect(canAccess('CASHIER', '/entregadores')).toBe(true);
+    expect(canAccess('CASHIER', '/areas-entrega')).toBe(true);
+    expect(canAccess('CASHIER', '/entregadores/relatorio')).toBe(false);
+    expect(canAccess('MANAGER', '/entregadores/relatorio')).toBe(true);
   });
 
   it('sends each role to its home', () => {
     expect(homeFor('OWNER')).toBe('/painel');
     expect(homeFor('WAITER')).toBe('/pedidos');
-    expect(homeFor('COURIER')).toBe('/pedidos');
+    expect(homeFor('COURIER')).toBe('/entregas');
   });
 });
 
@@ -44,6 +53,7 @@ describe('safeNext', () => {
 
   it('ignores pages the role cannot open', () => {
     expect(safeNext('/configuracoes/usuarios', 'WAITER')).toBe('/pedidos');
-    expect(safeNext(null, 'COURIER')).toBe('/pedidos');
+    expect(safeNext(null, 'COURIER')).toBe('/entregas');
+    expect(safeNext('/pedidos', 'COURIER')).toBe('/entregas');
   });
 });

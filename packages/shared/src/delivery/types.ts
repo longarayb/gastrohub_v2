@@ -45,7 +45,17 @@ export interface DeliveryQuoteDto {
   coordinates: { latitude: number; longitude: number } | null;
   distanceMeters: number | null;
   /** Areas for a manual choice (paused ones flagged). */
-  areas: { id: string; name: string; feeCents: number; etaMinutes: number; paused: boolean }[];
+  areas: {
+    id: string;
+    name: string;
+    feeCents: number;
+    etaMinutes: number;
+    minimumOrderCents: number | null;
+    freeAboveCents: number | null;
+    paused: boolean;
+  }[];
+  /** Store minimum, used when an area has none (manual choice in the composer). */
+  storeMinimumCents: number;
 }
 
 export interface DeliveryStopDto {

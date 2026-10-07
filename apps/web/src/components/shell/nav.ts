@@ -1,5 +1,6 @@
 import { Permission } from '@app/shared';
 import {
+  Bike,
   BookOpen,
   Building2,
   ChefHat,
@@ -7,6 +8,8 @@ import {
   LayoutDashboard,
   LayoutGrid,
   ListPlus,
+  MapPinned,
+  Navigation,
   MonitorPlay,
   ReceiptText,
   TicketPercent,
@@ -64,6 +67,25 @@ export const NAV: NavGroup[] = [
         label: 'Tela da cozinha',
         icon: MonitorPlay,
         permissions: [Permission.KDS_OPERATE],
+      },
+      {
+        // Courier app (phone): only the courier's own route (LGPD).
+        href: '/entregas',
+        label: 'Minhas entregas',
+        icon: Navigation,
+        permissions: [Permission.COURIER_APP],
+      },
+      {
+        href: '/entregadores',
+        label: 'Entregadores',
+        icon: Bike,
+        permissions: [Permission.DELIVERY_OPERATE],
+      },
+      {
+        href: '/areas-entrega',
+        label: 'Áreas de entrega',
+        icon: MapPinned,
+        permissions: [Permission.DELIVERY_OPERATE],
       },
       {
         href: '/cupons',

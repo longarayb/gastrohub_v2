@@ -7,6 +7,7 @@ import { type Socket, io } from 'socket.io-client';
 import { API_URL, getAccessToken, refreshSession } from './api';
 import { useAuth } from './auth';
 import { cashKeys } from './cash';
+import { deliveryKeys } from './delivery';
 import { orderKeys } from './orders';
 
 export type RealtimeStatus = 'connecting' | 'online' | 'offline';
@@ -51,6 +52,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       void queryClient.invalidateQueries({ queryKey: orderKeys.all });
       void queryClient.invalidateQueries({ queryKey: orderKeys.tables });
       void queryClient.invalidateQueries({ queryKey: cashKeys.all });
+      void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
     };
     // Server-side disconnects (expired token) are not retried automatically.
     const reconnectWithFreshToken = async () => {
@@ -83,6 +85,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     });
     socket.on(REALTIME_EVENTS.CASH_UPDATED, () => {
       void queryClient.invalidateQueries({ queryKey: cashKeys.all });
+    });
+    // Routes, courier balances, settlements and areas (also the courier app).
+    socket.on(REALTIME_EVENTS.DELIVERY_UPDATED, () => {
+      void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
     });
     socket.on(REALTIME_EVENTS.TABLES_UPDATED, () => {
       void queryClient.invalidateQueries({ queryKey: orderKeys.tables });

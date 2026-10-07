@@ -370,6 +370,12 @@ describe('Delivery (e2e)', () => {
     expect(board.find((o: { id: string }) => o.id === o2.id).deliveryFailure.reason).toBe(
       'CUSTOMER_ABSENT',
     );
+    // The expedition shows it too (its items were already handed over).
+    const expedition = (await get(cashier, '/api/kds/expedition').expect(200)).body;
+    expect(expedition.orders.find((o: { orderId: string }) => o.orderId === o2.id)).toMatchObject({
+      complete: true,
+      deliveryFailure: { reason: 'CUSTOMER_ABSENT' },
+    });
 
     // Re-dispatch in the same route (the courier is still out).
     const again = (

@@ -14,9 +14,10 @@ import { Button } from '@app/ui/components/button';
 import { Input } from '@app/ui/components/input';
 import { Skeleton, Tabs, TabsList, TabsTrigger } from '@app/ui/components/misc';
 import { cn } from '@app/ui/lib/utils';
-import { BellOff, BellRing, ChevronDown, Plus, Search, Wifi, WifiOff } from 'lucide-react';
+import { BellOff, BellRing, Bike, ChevronDown, Plus, Search, Wifi, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { DispatchDialog } from '@/components/delivery/dispatch-dialog';
 import { StatusBadge, statusLabel, useNow } from '@/components/orders/common';
 import { OrderCard } from '@/components/orders/order-card';
 import { useOrderAction } from '@/components/orders/common';
@@ -75,6 +76,8 @@ export default function OrdersPage() {
   const [payOnOpen, setPayOnOpen] = useState(false);
   const [advancing, setAdvancing] = useState<string | null>(null);
   const [showFinished, setShowFinished] = useState(false);
+  /** Orders checked in the "Saída para entrega" dialog (null = closed). */
+  const [dispatchIds, setDispatchIds] = useState<string[] | null>(null);
 
   const pendingIds = useMemo(
     () => (orders ?? []).filter((o) => o.status === 'PENDING').map((o) => o.id),
@@ -103,6 +106,8 @@ export default function OrdersPage() {
       const unpaid = order.totalCents > order.paidCents;
       if (unpaid || order.type === 'DINE_IN') return open(order.id, unpaid);
     }
+    // A delivery leaves with a courier: choose it (and other orders of the same route).
+    if (next === 'DISPATCHED' && !order.courierName) return setDispatchIds([order.id]);
     alert.markSeen(order.id);
     setAdvancing(order.id);
     try {
@@ -183,7 +188,20 @@ export default function OrdersPage() {
                   <span className={cn('size-2 rounded-full', STATUS_STYLES[status].dot)} />
                   {status === 'DISPATCHED' ? 'Saiu para entrega' : statusLabel(status, 'DELIVERY')}
                 </h2>
-                <span className="tabular text-xs text-muted-foreground">{items.length}</span>
+                <span className="flex items-center gap-1">
+                  {status === 'READY' && canAdvance && items.some((o) => o.type === 'DELIVERY') && (
+                    <Button
+                      size="sm"
+                      className="h-7"
+                      variant="outline"
+                      onClick={() => setDispatchIds([])}
+                      title="Saída para entrega com vários pedidos"
+                    >
+                      <Bike /> Saída
+                    </Button>
+                  )}
+                  <span className="tabular text-xs text-muted-foreground">{items.length}</span>
+                </span>
               </header>
               {isLoading ? (
                 <Skeleton className="h-28" />
@@ -239,6 +257,12 @@ export default function OrdersPage() {
           </ul>
         )}
       </section>
+
+      <DispatchDialog
+        open={!!dispatchIds}
+        initialIds={dispatchIds ?? []}
+        onOpenChange={(v) => !v && setDispatchIds(null)}
+      />
 
       <OrderDetailSheet
         orderId={openId}
