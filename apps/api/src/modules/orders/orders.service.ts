@@ -46,6 +46,7 @@ import { type Db, type DbTx, InjectDb } from '../../core/tenancy/db.provider.js'
 import { TenantContext } from '../../core/tenancy/tenant-context.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { MenuContext } from '../menu/menu-common.js';
+import { PrintQueueService } from '../printing/print-queue.service.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
 import { DeliveryPricingService } from './delivery-pricing.service.js';
 import { DispatchService } from './dispatch.service.js';
@@ -97,6 +98,7 @@ export class OrdersService {
     private readonly production: ProductionService,
     private readonly deliveryPricing: DeliveryPricingService,
     private readonly dispatch: DispatchService,
+    private readonly printQueue: PrintQueueService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -284,6 +286,7 @@ export class OrdersService {
 
   /** Notifies realtime clients after the commit and returns the fresh detail. */
   async publish(orderId: string, created = false): Promise<OrderDetailDto> {
+    await this.printQueue.flush();
     const order = await this.findDetail(orderId);
     const event = toOrderEvent(order);
     const sectors = await this.sectorIdsOf(orderId);
@@ -555,6 +558,9 @@ export class OrdersService {
             tx,
           );
         }
+        // Accepted orders print right away; digital orders pending acceptance print on accept.
+        if (send && priced.length) await this.printQueue.orderTickets(tx, order.id);
+        if (status === 'ACCEPTED') await this.printQueue.deliveryCopy(tx, order.id);
         return order.id;
       });
     } catch (error) {
@@ -723,6 +729,7 @@ export class OrdersService {
   private async sendDrafts(tx: DbTx, orderId: string, now: Date): Promise<void> {
     const drafts = await tx.orderItem.findMany({ where: { orderId, status: 'DRAFT' } });
     if (drafts.length === 0) return;
+    const roundIds = [...new Set(drafts.map((d) => d.roundId))];
     await this.production.createForItems(tx, drafts, now);
     await tx.orderItem.updateMany({
       where: { orderId, status: 'DRAFT' },
@@ -755,6 +762,7 @@ export class OrdersService {
         },
       });
     }
+    await this.printQueue.orderTickets(tx, orderId, roundIds);
   }
 
   async sendRound(id: string, expectedVersion: number): Promise<OrderDetailDto> {
@@ -820,6 +828,7 @@ export class OrdersService {
       const now = new Date();
       await this.production.cancelItems(tx, [itemId], now);
       await this.production.sync(tx, id, now);
+      await this.printQueue.canceled(tx, id, { itemIds: [itemId] }, input.reason, now);
       await this.audit.log(
         {
           action: AuditAction.ORDER_ITEM_CANCELED,
@@ -943,7 +952,12 @@ export class OrdersService {
           reason: input.reason,
         },
       });
+      if (input.status === 'ACCEPTED') {
+        await this.printQueue.orderTickets(tx, id);
+        await this.printQueue.deliveryCopy(tx, id);
+      }
       if (input.status === 'CANCELED') {
+        await this.printQueue.canceled(tx, id, 'order', input.reason, now);
         await this.audit.log(
           {
             action: AuditAction.ORDER_CANCELED,

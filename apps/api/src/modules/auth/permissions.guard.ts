@@ -1,11 +1,6 @@
 import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import {
-  type AccessTokenPayload,
-  KDS_DEVICE_ROLE,
-  type Permission,
-  hasPermission,
-} from '@app/shared';
+import { type AccessTokenPayload, type Permission, hasPermission, isDeviceRole } from '@app/shared';
 import { ForbiddenError } from '../../core/errors/domain-error.js';
 import { PERMISSIONS_KEY } from './auth.decorators.js';
 
@@ -22,8 +17,8 @@ export class PermissionsGuard implements CanActivate {
       context.getClass(),
     ]);
     const user = context.switchToHttp().getRequest<{ user?: AccessTokenPayload }>().user;
-    // KDS devices only reach routes that explicitly require one of their permissions.
-    if (user?.role === KDS_DEVICE_ROLE && !required?.length) throw new ForbiddenError();
+    // Devices (KDS, print agent) only reach routes that explicitly require one of their permissions.
+    if (isDeviceRole(user?.role) && !required?.length) throw new ForbiddenError();
     if (!required?.length) return true;
 
     if (!user || !required.every((p) => hasPermission(user.role, p))) {

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MenuModule } from '../menu/menu.module.js';
+import { PrintQueueModule } from '../printing/print-queue.module.js';
 import { CouponsService } from './coupons.service.js';
 import { CustomersService } from './customers.service.js';
 import { DeliveryPricingService } from './delivery-pricing.service.js';
@@ -18,7 +19,7 @@ import { ProductionService } from './production.service.js';
 import { TabsService } from './tabs.service.js';
 
 @Module({
-  imports: [MenuModule],
+  imports: [MenuModule, PrintQueueModule],
   controllers: [
     OrdersController,
     TablesController,

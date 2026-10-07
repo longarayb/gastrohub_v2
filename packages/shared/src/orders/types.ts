@@ -146,6 +146,10 @@ export const REALTIME_EVENTS = {
   DELIVERY_UPDATED: 'delivery.updated',
   /** Public tracking page of one order (namespace /tracking, room = tracking token). */
   TRACKING_UPDATED: 'tracking.updated',
+  /** Sent only to print agents (room of the agent): new jobs to lease. No content. */
+  PRINT_JOBS: 'print.jobs',
+  /** Agents, printers or the print queue changed (panel status and alerts). */
+  PRINTING_UPDATED: 'printing.updated',
 } as const;
 
 export interface AreaDto {

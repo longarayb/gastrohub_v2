@@ -41,6 +41,17 @@ export const AuditAction = {
   PHONE_BLOCKED: 'digital_menu.phone_blocked',
   PHONE_UNBLOCKED: 'digital_menu.phone_unblocked',
   DIGITAL_MENU_UPDATED: 'digital_menu.settings_updated',
+  PRINT_AGENT_CREATED: 'printing.agent_created',
+  PRINT_PAIRING_CODE: 'printing.pairing_code',
+  PRINT_AGENT_PAIRED: 'printing.agent_paired',
+  PRINT_PAIRING_FAILED: 'printing.pairing_failed',
+  PRINT_AGENT_REVOKED: 'printing.agent_revoked',
+  PRINTER_CREATED: 'printing.printer_created',
+  PRINTER_UPDATED: 'printing.printer_updated',
+  PRINTER_REMOVED: 'printing.printer_removed',
+  PRINT_SETTINGS_UPDATED: 'printing.settings_updated',
+  PRINT_REPRINT: 'printing.reprint',
+  PRINT_JOB_DISCARDED: 'printing.job_discarded',
 } as const;
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 

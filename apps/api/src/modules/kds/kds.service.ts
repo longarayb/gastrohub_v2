@@ -12,6 +12,7 @@ import {
   type OrderType,
   Permission,
   hasPermission,
+  orderDisplayTitle,
 } from '@app/shared';
 import { AuditAction, AuditService } from '../../core/audit/audit.service.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../core/errors/domain-error.js';
@@ -46,20 +47,13 @@ const taskInclude = {
 } satisfies Prisma.ProductionTaskInclude;
 type TaskRow = Prisma.ProductionTaskGetPayload<{ include: typeof taskInclude }>;
 
-/** "Mesa 2 + 3 · Carlos", the customer, or "Balcão". */
-function orderTitle(o: {
+const orderTitle = (o: {
   type: OrderType;
   tabLabel: string | null;
   customerName: string | null;
   tableSession: { tables: { table: { name: string } }[] } | null;
-}): string {
-  if (o.type === 'DINE_IN') {
-    const names = o.tableSession?.tables.map((t) => t.table.name) ?? [];
-    const table = names.length ? `Mesa ${names.join(' + ')}` : 'Mesa';
-    return o.tabLabel ? `${table} · ${o.tabLabel}` : table;
-  }
-  return o.customerName ?? (o.type === 'TAKEOUT' ? 'Balcão' : 'Delivery');
-}
+}): string =>
+  orderDisplayTitle({ ...o, tableNames: o.tableSession?.tables.map((t) => t.table.name) ?? [] });
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
 

@@ -370,6 +370,12 @@ export class SettlementsService {
     return this.toDtos(rows);
   }
 
+  async get(id: string): Promise<SettlementDto> {
+    const row = await this.db.courierSettlement.findFirst({ where: { id } });
+    if (!row) throw new NotFoundError('Acerto');
+    return (await this.toDtos([row]))[0]!;
+  }
+
   private async toDtos(rows: CourierSettlement[]): Promise<SettlementDto[]> {
     const [couriers, users] = await Promise.all([
       this.db.courier.findMany({

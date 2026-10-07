@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { type OrderEvent, REALTIME_EVENTS } from '@app/shared';
-import { RealtimeGateway, deviceRoom, sectorRoom, tenantRoom } from './realtime.gateway.js';
+import {
+  RealtimeGateway,
+  deviceRoom,
+  printAgentRoom,
+  sectorRoom,
+  tenantRoom,
+} from './realtime.gateway.js';
 import { TrackingGateway } from './tracking.gateway.js';
 
 /**
@@ -41,6 +47,23 @@ export class RealtimeService {
   /** The manager revoked a KDS screen: it signs out right away. */
   deviceRevoked(deviceId: string): void {
     this.gateway.emit(deviceRoom(deviceId), REALTIME_EVENTS.DEVICE_REVOKED, {});
+  }
+
+  /** New print jobs for these agents (they lease them); the panel refreshes its queue. */
+  printJobs(tenantId: string, agentIds: Iterable<string>): void {
+    for (const id of new Set(agentIds)) {
+      this.gateway.emit(printAgentRoom(id), REALTIME_EVENTS.PRINT_JOBS, {});
+    }
+    this.printingUpdated(tenantId);
+  }
+
+  printingUpdated(tenantId: string): void {
+    this.gateway.emit(tenantRoom(tenantId), REALTIME_EVENTS.PRINTING_UPDATED, {});
+  }
+
+  /** The manager revoked a print agent: its socket is dropped (HTTP calls get 401). */
+  printAgentRevoked(agentId: string): void {
+    this.gateway.emit(printAgentRoom(agentId), REALTIME_EVENTS.DEVICE_REVOKED, {});
   }
 
   deliveryUpdated(tenantId: string): void {

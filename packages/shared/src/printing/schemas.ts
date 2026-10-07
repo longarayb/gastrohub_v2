@@ -165,6 +165,9 @@ export type PrintAgentPairInput = z.input<typeof printAgentPairSchema>;
 /** Days the agent credential lasts (renewed on use, revocable in the panel). */
 export const PRINT_AGENT_TTL_DAYS = 365;
 
+/** The agent exchanges its stored credential for a short access token. */
+export const printAgentSessionSchema = z.object({ token: z.string().min(20).max(200) });
+
 export const printAgentHeartbeatSchema = z.object({
   version: z.string().trim().max(30),
   hostname: z.string().trim().max(100),
@@ -228,7 +231,20 @@ export const printTargetSchema = z.object({
 });
 export type PrintTargetInput = z.input<typeof printTargetSchema>;
 
+/** Delivery copy, or a second copy of the production tickets of an order. */
 export const printOrderSchema = printTargetSchema.extend({
-  document: z.enum(['DELIVERY_COPY', 'KITCHEN_TICKETS', 'PRE_BILL']),
+  document: z.enum(['DELIVERY_COPY', 'KITCHEN_TICKETS']),
 });
 export type PrintOrderInput = z.input<typeof printOrderSchema>;
+
+/** Pre-bill of a table: chosen tabs, optional even split and PIX QR Code (one tab only). */
+export const printPreBillSchema = printTargetSchema.extend({
+  orderIds: z
+    .array(z.string().min(1))
+    .min(1, 'Selecione as contas')
+    .max(20)
+    .transform((ids) => [...new Set(ids)]),
+  people: z.number().int().min(1).max(30).default(1),
+  withPix: z.boolean().default(false),
+});
+export type PrintPreBillInput = z.input<typeof printPreBillSchema>;

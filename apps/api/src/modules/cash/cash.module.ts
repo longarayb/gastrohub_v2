@@ -11,6 +11,6 @@ import { PaymentsService } from './payments.service.js';
   controllers: [CashSessionsController, OrderPaymentsController],
   providers: [CashService, PaymentsService],
   // Courier settlements and payouts use the operator's open register (delivery module).
-  exports: [CashService],
+  exports: [CashService, PaymentsService],
 })
 export class CashModule {}

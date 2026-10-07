@@ -23,6 +23,20 @@ export const KDS_RECENT_MINUTES = 15;
 /** And at most this many of them (a screen open all day must not pile them up). */
 export const KDS_RECENT_LIMIT = 20;
 
+/** Title of an order on the kitchen screen and tickets: "Mesa 2 + 3 · Carlos", the customer, or "Balcão". */
+export function orderDisplayTitle(o: {
+  type: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
+  tabLabel: string | null;
+  customerName: string | null;
+  tableNames: string[];
+}): string {
+  if (o.type === 'DINE_IN') {
+    const table = o.tableNames.length ? `Mesa ${o.tableNames.join(' + ')}` : 'Mesa';
+    return o.tabLabel ? `${table} · ${o.tabLabel}` : table;
+  }
+  return o.customerName ?? (o.type === 'TAKEOUT' ? 'Balcão' : 'Delivery');
+}
+
 // ---------------------------------------------------------------------------
 // Removals ("sem cebola")
 

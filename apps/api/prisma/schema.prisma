@@ -107,6 +107,14 @@ model Store {
   pixMerchantName String?
   pixMerchantCity String?
 
+  /// Printing (D036): cash printer (pre-bill, delivery copy, cash close, courier settlement),
+  /// delivery copy when a delivery is accepted, "CANCELADO" slips, minutes before holding a job.
+  printCashPrinterId        String?
+  printDeliveryCopyOnAccept Boolean @default(true)
+  printDeliveryCopies       Int     @default(1)
+  printCancelSlips          Boolean @default(true)
+  printHoldAfterMinutes     Int     @default(30)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -253,11 +261,15 @@ model ProductionSector {
   /// KDS timer alerts, in minutes since the ticket was sent (yellow, then red).
   warnAfterMinutes Int      @default(10)
   lateAfterMinutes Int      @default(20)
+  /// Printer of the sector tickets (none = no automatic ticket) and copies (1–3).
+  printerId        String?
+  printCopies      Int      @default(1)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   products Product[]
   tasks    ProductionTask[]
+  printer  Printer?         @relation(fields: [printerId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, sortOrder])
 }
@@ -1073,6 +1085,148 @@ model KdsDevice {
   createdAt        DateTime  @default(now())
 
   @@index([tenantId, revokedAt])
+}
+
+// ============================================================================
+// Printing (see docs/DECISOES.md D035–D037)
+// ============================================================================
+
+enum PrinterConnection {
+  NETWORK
+  USB
+  SHARED
+  VIRTUAL
+}
+
+enum PrinterStatus {
+  UNKNOWN
+  OK
+  PAPER_OUT
+  OFFLINE
+  ERROR
+}
+
+enum PrintJobKind {
+  KITCHEN_TICKET
+  CANCEL_SLIP
+  DELIVERY_COPY
+  PRE_BILL
+  CASH_CLOSE
+  COURIER_SETTLEMENT
+  TEST_PAGE
+}
+
+enum PrintJobStatus {
+  PENDING
+  LEASED
+  PRINTED
+  HELD
+  DISCARDED
+}
+
+/// Local print agent: a Windows service on a store PC, paired by code like the KDS (D035).
+/// A store may have several (cashier PC, kitchen PC), each with its own printers.
+model PrintAgent {
+  id               String    @id @default(cuid())
+  tenantId         String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name             String
+  /// Hash of the long-lived credential (kept by the agent encrypted with Windows DPAPI).
+  tokenHash        String?   @unique
+  tokenExpiresAt   DateTime?
+  /// Hash of the 6-digit pairing code, valid for a few minutes and a few attempts.
+  pairingCodeHash  String?
+  pairingExpiresAt DateTime?
+  pairingFailures  Int       @default(0)
+  pairedAt         DateTime?
+  /// Last heartbeat (every 30 s; offline after 90 s).
+  lastSeenAt       DateTime?
+  revokedAt        DateTime?
+  revokedById      String?
+  /// Reported by the heartbeat.
+  version          String?
+  hostname         String?
+  os               String?
+  memoryMb         Float?
+  windowsPrinters  String[]
+  createdById      String
+  createdAt        DateTime  @default(now())
+
+  printers Printer[]
+
+  @@index([tenantId, revokedAt])
+}
+
+model Printer {
+  id             String            @id @default(cuid())
+  tenantId       String            @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  agentId        String
+  name           String
+  connection     PrinterConnection
+  /// IP[:port], Windows printer name, \\PC\share; empty for VIRTUAL.
+  address        String            @default("")
+  /// Brand/model profile (code page, cut, styles) from `PRINTER_PROFILES` in shared.
+  profileId      String
+  paperWidth     Int               @default(80)
+  withoutAccents Boolean           @default(false)
+  active         Boolean           @default(true)
+  status         PrinterStatus     @default(UNKNOWN)
+  statusDetail   String?
+  statusAt       DateTime?
+  /// Removed printers stay for the job history.
+  deletedAt      DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  agent   PrintAgent         @relation(fields: [agentId], references: [id])
+  sectors ProductionSector[]
+  jobs    PrintJob[]
+
+  @@index([tenantId, agentId])
+}
+
+/// Print queue (outbox): written in the same transaction as the event, leased and acknowledged
+/// by the agent (at-least-once, D036).
+model PrintJob {
+  id                String         @id @default(cuid())
+  tenantId          String         @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  printerId         String
+  kind              PrintJobKind
+  status            PrintJobStatus @default(PENDING)
+  title             String
+  /// `PrintDocument` (shared) built when the job is created: what was sent, not what is now.
+  document          Json
+  copies            Int            @default(1)
+  /// Idempotency of automatic jobs (e.g. "ticket:{roundId}:{sectorId}"); null for manual prints.
+  dedupeKey         String?
+  orderId           String?
+  reprintOfId       String?
+  attempts          Int            @default(0)
+  leasedAt          DateTime?
+  leaseUntil        DateTime?
+  nextAttemptAt     DateTime       @default(now())
+  lastError         String?
+  /// A lease expired without an answer: it may have printed ("POSSÍVEL 2ª VIA" from now on).
+  possibleDuplicate Boolean        @default(false)
+  /// First failure of the current streak (alert after a while); cleared when printed.
+  failingSince      DateTime?
+  printedAt         DateTime?
+  heldAt            DateTime?
+  /// Someone chose to print a held job: it prints even though it is old.
+  releasedAt        DateTime?
+  releasedById      String?
+  discardedAt       DateTime?
+  discardedById     String?
+  createdById       String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  printer Printer @relation(fields: [printerId], references: [id])
+
+  @@unique([tenantId, dedupeKey])
+  @@index([tenantId, printerId, status, nextAttemptAt])
+  @@index([tenantId, status])
+  @@index([tenantId, orderId])
+  @@index([tenantId, createdAt])
 }
 
 // ============================================================================
