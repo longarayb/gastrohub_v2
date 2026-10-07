@@ -52,6 +52,7 @@ import { ProductionService } from './production.service.js';
 import {
   type OrderDetailRow,
   newPublicCode,
+  newTrackingToken,
   nextOrderNumber,
   orderDetailInclude,
   orderSummaryInclude,
@@ -422,6 +423,7 @@ export class OrdersService {
             businessDate: businessDay.date,
             number,
             publicCode: newPublicCode(),
+            trackingToken: newTrackingToken(),
             type: input.type,
             source: options.source,
             status,

@@ -1,8 +1,10 @@
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import {
   type Address,
+  type CustomerRejectionReason,
   type DeliveryFailureReason,
   type MenuItemSnapshot,
+  customerRejectionMessage,
   mapLinks,
 } from '@app/shared';
 import type {
@@ -78,6 +80,7 @@ export function toOrderSummary(o: OrderSummaryRow): OrderSummaryDto {
             at: last.failedAt.toISOString(),
           }
         : null,
+    pixReportedAt: iso(o.pixReportedAt),
     itemCount: active.reduce((sum, i) => sum + i.quantity, 0),
     draftItemCount: active.filter((i) => i.status === 'DRAFT').length,
     totalCents: o.totalCents,
@@ -154,6 +157,15 @@ export function toOrderDetail(o: OrderDetailRow, userNames: Map<string, string>)
     })),
     payments: o.payments.map((p) => toPaymentDto(p, userNames)),
     delivery: o.type === 'DELIVERY' ? toOrderDelivery(o) : null,
+    rejection: o.customerRejectReason
+      ? {
+          reason: o.customerRejectReason as CustomerRejectionReason,
+          customerMessage: customerRejectionMessage(
+            o.customerRejectReason as CustomerRejectionReason,
+            o.customerRejectText,
+          ),
+        }
+      : null,
   };
 }
 
@@ -257,7 +269,12 @@ export async function nextOrderNumber(
 // Crockford base32 without ambiguous characters (no I, L, O, U).
 const CODE_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
-/** Short, non-sequential public code for customer tracking (8 chars ≈ 40 bits). */
+/** Unguessable token of the public tracking page (128 bits, base64url, D034). */
+export function newTrackingToken(): string {
+  return randomBytes(16).toString('base64url');
+}
+
+/** Short, non-sequential public code (order reference, PIX txid; 8 chars ≈ 40 bits). */
 export function newPublicCode(): string {
   let code = '';
   for (let i = 0; i < 8; i++) code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];

@@ -49,4 +49,7 @@ export const TENANT_MODELS = new Set<string>([
   'DeliveryStop',
   'CourierSettlement',
   'CourierLedgerEntry',
+  // Digital menu
+  'BlockedPhone',
+  'DeliveryQuoteMiss',
 ]);

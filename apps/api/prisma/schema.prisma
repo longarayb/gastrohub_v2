@@ -88,6 +88,18 @@ model Store {
   courierFeeShareBps      Int              @default(0)
   courierDailyCents       Int              @default(0)
 
+  /// Digital menu (D032): the restaurant's own brand — color ("#rrggbb"), cover, description.
+  brandColor               String?
+  menuCoverKey             String?
+  menuDescription          String?
+  /// Custom privacy notice; null = the template filled with the store data (D034).
+  privacyNotice            String?
+  /// Abuse limits of the digital menu (D033): per phone (main), per IP (wide: CGNAT), pending.
+  digitalLimitPhoneOpen    Int     @default(2)
+  digitalLimitPhoneDay     Int     @default(10)
+  digitalLimitIpHour       Int     @default(30)
+  digitalLimitStorePending Int     @default(20)
+
   /// PIX key for the static QR Code (normalized: digits, lowercase e-mail, +55 phone).
   pixKeyType      PixKeyType?
   pixKey          String?
@@ -594,16 +606,20 @@ model TableSessionTable {
 }
 
 model Customer {
-  id        String   @id @default(cuid())
-  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
-  name      String
+  id                String    @id @default(cuid())
+  tenantId          String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name              String
   /// Digits with DDD, no country code.
-  phone     String
-  document  String?
-  email     String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  phone             String
+  document          String?
+  email             String?
+  notes             String?
+  /// LGPD (D034): privacy notice accepted in the first digital menu order, and its version.
+  privacyAcceptedAt DateTime?
+  privacyVersion    String?
+  marketingOptIn    Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   addresses CustomerAddress[]
   orders    Order[]
@@ -688,19 +704,21 @@ model OrderSequence {
 
 /// A tab/order. Dine-in orders receive items in rounds; a table session may hold several.
 model Order {
-  id           String      @id @default(cuid())
-  tenantId     String      @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  id            String      @id @default(cuid())
+  tenantId      String      @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   /// Business day (YYYY-MM-DD) the order belongs to (overnight shifts count for the start day).
-  businessDate String
+  businessDate  String
   /// Sequential number within the business day and unit.
-  number       Int
-  /// Short, non-sequential public code (customer tracking).
-  publicCode   String      @unique
-  type         OrderType
-  source       OrderSource @default(POS)
-  status       OrderStatus
+  number        Int
+  /// Short, non-sequential public code (order reference, PIX txid).
+  publicCode    String      @unique
+  /// Unguessable token of the public tracking page (128 bits, base64url).
+  trackingToken String      @unique
+  type          OrderType
+  source        OrderSource @default(POS)
+  status        OrderStatus
   /// Optimistic concurrency: every change must send the version it saw.
-  version      Int         @default(0)
+  version       Int         @default(0)
 
   externalId        String?
   externalDisplayId String?
@@ -741,18 +759,25 @@ model Order {
   paidCents             Int                @default(0)
   paymentStatus         OrderPaymentStatus @default(UNPAID)
 
-  notes            String?
-  estimatedReadyAt DateTime?
-  createdById      String?
-  acceptedAt       DateTime?
-  readyAt          DateTime?
-  dispatchedAt     DateTime?
-  deliveredAt      DateTime?
-  canceledAt       DateTime?
-  canceledById     String?
-  cancelReason     String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  notes                String?
+  estimatedReadyAt     DateTime?
+  createdById          String?
+  acceptedAt           DateTime?
+  readyAt              DateTime?
+  dispatchedAt         DateTime?
+  deliveredAt          DateTime?
+  canceledAt           DateTime?
+  canceledById         String?
+  cancelReason         String?
+  /// Refused/canceled digital menu order: reason shown to the customer (cancelReason is internal).
+  customerRejectReason CustomerRejectReason?
+  customerRejectText   String?
+  /// The customer said they paid by PIX: "conferir" (confirmed only by the register).
+  pixReportedAt        DateTime?
+  /// Hash of the client IP (digital menu, limit per IP); never the IP itself.
+  clientIpHash         String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   tableSession TableSession?        @relation(fields: [tableSessionId], references: [id])
   customer     Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
@@ -772,6 +797,8 @@ model Order {
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
   @@index([tenantId, tableSessionId])
+  @@index([tenantId, customerPhone, createdAt])
+  @@index([tenantId, clientIpHash, createdAt])
 }
 
 /// One send to the kitchen. Counter/delivery orders have a single round.
@@ -1242,4 +1269,41 @@ model CourierLedgerEntry {
   courier Courier @relation(fields: [courierId], references: [id])
 
   @@index([tenantId, courierId, createdAt])
+}
+
+// ============================================================================
+// Digital menu (see docs/DECISOES.md D032–D034)
+// ============================================================================
+
+enum CustomerRejectReason {
+  OUT_OF_STOCK
+  OUTSIDE_DELIVERY_HOURS
+  TOO_BUSY
+  OUT_OF_AREA
+  OTHER
+}
+
+/// Phone blocked from ordering through the digital menu (prank or fake orders).
+model BlockedPhone {
+  id          String   @id @default(cuid())
+  tenantId    String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  phone       String
+  reason      String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, phone])
+}
+
+/// Address the digital menu could not deliver to (feeds "Bairros sem área").
+model DeliveryQuoteMiss {
+  id           String   @id @default(cuid())
+  tenantId     String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  neighborhood String
+  city         String
+  /// OUT_OF_AREA, PAUSED or NEEDS_COORDINATES.
+  reason       String
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, createdAt])
 }
