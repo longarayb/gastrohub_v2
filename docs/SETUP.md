@@ -199,6 +199,46 @@ Cardápio digital: `pnpm start:lite --menu` e abra http://localhost:3001/demo (d
 
 Tela da cozinha: abra http://localhost:3000/kds com o login da **Cozinha** (ou de qualquer papel com acesso ao KDS), ou vincule um tablet sem senha: em **Cardápio › Setores de produção › Telas da cozinha**, gere o código da "TV da cozinha" e digite-o em http://localhost:3000/kds/vincular (código da unidade: `demo`).
 
+## Testar no celular (mesma rede Wi-Fi)
+
+O celular precisa estar na **mesma rede** que o computador. No celular, "localhost" é o próprio celular, então os apps são compilados com o IP da máquina e os servidores escutam em todas as interfaces (`0.0.0.0`):
+
+```powershell
+pnpm start:lite --menu --lan   # compila com o IP da máquina e sobe API, painel e cardápio
+pnpm lan:links                 # em outro terminal: mostra os links com o IP (ex.: http://192.168.0.92:3001/demo)
+```
+
+Em desenvolvimento (com recarga automática), use `pnpm dev --lan` no lugar do `start:lite`. O `pnpm dev` comum **não** funciona no celular: ele compila com "localhost" como endereço da API, que no celular é o próprio celular.
+
+
+Na primeira vez, libere as portas no **firewall do Windows** (PowerShell **como administrador**, uma vez só):
+
+```powershell
+New-NetFirewallRule -DisplayName "App dev (rede local)" -Direction Inbound -Protocol TCP -LocalPort 3000,3001,3333 -Action Allow -Profile Private
+```
+
+A regra vale só para redes **Privadas**: em Configurações › Rede e Internet › Wi-Fi › (sua rede), marque "Rede privada". Nunca use `-Profile Public` (Wi-Fi de café, aeroporto). Para remover depois: `Remove-NetFirewallRule -DisplayName "App dev (rede local)"`.
+
+Observações:
+
+- O modo `--lan` gera um build diferente (com o IP); ao voltar para `pnpm start:lite` sem `--lan`, ele recompila o painel e o cardápio.
+- Se o IP da máquina mudar (outra rede, roteador reiniciado), rode de novo com `--lan`.
+- O `pnpm lan:links` ignora adaptadores virtuais (WSL, Docker, VPN). Se mostrar o IP errado, confira o IPv4 do Wi-Fi com `ipconfig`.
+
+## Prévia do link no WhatsApp (túnel temporário, só para teste)
+
+O WhatsApp busca a página pela internet para montar a prévia (nome, descrição e imagem do restaurante), então o endereço da rede local não serve. Para testar, use um **túnel temporário** da Cloudflare (gratuito, sem conta):
+
+```powershell
+winget install --id Cloudflare.cloudflared   # uma vez; depois abra um terminal novo
+pnpm start:lite --menu                        # o cardápio precisa estar no ar
+pnpm tunnel:menu                              # mostra um link https://....trycloudflare.com/demo
+```
+
+Envie o link numa conversa do WhatsApp (por exemplo, para você mesmo) e confira a prévia.
+
+> **Atenção:** o túnel deixa o ambiente de **desenvolvimento** acessível por qualquer pessoa na internet enquanto estiver aberto. Use só para este teste, com os dados de demonstração, e encerre logo depois (Ctrl+C). O comando se encerra sozinho em 30 minutos (`pnpm tunnel:menu --minutes 10` para menos). Pelo túnel só o cardápio é exposto; pedidos e fotos usam a API local, então para testar pedidos no celular use a rede local (seção acima). O WhatsApp guarda a prévia em cache: para ver uma mudança, gere um link novo.
+
 ## Conferir se está tudo certo
 
 ```powershell

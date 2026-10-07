@@ -81,6 +81,9 @@ pnpm bootstrap                # .env + docker + migrations + seed (primeira vez)
 pnpm dev                      # sobe docker (postgres, redis, mailpit) + todas as apps
 pnpm start:lite               # modo leve: builds de produção da API (3333) e do painel (3000), sem watchers
 pnpm start:lite --menu        # idem, com o cardápio digital (3001; demo em http://localhost:3001/demo)
+pnpm start:lite --menu --lan  # idem, acessível pelo celular na mesma rede (pnpm lan:links mostra os links)
+pnpm dev --lan                # desenvolvimento acessível pelo celular (o pnpm dev comum compila com localhost)
+pnpm tunnel:menu              # túnel HTTPS temporário (30 min) só para testar a prévia do link no WhatsApp
 pnpm dev:lite                 # watch só de API, painel e pacotes (sem o cardápio digital); rode infra:up antes
 pnpm infra:up / infra:down    # apenas a infraestrutura Docker
 pnpm db:migrate               # prisma migrate dev (criar migration: pnpm db:migrate --name x)
