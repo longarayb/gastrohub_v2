@@ -53,6 +53,7 @@ import { useEffect, useState } from 'react';
 import { DispatchDialog } from '@/components/delivery/dispatch-dialog';
 import { DeliveryFailureDialog } from '@/components/delivery/failure';
 import { OrderDeliverySection } from '@/components/delivery/order-delivery-section';
+import { PixReportedBadge, RejectOrderDialog } from '@/components/digital-menu/order-badges';
 import { Kbd } from '@/components/pos/common';
 import { PaymentDialog } from '@/components/pos/payment-dialog';
 import { PreBillDialog } from '@/components/pos/pre-bill';
@@ -65,6 +66,7 @@ import {
   cancelOrderItem,
   changeOrderStatus,
   orderTitle,
+  rejectOrder,
   removeDraftItem,
   sendOrderRound,
   setOrderDiscount,
@@ -161,6 +163,7 @@ export function OrderDetailSheet({
   const [panel, setPanel] = useState<Panel>(null);
   const [dispatchOpen, setDispatchOpen] = useState(false);
   const [failureOpen, setFailureOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
   const couriers = useCouriers(!!order && order.type === 'DELIVERY');
   const tables = useTables();
 
@@ -197,7 +200,7 @@ export function OrderDetailSheet({
       F4: () => canPay && setPanel('pay'),
       F8: () => table && setPanel('pre-bill'),
     },
-    !!orderId && !panel && !prompt && !discountOpen && !dispatchOpen && !failureOpen,
+    !!orderId && !panel && !prompt && !discountOpen && !dispatchOpen && !failureOpen && !rejectOpen,
   );
 
   const primary = order ? primaryNextStatus(order.type, order.status) : null;
@@ -283,7 +286,17 @@ export function OrderDetailSheet({
                       Não entregue
                     </Button>
                   )}
-                  {canCancel && (
+                  {canCancel && order.source === 'DIGITAL_MENU' && (
+                    <Button
+                      variant="outline"
+                      className="text-destructive"
+                      disabled={busy}
+                      onClick={() => setRejectOpen(true)}
+                    >
+                      <Ban /> Recusar
+                    </Button>
+                  )}
+                  {canCancel && order.source !== 'DIGITAL_MENU' && (
                     <Button
                       variant="ghost"
                       className="text-destructive"
@@ -298,7 +311,15 @@ export function OrderDetailSheet({
               {order.status === 'CANCELED' && order.cancelReason && (
                 <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                   Cancelado: {order.cancelReason}
+                  {order.rejection && (
+                    <span className="mt-1 block text-foreground">
+                      O cliente vê: “{order.rejection.customerMessage}”
+                    </span>
+                  )}
                 </p>
+              )}
+              {order.pixReportedAt && order.paymentStatus !== 'PAID' && !final && (
+                <PixReportedBadge className="text-sm" />
               )}
 
               {/* Customer / delivery */}
@@ -624,6 +645,16 @@ export function OrderDetailSheet({
               open={dispatchOpen}
               initialIds={[order.id]}
               onOpenChange={setDispatchOpen}
+            />
+            <RejectOrderDialog
+              open={rejectOpen}
+              onOpenChange={setRejectOpen}
+              title={`Recusar o pedido #${order.number}?`}
+              onConfirm={(input) =>
+                act(() => rejectOrder(order, input), 'Pedido recusado').then(() =>
+                  onOpenChange(false),
+                )
+              }
             />
             <DeliveryFailureDialog
               open={failureOpen}

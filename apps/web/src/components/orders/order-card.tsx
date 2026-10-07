@@ -12,6 +12,7 @@ import { Button } from '@app/ui/components/button';
 import { cn } from '@app/ui/lib/utils';
 import { Bike, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { DeliveryFailureBadge } from '@/components/delivery/failure';
+import { PixReportedBadge } from '@/components/digital-menu/order-badges';
 import { STATUS_STYLES, orderTitle } from '@/lib/orders';
 import { elapsedLabel } from './common';
 import { statusActionLabel } from './order-detail-sheet';
@@ -91,6 +92,7 @@ export function OrderCard({
           </p>
         )}
         {order.deliveryFailure && <DeliveryFailureBadge failure={order.deliveryFailure} />}
+        {order.pixReportedAt && order.paymentStatus !== 'PAID' && <PixReportedBadge />}
         {order.draftItemCount > 0 && (
           <p className="text-xs font-medium text-warning-foreground">
             <span className="rounded bg-warning px-1.5 py-0.5">

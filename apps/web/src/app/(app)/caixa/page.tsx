@@ -53,6 +53,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useId, useRef, useState } from 'react';
 import { SettlementDialog } from '@/components/delivery/settlement-dialog';
+import { PixReportedBadge } from '@/components/digital-menu/order-badges';
 import { Field, MoneyInput } from '@/components/form';
 import { ReasonDialog } from '@/components/orders/common';
 import { EmptyState, Page } from '@/components/page';
@@ -464,6 +465,7 @@ function ReceivablesCard({ onReceive }: { onReceive: (orderId: string) => void }
               <span className="flex-1 truncate">
                 {orderTitle(o)}
                 {o.courierName ? ` · ${o.courierName}` : ''}
+                {o.pixReportedAt && <PixReportedBadge className="mt-1 w-fit" />}
               </span>
               <span className="tabular">{formatBRL(o.totalCents - o.paidCents)}</span>
               <Button size="sm" variant="outline" onClick={() => onReceive(o.id)}>

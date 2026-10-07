@@ -89,6 +89,12 @@ function StopCard({
       )}
       {stop.notes && <p className="rounded-md bg-muted p-2 text-sm">Obs.: {stop.notes}</p>}
 
+      {pending && stop.pixReportedAt && stop.chargeCents > 0 && (
+        <p className="rounded-md bg-warning/20 p-2 text-sm font-medium text-warning-foreground">
+          O cliente informou que pagou por PIX: não cobre de novo. Marque PIX ao entregar; a loja
+          confere no acerto.
+        </p>
+      )}
       {pending && (
         <p className="text-base">
           {stop.chargeCents > 0 ? (

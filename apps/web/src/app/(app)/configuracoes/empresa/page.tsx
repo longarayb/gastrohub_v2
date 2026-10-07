@@ -47,6 +47,7 @@ import {
   applyApiErrors,
   useZodForm,
 } from '@/components/form';
+import Link from 'next/link';
 import { Page } from '@/components/page';
 import { PixSettingsCard } from '@/components/pos/pix-settings-card';
 import { api, apiPatch, errorMessage } from '@/lib/api';
@@ -276,38 +277,17 @@ function SettingsForm({ store }: { store: StoreDto }) {
             name="deliveryMinimumCents"
             label="Pedido mínimo para delivery"
           />
-          <Controller
-            control={form.control}
-            name="digitalMenuEnabled"
-            render={({ field }) => (
-              <label className="flex items-center justify-between gap-4 rounded-lg border p-3">
-                <span>
-                  <span className="block text-sm font-medium">Cardápio digital recebe pedidos</span>
-                  <span className="text-xs text-muted-foreground">
-                    Desative para mostrar só o cardápio
-                  </span>
-                </span>
-                <Switch checked={field.value} onCheckedChange={field.onChange} />
-              </label>
-            )}
-          />
-          <Controller
-            control={form.control}
-            name="autoAcceptDigitalOrders"
-            render={({ field }) => (
-              <label className="flex items-center justify-between gap-4 rounded-lg border p-3">
-                <span>
-                  <span className="block text-sm font-medium">
-                    Aceitar pedidos online automaticamente
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Sem precisar aceitar manualmente
-                  </span>
-                </span>
-                <Switch checked={field.value} onCheckedChange={field.onChange} />
-              </label>
-            )}
-          />
+          <p className="rounded-lg border p-3 text-sm text-muted-foreground md:col-span-2">
+            Recebimento de pedidos, aceite automático, marca, limites e aviso de privacidade do
+            cardápio digital ficam em{' '}
+            <Link
+              href={'/configuracoes/cardapio-digital' as never}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Configurações › Cardápio digital
+            </Link>
+            .
+          </p>
           <Controller
             control={form.control}
             name="blindCashClose"
