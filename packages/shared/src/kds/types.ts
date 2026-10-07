@@ -1,3 +1,4 @@
+import type { DeliveryFailureReason } from '../domain/delivery.js';
 import type { ProductionTaskKind, ProductionTaskStatus, TaskDetails } from '../domain/kds.js';
 import type { OrderSource, OrderStatus, OrderType } from '../domain/order-status.js';
 
@@ -71,6 +72,8 @@ export interface KdsExpeditionOrderDto {
   title: string;
   courierId: string | null;
   courierName: string | null;
+  /** Delivery back from a failed attempt: dispatch again or cancel (D030). */
+  deliveryFailure: { reason: DeliveryFailureReason; note: string | null; at: string } | null;
   rounds: KdsExpeditionRoundDto[];
   /** Every round complete: ready to leave. */
   complete: boolean;

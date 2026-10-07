@@ -337,7 +337,22 @@ describe('Orders (e2e)', () => {
     expect(stale.body.message).toMatch(/alterado por outra pessoa/);
 
     let version = preparing.body.version;
+    const courierId = (await post(owner, '/api/couriers', { name: 'Moto Pedidos' }).expect(201))
+      .body.id;
     for (const status of ['READY', 'DISPATCHED', 'DELIVERED']) {
+      if (status === 'DISPATCHED') {
+        const noCourier = await post(cashier, `/api/orders/${ids.delivery}/status`, {
+          expectedVersion: version,
+          status,
+        }).expect(400);
+        expect(noCourier.body.message).toBe('Escolha o entregador para a saída');
+        version = (
+          await post(cashier, `/api/orders/${ids.delivery}/courier`, {
+            expectedVersion: version,
+            courierId,
+          }).expect(200)
+        ).body.version;
+      }
       const res = await post(cashier, `/api/orders/${ids.delivery}/status`, {
         expectedVersion: version,
         status,

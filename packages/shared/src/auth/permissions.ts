@@ -46,6 +46,8 @@ export const Permission = {
   CUSTOMERS_MANAGE: 'customers:manage',
   DELIVERY_MANAGE: 'delivery:manage',
   DELIVERY_OPERATE: 'delivery:operate',
+  /** Courier app: only the courier's own deliveries in progress (D029, LGPD). */
+  COURIER_APP: 'courier:app',
   REPORTS_READ: 'reports:read',
   AUDIT_READ: 'audit:read',
 } as const;
@@ -55,8 +57,9 @@ const ALL = Object.values(Permission);
 const P = Permission;
 
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
-  OWNER: ALL,
-  MANAGER: ALL.filter((p) => p !== P.STORE_CREATE),
+  // The courier app is for couriers only (it shows the signed-in courier's own route).
+  OWNER: ALL.filter((p) => p !== P.COURIER_APP),
+  MANAGER: ALL.filter((p) => p !== P.STORE_CREATE && p !== P.COURIER_APP),
   CASHIER: [
     P.MENU_READ,
     P.MENU_PAUSE,
@@ -81,7 +84,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     P.CUSTOMERS_READ,
   ],
   KITCHEN: [P.MENU_READ, P.MENU_PAUSE, P.ORDERS_READ, P.ORDERS_UPDATE_STATUS, P.KDS_OPERATE],
-  COURIER: [P.ORDERS_READ, P.DELIVERY_OPERATE],
+  // No access to the board or the orders (LGPD): only their own deliveries in progress.
+  COURIER: [P.COURIER_APP],
 };
 
 /**

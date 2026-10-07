@@ -6,6 +6,8 @@ import type {
   OrderType,
 } from '../domain/order-status.js';
 import type { OrderPaymentStatus } from '../domain/payments.js';
+import type { OrderDeliveryDto } from '../delivery/types.js';
+import type { DeliveryFailureReason } from '../domain/delivery.js';
 import type { PaymentDto } from '../pos/types.js';
 import type { Address } from '../schemas/common.js';
 import type { PaymentMethod } from './schemas.js';
@@ -28,6 +30,8 @@ export interface OrderSummaryDto {
   customerPhone: string | null;
   neighborhood: string | null;
   courierName: string | null;
+  /** Delivery back at the store after a failed attempt (until dispatched again or canceled). */
+  deliveryFailure: { reason: DeliveryFailureReason; note: string | null; at: string } | null;
   itemCount: number;
   /** Items in a round not yet sent to the kitchen. */
   draftItemCount: number;
@@ -112,6 +116,7 @@ export interface OrderDetailDto extends OrderSummaryDto {
   items: OrderItemDto[];
   history: OrderHistoryDto[];
   payments: PaymentDto[];
+  delivery: OrderDeliveryDto | null;
 }
 
 /** Realtime event payload: a notification, clients refetch what they need. */
@@ -132,6 +137,8 @@ export const REALTIME_EVENTS = {
   CASH_UPDATED: 'cash.updated',
   /** Sent to a revoked KDS device: the screen signs out right away. */
   DEVICE_REVOKED: 'device.revoked',
+  /** Routes, settlements, courier balances or delivery areas changed (no personal data). */
+  DELIVERY_UPDATED: 'delivery.updated',
 } as const;
 
 export interface AreaDto {

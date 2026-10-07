@@ -3,9 +3,9 @@ import { isOpenAt } from '../stores/schemas.js';
 import { Permission, Role, assignableRoles, hasPermission } from './permissions.js';
 
 describe('permissions', () => {
-  it('owner has every permission', () => {
+  it('owner has every permission except the courier app', () => {
     for (const p of Object.values(Permission)) {
-      expect(hasPermission(Role.OWNER, p)).toBe(true);
+      expect(hasPermission(Role.OWNER, p)).toBe(p !== Permission.COURIER_APP);
     }
   });
 
@@ -13,7 +13,11 @@ describe('permissions', () => {
     expect(hasPermission(Role.WAITER, Permission.ORDERS_CREATE)).toBe(true);
     expect(hasPermission(Role.WAITER, Permission.ORDERS_CANCEL)).toBe(false);
     expect(hasPermission(Role.KITCHEN, Permission.CASH_OPERATE)).toBe(false);
-    expect(hasPermission(Role.COURIER, Permission.DELIVERY_OPERATE)).toBe(true);
+    // Courier sees only their own deliveries (LGPD): no board, no orders.
+    expect(hasPermission(Role.COURIER, Permission.COURIER_APP)).toBe(true);
+    expect(hasPermission(Role.COURIER, Permission.DELIVERY_OPERATE)).toBe(false);
+    expect(hasPermission(Role.COURIER, Permission.ORDERS_READ)).toBe(false);
+    expect(hasPermission(Role.MANAGER, Permission.COURIER_APP)).toBe(false);
     expect(hasPermission(Role.MANAGER, Permission.STORE_CREATE)).toBe(false);
     expect(hasPermission(null, Permission.MENU_READ)).toBe(false);
   });

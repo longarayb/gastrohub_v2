@@ -12,6 +12,7 @@ import {
 import { cn } from '@app/ui/lib/utils';
 import { Bike, Check, CircleDashed, PackageCheck } from 'lucide-react';
 import { useState } from 'react';
+import { DeliveryFailureBadge } from '@/components/delivery/failure';
 import { ORDER_TYPE_BADGE, ORDER_TYPE_STRIPE, elapsed } from './ticket-card';
 
 function ExpeditionCard({
@@ -61,6 +62,9 @@ function ExpeditionCard({
           </span>
         )}
       </header>
+      {order.deliveryFailure && (
+        <DeliveryFailureBadge failure={order.deliveryFailure} className="mx-3 mb-2 text-sm" />
+      )}
       <ul className="flex-1 space-y-2 border-t p-3">
         {order.rounds.map((round) => (
           <li key={round.roundId} className="space-y-1.5">

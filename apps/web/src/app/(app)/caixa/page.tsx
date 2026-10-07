@@ -10,6 +10,7 @@ import {
   type OrderSummaryDto,
   PAYMENT_METHOD_LABELS,
   type PaymentMethod,
+  type CourierDetailDto,
   Permission,
   formatBRL,
   formatDateTime,
@@ -51,6 +52,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useCallback, useId, useRef, useState } from 'react';
+import { SettlementDialog } from '@/components/delivery/settlement-dialog';
 import { Field, MoneyInput } from '@/components/form';
 import { ReasonDialog } from '@/components/orders/common';
 import { EmptyState, Page } from '@/components/page';
@@ -59,6 +61,7 @@ import { Kbd, PrintPortal } from '@/components/pos/common';
 import { PaymentDialog } from '@/components/pos/payment-dialog';
 import { ApiError, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useCourierDetails } from '@/lib/delivery';
 import {
   addCashMovement,
   cashKeys,
@@ -450,7 +453,7 @@ function ReceivablesCard({ onReceive }: { onReceive: (orderId: string) => void }
       <CardHeader>
         <CardTitle>Delivery a receber</CardTitle>
         <CardDescription>
-          Entregues com saldo em aberto: receba quando o entregador acertar.
+          Entregues com saldo em aberto: entram no caixa pelo acerto do entregador.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -470,6 +473,41 @@ function ReceivablesCard({ onReceive }: { onReceive: (orderId: string) => void }
           ))}
         </ul>
       </CardContent>
+    </Card>
+  );
+}
+
+/** Couriers back with deliveries to settle into this register (D031). */
+function CouriersToSettleCard() {
+  const { can } = useAuth();
+  const { data } = useCourierDetails(can(Permission.DELIVERY_OPERATE));
+  const [settling, setSettling] = useState<CourierDetailDto | null>(null);
+  const due = (data ?? []).filter((c) => c.pendingSettlementRuns > (c.openRun ? 1 : 0));
+  if (!due.length) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Acerto de entregadores</CardTitle>
+        <CardDescription>
+          O dinheiro e os comprovantes das entregas entram neste caixa.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ul className="divide-y rounded-md border">
+          {due.map((c) => (
+            <li key={c.id} className="flex items-center gap-3 p-2.5 text-sm">
+              <span className="flex-1 truncate font-medium">{c.name}</span>
+              <span className="text-muted-foreground">
+                {c.pendingSettlementRuns - (c.openRun ? 1 : 0)} saída(s)
+              </span>
+              <Button size="sm" onClick={() => setSettling(c)}>
+                Acertar
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+      <SettlementDialog courier={settling} onOpenChange={(v) => !v && setSettling(null)} />
     </Card>
   );
 }
@@ -756,6 +794,7 @@ export default function CashPage() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="space-y-6">
             <ReceivePanel inputRef={searchRef} onReceive={setPayingId} />
+            <CouriersToSettleCard />
             <ReceivablesCard onReceive={setPayingId} />
           </div>
           <div className="space-y-6">

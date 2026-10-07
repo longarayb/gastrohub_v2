@@ -23,6 +23,8 @@ import {
   createOrderSchema,
   customerAddressSchema,
   customerSchema,
+  deliveryFailureSchema,
+  dispatchSchema,
   mergeSessionsSchema,
   moveItemsSchema,
   orderDiscountSchema,
@@ -80,6 +82,15 @@ export class OrdersController {
     @Headers('idempotency-key') key?: string,
   ) {
     return this.orders.create(body, { source: 'POS', idempotencyKey: idempotencyKey(key) });
+  }
+
+  @Post('dispatch')
+  @HttpCode(200)
+  @RequirePermissions(Permission.ORDERS_UPDATE_STATUS)
+  @ApiOperation({ summary: 'Saída para entrega: um ou mais pedidos com o mesmo entregador' })
+  @ApiZodBody(dispatchSchema)
+  dispatch(@ZBody(dispatchSchema) body: z.output<typeof dispatchSchema>) {
+    return this.orders.dispatchMany(body);
   }
 
   @Get(':id')
@@ -142,6 +153,18 @@ export class OrdersController {
     @ZBody(changeStatusSchema) body: z.output<typeof changeStatusSchema>,
   ) {
     return this.orders.changeStatus(id, body);
+  }
+
+  @Post(':id/delivery-failure')
+  @HttpCode(200)
+  @RequirePermissions(Permission.ORDERS_UPDATE_STATUS)
+  @ApiOperation({ summary: 'Entrega não realizada: o pedido volta para a loja com o motivo' })
+  @ApiZodBody(deliveryFailureSchema)
+  deliveryFailure(
+    @Param('id') id: string,
+    @ZBody(deliveryFailureSchema) body: z.output<typeof deliveryFailureSchema>,
+  ) {
+    return this.orders.deliveryFailed(id, body);
   }
 
   @Post(':id/discount')

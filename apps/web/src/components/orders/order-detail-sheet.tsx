@@ -50,11 +50,15 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { DispatchDialog } from '@/components/delivery/dispatch-dialog';
+import { DeliveryFailureDialog } from '@/components/delivery/failure';
+import { OrderDeliverySection } from '@/components/delivery/order-delivery-section';
 import { Kbd } from '@/components/pos/common';
 import { PaymentDialog } from '@/components/pos/payment-dialog';
 import { PreBillDialog } from '@/components/pos/pre-bill';
 import { MoveItemsDialog, TransferTabDialog } from '@/components/pos/table-actions';
 import { useAuth } from '@/lib/auth';
+import { reportDeliveryFailure } from '@/lib/delivery';
 import { useHotkeys } from '@/lib/hotkeys';
 import {
   assignCourier,
@@ -155,6 +159,8 @@ export function OrderDetailSheet({
   const [discountOpen, setDiscountOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
+  const [dispatchOpen, setDispatchOpen] = useState(false);
+  const [failureOpen, setFailureOpen] = useState(false);
   const couriers = useCouriers(!!order && order.type === 'DELIVERY');
   const tables = useTables();
 
@@ -191,7 +197,7 @@ export function OrderDetailSheet({
       F4: () => canPay && setPanel('pay'),
       F8: () => table && setPanel('pre-bill'),
     },
-    !!orderId && !panel && !prompt && !discountOpen,
+    !!orderId && !panel && !prompt && !discountOpen && !dispatchOpen && !failureOpen,
   );
 
   const primary = order ? primaryNextStatus(order.type, order.status) : null;
@@ -244,10 +250,16 @@ export function OrderDetailSheet({
                       <Button
                         loading={busy}
                         onClick={() =>
-                          void act(() => changeOrderStatus(order, primary)).catch(() => undefined)
+                          primary === 'DISPATCHED' && !order.courierId
+                            ? setDispatchOpen(true)
+                            : void act(() => changeOrderStatus(order, primary)).catch(
+                                () => undefined,
+                              )
                         }
                       >
-                        {statusActionLabel(order.type, primary)}
+                        {order.deliveryFailure
+                          ? 'Reenviar'
+                          : statusActionLabel(order.type, primary)}
                       </Button>
                     )
                   )}
@@ -266,6 +278,11 @@ export function OrderDetailSheet({
                           {statusActionLabel(order.type, s)}
                         </Button>
                       ))}
+                  {canStatus && order.status === 'DISPATCHED' && (
+                    <Button variant="outline" disabled={busy} onClick={() => setFailureOpen(true)}>
+                      Não entregue
+                    </Button>
+                  )}
                   {canCancel && (
                     <Button
                       variant="ghost"
@@ -310,6 +327,7 @@ export function OrderDetailSheet({
                   )}
                 </section>
               )}
+              <OrderDeliverySection order={order} />
               {order.type === 'DELIVERY' && (
                 <section className="space-y-1.5 text-sm">
                   <h3 className="font-medium">Entregador</h3>
@@ -602,6 +620,19 @@ export function OrderDetailSheet({
               </section>
             </div>
 
+            <DispatchDialog
+              open={dispatchOpen}
+              initialIds={[order.id]}
+              onOpenChange={setDispatchOpen}
+            />
+            <DeliveryFailureDialog
+              open={failureOpen}
+              onOpenChange={setFailureOpen}
+              title={`Pedido #${order.number} não entregue`}
+              onConfirm={(input) =>
+                act(() => reportDeliveryFailure(order.id, input), 'Pedido voltou para a loja')
+              }
+            />
             <ReasonDialog
               open={prompt?.kind === 'cancel-order'}
               onOpenChange={(open) => !open && setPrompt(null)}

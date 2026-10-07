@@ -42,4 +42,11 @@ export const TENANT_MODELS = new Set<string>([
   // Kitchen display
   'ProductionTask',
   'KdsDevice',
+  // Delivery
+  'DeliveryArea',
+  'OrderDelivery',
+  'DeliveryRun',
+  'DeliveryStop',
+  'CourierSettlement',
+  'CourierLedgerEntry',
 ]);

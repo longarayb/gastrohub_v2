@@ -31,6 +31,13 @@ export const AuditAction = {
   KDS_DEVICE_PAIRED: 'kds.device_paired',
   KDS_PAIRING_FAILED: 'kds.pairing_failed',
   KDS_DEVICE_REVOKED: 'kds.device_revoked',
+  DELIVERY_FEE_CHANGED: 'delivery.fee_changed',
+  DELIVERY_FAILED: 'delivery.failed',
+  DELIVERY_AREA_PAUSED: 'delivery.area_paused',
+  DELIVERY_AREA_RESUMED: 'delivery.area_resumed',
+  COURIER_PAY_CHANGED: 'courier.pay_changed',
+  COURIER_SETTLED: 'courier.settled',
+  COURIER_PAYOUT: 'courier.payout',
 } as const;
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 

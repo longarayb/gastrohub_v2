@@ -34,6 +34,10 @@ export class RealtimeService {
     this.gateway.emit(deviceRoom(deviceId), REALTIME_EVENTS.DEVICE_REVOKED, {});
   }
 
+  deliveryUpdated(tenantId: string): void {
+    this.gateway.emit(tenantRoom(tenantId), REALTIME_EVENTS.DELIVERY_UPDATED, {});
+  }
+
   cashUpdated(tenantId: string, sessionId: string): void {
     this.gateway.emit(tenantRoom(tenantId), REALTIME_EVENTS.CASH_UPDATED, { sessionId });
   }

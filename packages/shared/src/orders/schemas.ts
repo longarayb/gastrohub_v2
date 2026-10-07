@@ -112,7 +112,12 @@ export const createOrderSchema = z
     customerId: z.string().optional(),
     customer: orderCustomerSchema.optional(),
     deliveryAddress: zAddress.optional(),
-    deliveryFeeCents: zCents.default(0),
+    /** Delivery fee typed by the operator; omitted = the fee of the area (D029). */
+    deliveryFeeCents: zCents.optional(),
+    /** Area chosen by hand when the address could not be resolved (geocoding failed). */
+    deliveryAreaId: z.string().optional(),
+    /** Required when the fee is lower than the area fee. */
+    deliveryFeeReason: zText(200),
     items: z.array(orderItemInputSchema).max(100).default([]),
     /** Dine-in: send the first round to the kitchen right away (default). */
     sendNow: z.boolean().default(true),

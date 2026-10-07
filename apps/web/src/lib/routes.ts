@@ -5,6 +5,7 @@ import { NAV } from '../components/shell/nav';
 const EXTRA_RULES: { prefix: string; permissions: Permission[] }[] = [
   { prefix: '/cardapio/produtos', permissions: [Permission.MENU_MANAGE] },
   { prefix: '/pedidos/novo', permissions: [Permission.ORDERS_CREATE] },
+  { prefix: '/entregadores/relatorio', permissions: [Permission.REPORTS_READ] },
 ];
 
 /** Permissions required by each protected route prefix (any of them grants access). */
@@ -29,6 +30,7 @@ export function canAccess(role: Role | null | undefined, pathname: string): bool
 export function homeFor(role: Role): string {
   if (hasPermission(role, Permission.REPORTS_READ)) return '/painel';
   if (hasPermission(role, Permission.ORDERS_READ)) return '/pedidos';
+  if (hasPermission(role, Permission.COURIER_APP)) return '/entregas';
   if (hasPermission(role, Permission.STORE_MANAGE)) return '/configuracoes/empresa';
   if (hasPermission(role, Permission.MENU_READ)) return '/cardapio';
   return '/conta/senha';

@@ -83,6 +83,10 @@ model Store {
   serviceFeeOrderTypes    OrderType[]      @default([DINE_IN])
   /// Blind cash close: the operator counts without seeing the expected amounts.
   blindCashClose          Boolean          @default(true)
+  /// Default courier pay (D030): per delivery, share of the delivery fee (bps), daily.
+  courierPerDeliveryCents Int              @default(0)
+  courierFeeShareBps      Int              @default(0)
+  courierDailyCents       Int              @default(0)
 
   /// PIX key for the static QR Code (normalized: digits, lowercase e-mail, +55 phone).
   pixKeyType      PixKeyType?
@@ -632,15 +636,22 @@ model CustomerAddress {
 
 /// Delivery person; userId is optional (freelancers may have no login).
 model Courier {
-  id        String   @id @default(cuid())
-  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
-  name      String
-  phone     String?
-  userId    String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id               String   @id @default(cuid())
+  tenantId         String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name             String
+  phone            String?
+  userId           String?
+  isActive         Boolean  @default(true)
+  /// Pay overrides (null = the store rule).
+  perDeliveryCents Int?
+  feeShareBps      Int?
+  dailyCents       Int?
+  createdAt        DateTime @default(now())
 
-  orders Order[]
+  orders      Order[]
+  runs        DeliveryRun[]
+  settlements CourierSettlement[]
+  ledger      CourierLedgerEntry[]
 
   @@index([tenantId])
 }
@@ -752,6 +763,8 @@ model Order {
   history      OrderStatusHistory[]
   payments     Payment[]
   tasks        ProductionTask[]
+  delivery     OrderDelivery?
+  stops        DeliveryStop[]
 
   @@unique([tenantId, businessDate, number])
   @@unique([tenantId, idempotencyKey])
@@ -1033,4 +1046,200 @@ model KdsDevice {
   createdAt        DateTime  @default(now())
 
   @@index([tenantId, revokedAt])
+}
+
+// ============================================================================
+// Delivery (see docs/DECISOES.md D029–D031)
+// ============================================================================
+
+enum DeliveryAreaKind {
+  NEIGHBORHOOD
+  RADIUS
+}
+
+enum DeliveryAreaSource {
+  /// Resolved from the address (neighborhood or radius).
+  AUTO
+  /// Chosen by the operator (geocoding failed or the neighborhood is unknown).
+  MANUAL
+  /// The store has no delivery areas: fee typed by hand.
+  NONE
+}
+
+enum DeliveryRunStatus {
+  OUT
+  RETURNED
+  SETTLED
+}
+
+enum DeliveryFailureReason {
+  CUSTOMER_ABSENT
+  ADDRESS_NOT_FOUND
+  REFUSED
+  OTHER
+}
+
+enum CourierLedgerType {
+  /// Pay of a settlement (the restaurant owes the courier).
+  EARNING
+  /// Paid to the courier (register withdrawal).
+  PAYOUT
+  /// Missing cash deducted from the balance.
+  SHORTAGE
+}
+
+/// Delivery area by neighborhood (name and variations) or radius from the store.
+model DeliveryArea {
+  id                String           @id @default(cuid())
+  tenantId          String           @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name              String
+  kind              DeliveryAreaKind
+  /// Neighborhood names and variations ("Centro", "Centro Histórico").
+  neighborhoods     String[]
+  city              String?
+  radiusMeters      Int?
+  feeCents          Int
+  etaMinutes        Int
+  minimumOrderCents Int?
+  freeAboveCents    Int?
+  /// Temporarily paused (rain, no courier); resumes at pausedUntil when set.
+  pausedReason      String?
+  pausedUntil       DateTime?
+  sortOrder         Int              @default(0)
+  deletedAt         DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  deliveries OrderDelivery[]
+
+  @@index([tenantId, sortOrder])
+}
+
+/// Delivery data of an order: area snapshot, coordinates, suggested fee, attempts.
+model OrderDelivery {
+  id                String             @id @default(cuid())
+  tenantId          String             @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  orderId           String             @unique
+  areaId            String?
+  areaName          String?
+  areaSource        DeliveryAreaSource
+  latitude          Float?
+  longitude         Float?
+  distanceMeters    Int?
+  etaMinutes        Int?
+  /// Fee the area suggested (a manual fee is compared against it and audited).
+  suggestedFeeCents Int?
+  feeChangeReason   String?
+  attempts          Int                @default(0)
+
+  order Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  area  DeliveryArea? @relation(fields: [areaId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, areaId])
+}
+
+/// A courier leaving with one or more orders on the same route.
+model DeliveryRun {
+  id            String            @id @default(cuid())
+  tenantId      String            @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  courierId     String
+  businessDate  String
+  status        DeliveryRunStatus @default(OUT)
+  /// courierId while OUT: one open route per courier (unique).
+  openCourierId String?
+  departedAt    DateTime          @default(now())
+  returnedAt    DateTime?
+  settlementId  String?
+  createdById   String?
+
+  courier    Courier            @relation(fields: [courierId], references: [id])
+  settlement CourierSettlement? @relation(fields: [settlementId], references: [id])
+  stops      DeliveryStop[]
+
+  @@unique([tenantId, openCourierId])
+  @@index([tenantId, courierId, status])
+  @@index([tenantId, businessDate])
+}
+
+/// One delivery attempt of an order in a route: times, what the customer paid, or why not.
+model DeliveryStop {
+  id              String                 @id @default(cuid())
+  tenantId        String                 @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  runId           String
+  orderId         String
+  sequence        Int
+  dispatchedAt    DateTime               @default(now())
+  deliveredAt     DateTime?
+  failedAt        DateTime?
+  failureReason   DeliveryFailureReason?
+  failureNote     String?
+  /// Declared by the courier ("como o cliente pagou"), confirmed at the settlement.
+  collectedMethod PaymentMethod?
+  collectedCents  Int?
+  receivedCents   Int?
+  changeCents     Int?
+  collectedNote   String?
+
+  run   DeliveryRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  order Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, orderId])
+  @@index([runId])
+}
+
+/// Courier settlement: collected money into the settling register, differences, pay.
+model CourierSettlement {
+  id                    String   @id @default(cuid())
+  tenantId              String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  courierId             String
+  cashSessionId         String
+  businessDate          String
+  settledById           String
+  settledAt             DateTime @default(now())
+  deliveries            Int
+  failedDeliveries      Int
+  deliveryFeesCents     Int
+  expectedCashCents     Int
+  countedCashCents      Int
+  cashDifferenceCents   Int
+  expectedCardCents     Int
+  countedCardCents      Int
+  cardDifferenceCents   Int
+  otherCents            Int
+  perDeliveryCents      Int
+  feeShareCents         Int
+  dailyCents            Int
+  earningsCents         Int
+  previousBalanceCents  Int
+  payoutCents           Int
+  shortageDeductedCents Int
+  newBalanceCents       Int
+  courierOwesCents      Int
+  notes                 String?
+
+  courier Courier       @relation(fields: [courierId], references: [id])
+  runs    DeliveryRun[]
+
+  @@index([tenantId, courierId, settledAt])
+  @@index([tenantId, businessDate])
+}
+
+/// Running balance of a courier (positive = the restaurant owes the courier).
+model CourierLedgerEntry {
+  id             String            @id @default(cuid())
+  tenantId       String            @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  courierId      String
+  type           CourierLedgerType
+  /// + earnings; − payouts and deducted shortages.
+  amountCents    Int
+  settlementId   String?
+  cashSessionId  String?
+  cashMovementId String?
+  reason         String?
+  createdById    String
+  createdAt      DateTime          @default(now())
+
+  courier Courier @relation(fields: [courierId], references: [id])
+
+  @@index([tenantId, courierId, createdAt])
 }
