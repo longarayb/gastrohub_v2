@@ -50,16 +50,24 @@ export const Permission = {
   COURIER_APP: 'courier:app',
   REPORTS_READ: 'reports:read',
   AUDIT_READ: 'audit:read',
+  /** Print agents, printers and print settings (D035). */
+  PRINTERS_MANAGE: 'printers:manage',
+  /** Print and reprint documents (tickets, pre-bill, delivery copy) and handle held jobs. */
+  PRINT: 'print:use',
+  /** The local print agent itself (internal role, never a membership). */
+  PRINT_AGENT: 'print:agent',
 } as const;
 export type Permission = (typeof Permission)[keyof typeof Permission];
 
 const ALL = Object.values(Permission);
 const P = Permission;
+/** Permissions only internal device roles have. */
+const DEVICE_ONLY: readonly Permission[] = [P.COURIER_APP, P.PRINT_AGENT];
 
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   // The courier app is for couriers only (it shows the signed-in courier's own route).
-  OWNER: ALL.filter((p) => p !== P.COURIER_APP),
-  MANAGER: ALL.filter((p) => p !== P.STORE_CREATE && p !== P.COURIER_APP),
+  OWNER: ALL.filter((p) => !DEVICE_ONLY.includes(p)),
+  MANAGER: ALL.filter((p) => p !== P.STORE_CREATE && !DEVICE_ONLY.includes(p)),
   CASHIER: [
     P.MENU_READ,
     P.MENU_PAUSE,
@@ -74,6 +82,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     P.CUSTOMERS_READ,
     P.CUSTOMERS_MANAGE,
     P.DELIVERY_OPERATE,
+    P.PRINT,
   ],
   WAITER: [
     P.MENU_READ,
@@ -82,8 +91,16 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     P.ORDERS_UPDATE_STATUS,
     P.TABLES_OPERATE,
     P.CUSTOMERS_READ,
+    P.PRINT,
   ],
-  KITCHEN: [P.MENU_READ, P.MENU_PAUSE, P.ORDERS_READ, P.ORDERS_UPDATE_STATUS, P.KDS_OPERATE],
+  KITCHEN: [
+    P.MENU_READ,
+    P.MENU_PAUSE,
+    P.ORDERS_READ,
+    P.ORDERS_UPDATE_STATUS,
+    P.KDS_OPERATE,
+    P.PRINT,
+  ],
   // No access to the board or the orders (LGPD): only their own deliveries in progress.
   COURIER: [P.COURIER_APP],
 };
@@ -93,12 +110,26 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
  * It can only work the kitchen display and mark products as sold out.
  */
 export const KDS_DEVICE_ROLE = 'KDS_DEVICE' as const;
-export type ActorRole = Role | typeof KDS_DEVICE_ROLE;
 export const KDS_DEVICE_PERMISSIONS: readonly Permission[] = [P.KDS_OPERATE, P.MENU_PAUSE];
+
+/**
+ * Internal role of a paired print agent (D035): a Windows service on a store PC. It only leases
+ * and acknowledges print jobs and reports its printers; it never reads orders or customers.
+ */
+export const PRINT_AGENT_ROLE = 'PRINT_AGENT' as const;
+export const PRINT_AGENT_PERMISSIONS: readonly Permission[] = [P.PRINT_AGENT];
+
+export type DeviceRole = typeof KDS_DEVICE_ROLE | typeof PRINT_AGENT_ROLE;
+export type ActorRole = Role | DeviceRole;
+
+export function isDeviceRole(role: ActorRole | null | undefined): role is DeviceRole {
+  return role === KDS_DEVICE_ROLE || role === PRINT_AGENT_ROLE;
+}
 
 export function hasPermission(role: ActorRole | null | undefined, permission: Permission): boolean {
   if (!role) return false;
   if (role === KDS_DEVICE_ROLE) return KDS_DEVICE_PERMISSIONS.includes(permission);
+  if (role === PRINT_AGENT_ROLE) return PRINT_AGENT_PERMISSIONS.includes(permission);
   return ROLE_PERMISSIONS[role].includes(permission);
 }
 
