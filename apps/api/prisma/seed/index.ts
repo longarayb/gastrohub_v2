@@ -11,6 +11,7 @@ import { config as loadEnv } from 'dotenv';
 import { expand } from 'dotenv-expand';
 import { PrismaClient } from '../../src/generated/prisma/client.js';
 import { seedMenu } from './menu.js';
+import { seedDelivery } from './delivery.js';
 import { seedOrders } from './orders.js';
 
 expand(
@@ -152,6 +153,11 @@ async function main(): Promise<void> {
       waiterId: userIds.WAITER!,
       managerId: userIds.MANAGER!,
     });
+    const delivery = await seedDelivery(prisma, store.id, {
+      courierUserId: userIds.COURIER!,
+      managerId: userIds.MANAGER!,
+      cashierId: userIds.CASHIER!,
+    });
 
     console.log(`\n✔ Unidade "${store.tradeName}" (slug: ${store.slug})`);
     console.log(`✔ ${DEMO_USERS.length} usuários — senha de demonstração: ${DEMO_PASSWORD}`);
@@ -164,6 +170,9 @@ async function main(): Promise<void> {
     );
     console.log(
       `✔ Caixas: ${orders.cashSessions} (gerente: fechado com diferença; caixa: aberto) · PIX pix@demo.local`,
+    );
+    console.log(
+      `✔ Entregas: ${delivery.areas} áreas (uma suspensa) · ${delivery.runs} saídas (uma acertada, uma aguardando acerto, uma em rota) · app do entregador: entregador@demo.local`,
     );
     console.log(
       `✔ Cozinha: ${orders.kitchenTasks} tarefas de produção · tela "TV da cozinha" aguardando vínculo (Setores)\n`,

@@ -229,8 +229,35 @@ export async function seedOrders(
         reference: '',
       },
     },
-    { name: 'Juliana Alves', phone: '11987001122' },
+    {
+      name: 'Juliana Alves',
+      phone: '11987001122',
+      address: {
+        cep: '01305000',
+        street: 'Rua Augusta',
+        number: '800',
+        complement: 'Casa 2',
+        neighborhood: 'Consolação',
+        city: 'São Paulo',
+        state: 'SP',
+        reference: 'Portão verde',
+      },
+    },
     { name: 'Pedro Santos', phone: '11976543210' },
+    {
+      name: 'Carla Mendes',
+      phone: '11965432100',
+      address: {
+        cep: '01327000',
+        street: 'Rua Treze de Maio',
+        number: '120',
+        complement: '',
+        neighborhood: 'Bixiga',
+        city: 'São Paulo',
+        state: 'SP',
+        reference: 'Ao lado da padaria',
+      },
+    },
   ];
   const savedCustomers = [];
   for (const c of customers) {
@@ -246,7 +273,8 @@ export async function seedOrders(
     });
     savedCustomers.push({ id: created.id, name: c.name, phone: c.phone, address: c.address });
   }
-  const [mariana, rafael, juliana, pedro] = savedCustomers as [
+  const [mariana, rafael, juliana, pedro, carla] = savedCustomers as [
+    (typeof savedCustomers)[number],
     (typeof savedCustomers)[number],
     (typeof savedCustomers)[number],
     (typeof savedCustomers)[number],
@@ -777,8 +805,27 @@ export async function seedOrders(
     ],
     customer: juliana,
     courierId: courier.id,
-    deliveryFeeCents: 500,
+    deliveryFeeCents: 600,
     payment: 'PIX',
+    userId: cashierId,
+  });
+  // Back from a failed delivery (customer absent): ready to go again (seeded in delivery.ts).
+  await createOrder({
+    type: 'DELIVERY',
+    status: 'READY',
+    age: 60,
+    rounds: [
+      {
+        sent: true,
+        age: 60,
+        items: [{ pricing: pizza('Grande', ['Calabresa']) }, { pricing: item('Guaraná lata') }],
+      },
+    ],
+    customer: carla,
+    deliveryFeeCents: 600,
+    payment: 'CASH',
+    changeForCents: 10_000,
+    notes: 'Interfone quebrado: ligar ao chegar',
     userId: cashierId,
   });
 
