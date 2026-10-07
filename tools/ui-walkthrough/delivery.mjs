@@ -137,8 +137,13 @@ await step('new area by neighborhood with validation, then resume a suspended on
   await d.getByRole('button', { name: 'Salvar' }).click();
   await toast('Área criada');
   await page.getByRole('article', { name: 'Área Liberdade' }).waitFor();
-  // Liberdade is no longer an unmatched neighborhood.
-  await page.getByRole('list', { name: 'Bairros sem área' }).waitFor({ state: 'detached' });
+  // Liberdade is no longer an unmatched neighborhood; Moema (digital menu searches) still is.
+  const unmatched = page.getByRole('list', { name: 'Bairros sem área' });
+  await unmatched
+    .getByRole('listitem')
+    .filter({ hasText: 'Liberdade' })
+    .waitFor({ state: 'detached' });
+  await unmatched.getByRole('listitem').filter({ hasText: 'Moema' }).waitFor();
   await page
     .getByRole('article', { name: 'Área Pinheiros' })
     .getByRole('button', { name: 'Retomar' })
