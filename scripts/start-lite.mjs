@@ -1,14 +1,29 @@
 // `pnpm start:lite`: lightest way to use the app on a low-memory machine.
 // Production builds (no watchers, no hot reload): API (3333) + admin panel (3000).
 // `pnpm start:lite --menu` also starts the digital menu (3001).
+// `--lan` makes them reachable from a phone on the same Wi-Fi (build with the machine IP,
+// servers on 0.0.0.0); `pnpm lan:links` prints the links.
 // Rebuilds only what changed (Turborepo cache). Stop with Ctrl+C.
 import { spawn } from 'node:child_process';
 import { cpSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { parseEnv } from 'node:util';
-import { ensureDocker, ensureEnvFile, infraUp, log, root, run } from './lib.mjs';
+import {
+  applyLanEnv,
+  ensureDocker,
+  ensureEnvFile,
+  infraUp,
+  log,
+  logLanLinks,
+  root,
+  run,
+} from './lib.mjs';
 
 const withMenu = process.argv.includes('--menu');
+const lan = process.argv.includes('--lan');
+
+const ip = lan ? applyLanEnv() : null;
+const host = lan ? '0.0.0.0' : 'localhost';
 
 ensureEnvFile();
 ensureDocker();
@@ -55,7 +70,7 @@ const next = (app, port) =>
       ...process.env,
       NODE_ENV: 'production',
       PORT: String(port),
-      HOSTNAME: 'localhost',
+      HOSTNAME: host,
     },
   });
 
@@ -70,6 +85,7 @@ const children = [
 log(
   `Painel: http://localhost:3000${withMenu ? ' · Cardápio: http://localhost:3001/demo' : ''} · API: http://localhost:3333/docs · E-mails: http://localhost:8025`,
 );
+if (ip) logLanLinks(ip, withMenu);
 
 const stop = () => children.forEach((c) => c.kill('SIGINT'));
 process.on('SIGINT', stop);
