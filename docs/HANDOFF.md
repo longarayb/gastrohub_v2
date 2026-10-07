@@ -2,20 +2,19 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções e regras de trabalho em duas máquinas), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-05**, no Surface (`C:\GastroHub_v2`), ao fim da etapa `feat/kds` (tela da cozinha, expedição e telas vinculadas sem senha).
+> Atualizado em **2026-10-07**, no Surface (`C:\GastroHub_v2`), ao fim da etapa `feat/delivery` (áreas, saídas, app do entregador, acerto e relatório).
 
 ## Estado atual
 
 - `main` contém tudo o que foi feito; todas as branches estão no GitHub (`longarayb/gastrohub_v2`, público). Nenhuma frente em paralelo.
-- Validação no último commit da `feat/kds`: `pnpm check` verde (18 tarefas; unitários: shared 174, api 15, web 5), `pnpm format:check` verde, `pnpm test:e2e` com 70 testes, roteiros visuais `kds.mjs` 8/8, `pos.mjs` 12/12, `orders.mjs` 18/18, `menu.mjs` 15/15 e `auth.mjs` 19/19.
-- Migrations: `auth_tenancy`, `menu`, `orders`, `tables_pos`, `kds`. Um clone novo fica igual com `pnpm bootstrap` (ou `pnpm --filter @app/api db:deploy` + `pnpm db:seed`).
+- Validação no último commit da `feat/delivery`: `pnpm check` verde (18 tarefas; unitários: shared 194, api 16, web 5), `pnpm format:check` verde, `pnpm test:e2e` com 76 testes, roteiros visuais `delivery.mjs` 16/16, `orders.mjs` 18/18, `pos.mjs` 12/12, `kds.mjs` 8/8, `menu.mjs` 15/15 e `auth.mjs` 19/19 (cada um com `pnpm db:seed` antes).
+- Migrations: `auth_tenancy`, `menu`, `orders`, `tables_pos`, `kds`, `delivery`. Um clone novo fica igual com `pnpm bootstrap` (ou `pnpm --filter @app/api db:deploy` + `pnpm db:seed`).
 
 ### Desktop de casa, na próxima sessão
 
-1. `git pull` na `main` e `pnpm install` (dependências novas: `dotenv-expand` na API e `qrcode` no painel).
-2. Compare o `.env` com o `.env.example` e acrescente as variáveis novas (`POSTGRES_PORT=5432`, `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`, `CHECK_CONCURRENCY`, `NEXT_BUILD_CPUS`, `LOGIN_RATE_LIMIT_PER_MINUTE=300`). As URLs antigas com a porta escrita continuam funcionando.
-3. `pnpm --filter @app/api db:deploy` (migrations `tables_pos` e `kds`) e `pnpm db:seed`.
-4. Para os roteiros visuais: `npm install` em `tools/ui-walkthrough` não é necessário de novo (sem dependências novas).
+1. `git pull` na `main` e `pnpm install` (sem dependências novas nesta etapa; se vier da `feat/kds` ou anterior, veja as variáveis do `.env` abaixo).
+2. Compare o `.env` com o `.env.example` (`POSTGRES_PORT=5432`, `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`, `CHECK_CONCURRENCY`, `NEXT_BUILD_CPUS`, `LOGIN_RATE_LIMIT_PER_MINUTE=300`, `GEOCODING_PROVIDER`, `NOMINATIM_URL`, `NOMINATIM_EMAIL`).
+3. `pnpm --filter @app/api db:deploy` (migration `delivery`) e `pnpm db:seed`.
 
 ### Etapas concluídas
 
@@ -27,29 +26,30 @@
 | `feat/orders` | Pedidos de balcão, delivery e mesa; contas e rodadas; kanban em tempo real com som; compositor com total em tempo real; mesas; cupons; descontos e taxa de serviço com auditoria; versão otimista (409) e idempotência |
 | `fix/e2e-unhandled-errors` | Encerramento do adapter Socket.IO/Redis e conexões do BullMQ sem vazamentos; e2e reprova erros não tratados |
 | `chore/multi-machine-setup` | Portas do Docker por máquina no `.env`, concorrência do `pnpm check` configurável, regras de trabalho em duas máquinas |
-| `feat/tables-pos` | Caixa por operador (abertura, sangria/suprimento, fechamento cego com diferença por forma, relatório 80 mm, reabertura e fechamento por gerente); pagamentos (vários por conta, troco, cartão com bandeira/NSU, online/marketplace sem caixa, estorno com permissão); PIX estático (BR Code com txid = código do pedido); delivery "a receber"; divisão por igual (calculadora) e por itens; transferir conta, trocar/juntar/separar mesas; pré-conta com "aguardando pagamento"; atalhos de teclado; chave PIX e fechamento cego na tela Empresa |
-| `feat/kds` | Tarefas de produção por setor (combo dividido: a bebida vai para o bar), tickets por rodada, status do item e do pedido automáticos, desfazer pronto, cancelamento riscado com som próprio, remoções em destaque, visão consolidada, "Acabou" na tela, limites amarelo/vermelho por setor, expedição (entregue; delivery sai com entregador), telas vinculadas por código de 6 dígitos sem senha (limites de tentativa, cookie httpOnly de 180 dias, revogação imediata), "Toque para iniciar" com som, tela cheia e Wake Lock |
+| `feat/tables-pos` | Caixa por operador com fechamento cego, pagamentos (troco, cartão com bandeira/NSU, online sem caixa, estorno), PIX estático, delivery "a receber", divisão da conta, operações de mesa, pré-conta, atalhos |
+| `feat/kds` | Tarefas de produção por setor, tickets por rodada, status automático, desfazer, cancelamento riscado com som, remoções em destaque, consolidado, expedição, telas vinculadas por código sem senha |
+| `chore/login-rate-limit` | Limite de login configurável (`LOGIN_RATE_LIMIT_PER_MINUTE`) |
+| `feat/delivery` | Áreas por bairro (com variações de nome; padrão) ou raio, com taxa, tempo, mínimo, "grátis acima de" e suspensão; bairros sem área com inclusão rápida; taxa da área no novo pedido (reduzir exige permissão e motivo; toda mudança auditada); geocodificação Nominatim só com o endereço; saída com vários pedidos e um entregador; "não entregue" com motivo (volta para Pronto, visível no kanban e na expedição; reenviar ou cancelar); app do entregador no celular (`/entregas`, só a própria rota); acerto no caixa de quem acerta (pagamentos dos pedidos, conferência de dinheiro e comprovantes, falta descontada ou não, remuneração por entrega, % da taxa e diária uma vez por dia, pagar agora ou acumular); saldo corrente com extrato e pagamento avulso; relatório com taxas separadas, tempos por área e entregador e quem deve a quem |
 
 ### Decisões recentes (detalhes em DECISOES.md)
 
-- **D027 KDS:** tarefa de produção por setor criada no envio da rodada (`routeItem`); ticket = rodada × setor; item e pedido seguem as tarefas de todos os setores; limites por setor (o campo da loja foi removido); expedição serve rodadas sem mudar o status e despacha delivery com entregador.
-- **D028 Telas da cozinha:** papel interno `KDS_DEVICE` (só KDS e "Acabou"), vínculo por unidade + código de 6 dígitos com limites por código, por unidade e por IP, cookie httpOnly renovado, revogação imediata.
-- **D023 Pagamentos:** mesa e balcão só fecham com saldo zero; delivery pode ficar "a receber". `ONLINE` quita sem caixa e fora do esperado. Estorno com `payments:refund` (dono e gerente), motivo e auditoria; cancelar pedido exige estornar antes; total nunca abaixo do pago.
-- **D024 Caixa por operador:** um aberto por operador (`openOperatorId` único); esperado por forma; o estorno sai do caixa aberto de quem estorna (caixa fechado nunca muda); fechamento cego configurável (ligado por padrão); pagamentos travam a linha do caixa (`version`), então nenhum pagamento escapa do fechamento.
-- **D025 Divisão e mesas:** divisão por igual é só calculadora; por itens move linhas (ou parte) entre contas da mesma sessão, cada conta com sua taxa de serviço; pré-conta marca "aguardando pagamento" até nova rodada.
-- **D026 PIX estático:** BR Code por função pura (CRC conferido com o exemplo do Banco Central), chave normalizada, txid = `publicCode` (8 alfanuméricos), confirmação manual.
-- Anteriores: D019 (conta, rodadas e sessão de mesa), D020 (ordem dos valores), D021 (numeração diária), D022 (concorrência, idempotência e tempo real).
-- O **redesign** (dashboard escuro azul-marinho, descrito no ROADMAP) continua planejado para depois das funcionalidades, trocando só o tema. A imagem de referência ficou na máquina antiga (`docs/design/`, ignorado); se precisar, o usuário reenvia.
+- **D029 Áreas e taxa:** bairro primeiro, depois o menor raio; área suspensa recusa o endereço; sem área → escolha manual. Taxa sugerida pela área; reduzir exige `orders:discount` e motivo; qualquer mudança é auditada. Nominatim recebe só o endereço; **produção com volume exige serviço pago ou Nominatim próprio**.
+- **D030 Saídas e app do entregador:** uma saída aberta por entregador; cada tentativa é uma parada; `DISPATCHED` exige entregador; o entregador (`courier:app`) vê só a própria saída aberta (LGPD); maquininha só a do restaurante (a do entregador está no ROADMAP).
+- **D031 Acerto e remuneração:** o recebido vira pagamento no caixa de quem acerta; falta/sobra corrige a gaveta; remuneração da loja ou do entregador; diária no primeiro acerto do dia; saldo corrente com "pagar agora" (sangria auditada) ou "acumular"; pagamento avulso do saldo também é sangria.
+- Anteriores: D027–D028 (KDS e telas da cozinha), D023–D026 (pagamentos, caixa, divisão, PIX), D019–D022 (pedidos).
+- O **redesign** (dashboard escuro azul-marinho, descrito no ROADMAP) continua planejado para depois das funcionalidades, trocando só o tema.
+
+### Observação conhecida (não bloqueia)
+
+- Nas suítes e2e do PDV e de entrega aparece uma vez o aviso `DeprecationWarning: Calling client.query() when the client is already executing a query` do `pg`. Vem do Prisma 7 com `@prisma/adapter-pg` ao carregar relações dentro de transações interativas (já acontecia na `main` antes da entrega). Os testes passam; vale reavaliar ao atualizar o Prisma ou o `pg` 9 (que transforma o aviso em erro).
 
 ## Próximos passos (nesta ordem)
 
-### 1. Etapa `feat/delivery` — apresentar o modelo ANTES de codar
+### 1. Etapa `feat/digital-menu` — apresentar a proposta ANTES de codar
 
-Requisitos (PROMPT_INICIAL 5.7): clientes com histórico e busca rápida por telefone; **áreas de entrega por bairro ou por raio em km**, cada uma com taxa e tempo estimado; cadastro de entregadores e atribuição ao pedido.
+Requisitos: PROMPT_INICIAL (cardápio digital, app `apps/menu`, rota pública `/{slug}`). Ponto de partida que já existe: catálogo por canal `DIGITAL_MENU` (`MenuContext`, disponibilidade por horário e "Acabou"), `Store.digitalMenuEnabled` e `autoAcceptDigitalOrders`, criação de pedido com `source: 'DIGITAL_MENU'` (status inicial pendente ou aceito, mínimo da área bloqueante), áreas de entrega com cotação (`DeliveryPricingService.quote`, hoje autenticada), `publicCode` do pedido para acompanhamento, PIX estático (BR Code com txid = `publicCode`).
 
-Ponto de partida que já existe: `Customer`/`CustomerAddress` (com latitude/longitude e busca por telefone no compositor), `Courier` e atribuição no pedido (kanban e expedição do KDS), `Order.deliveryFeeCents` digitada à mão no compositor, `Store.deliveryMinimumCents`, `GeocodingProvider` (Nominatim) previsto, coordenadas da loja no seed, e "Delivery a receber" no caixa (D023: o entregador presta contas na volta).
-
-O que a proposta precisa resolver: modelo das áreas (bairro × raio, prioridade quando um endereço cai em mais de uma, fora de área), cálculo da taxa e do tempo pelo endereço (geocodificação e fallback quando ela falhar), taxa sugerida × editável no compositor (com permissão e auditoria?), tela de clientes (histórico, endereços, mesclar duplicados?), entregadores (ativos, telefone, acerto do dia com os pedidos "a receber" de cada um) e o que o cardápio digital vai reaproveitar disso.
+O que a proposta precisa resolver: rotas públicas (catálogo, cotação de entrega, criação de pedido, acompanhamento por `publicCode`) e limites contra abuso; identificação do cliente (telefone, sem senha?); pagamento na entrega × PIX estático; acompanhamento do pedido pelo cliente (status e horários das paradas, sem dados do entregador além do necessário); aceitar/recusar pedidos no painel (som de novo pedido já existe); layout mobile-first e tema da marca.
 
 Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem de sempre.
 
@@ -60,5 +60,6 @@ Nenhuma no momento.
 ## Lembretes de ambiente
 
 - Surface (8 GB): `.env` com `POSTGRES_PORT=5433`, `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1`. Playwright headless, um navegador, sem paralelismo; pare os servidores antes de builds.
-- Limite de login configurável (`LOGIN_RATE_LIMIT_PER_MINUTE`, 10 em produção, 300 no `.env` de desenvolvimento): os roteiros visuais rodam em sequência. No desktop de casa, acrescente a variável ao `.env`.
+- Depois de reiniciar o Windows, abra o Docker Desktop antes do `pnpm test:e2e`/`start:lite` (o `global-setup` do e2e falha com "dockerDesktopLinuxEngine" se o engine estiver parado).
+- Roteiros visuais: `pnpm db:seed` antes de cada um (eles alteram pedidos e saídas).
 - Repositório público: nunca commitar `.env`, segredos ou dados reais; conferir `git diff --cached` antes de cada push.

@@ -187,11 +187,13 @@ Criadas pelo `pnpm db:seed`. **Apenas para desenvolvimento.** Unidade **Demo** (
 | Caixa | `caixa@demo.local` | Pedidos |
 | Garçom | `garcom@demo.local` | Pedidos |
 | Cozinha | `cozinha@demo.local` | Pedidos |
-| Entregador | `entregador@demo.local` | Pedidos |
+| Entregador | `entregador@demo.local` | Minhas entregas (só a própria rota; abra no celular) |
 
 Cupons de demonstração: `BEMVINDO10` (10%, até R$ 20) e `FRETEGRATIS` (R$ 8 acima de R$ 50).
 
 Caixa de demonstração: a **Caixa** já entra com o caixa aberto (troco inicial R$ 200); o caixa do **Gerente** da manhã está fechado com diferença de −R$ 2,50. Há um delivery entregue "a receber" e um pedido do iFood pago online. A chave PIX de demonstração (`pix@demo.local`) gera QR Codes válidos que não pagam ninguém — troque na tela Empresa por uma chave real só em produção.
+
+Entregas: 4 áreas ("Pinheiros" suspensa por chuva), o Gustavo (usuário `entregador@demo.local`) em rota com uma entrega, a Helena de volta com uma entrega em dinheiro e uma não entregue esperando o **acerto** (Caixa ou Entregadores), e bairros sem área na tela Áreas de entrega. A geocodificação usa o Nominatim público (`GEOCODING_PROVIDER=nominatim`; `none` desliga), só quando uma área por raio precisa das coordenadas.
 
 Tela da cozinha: abra http://localhost:3000/kds com o login da **Cozinha** (ou de qualquer papel com acesso ao KDS), ou vincule um tablet sem senha: em **Cardápio › Setores de produção › Telas da cozinha**, gere o código da "TV da cozinha" e digite-o em http://localhost:3000/kds/vincular (código da unidade: `demo`).
 
@@ -215,4 +217,5 @@ Roteiros visuais com Playwright (opcional): veja [tools/ui-walkthrough/README.md
 | Processo morre com `0xC0000409` / `3221226505` | Pouca memória: aumente o arquivo de paginação (passo 2), feche o navegador e use `pnpm start:lite`. No `.env` da máquina, `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1` deixam `pnpm check` e o build do Next em série |
 | `port is already allocated` (5432, 6379, 1025 ou 8025) no `pnpm infra:up`/`bootstrap` | Outro serviço usa a porta (outro projeto Docker, Postgres/Redis instalado no Windows). Descubra com `docker ps` ou `Get-NetTCPConnection -LocalPort 5432 \| Select OwningProcess`. Em vez de parar o outro serviço, mude a porta **só nesta máquina**, no `.env`: `POSTGRES_PORT=5433` (ou `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`). `DATABASE_URL`, `REDIS_URL` e `SMTP_PORT` usam essas variáveis (`${POSTGRES_PORT}`), então nada mais muda. Depois: `pnpm infra:down` e `pnpm infra:up`. O `.env.example` fica com as portas padrão |
 | Porta 3000/3333 em uso | Um servidor antigo ficou aberto: `Get-NetTCPConnection -LocalPort 3000 \| Select OwningProcess` e `Stop-Process -Id <pid>` |
+| Taxa de entrega pede "escolha a área manualmente" | O endereço não está em nenhuma área por bairro e o mapa não o encontrou (ou o Nominatim está fora/sem internet). Escolha a área no pedido, ou inclua o bairro numa área em Áreas de entrega ("Bairros sem área") |
 | Login responde 429 | Limite de tentativas de login por minuto e IP (`LOGIN_RATE_LIMIT_PER_MINUTE`: 10 em produção; 300 no `.env.example` de desenvolvimento). Espere 1 minuto ou reinicie a API; se o seu `.env` é antigo, acrescente a variável |

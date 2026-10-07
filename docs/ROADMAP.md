@@ -12,7 +12,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Pedidos e tempo real (kanban, status, numeração, contas de mesa, cupons) | `feat/orders` | ✅ |
 | Salão, mesas, PDV e caixa (pagamentos, troco, PIX estático, caixa por operador com fechamento cego, divisão da conta, transferir/juntar/separar mesas, pré-conta) | `feat/tables-pos` | ✅ |
 | KDS e setores de produção (tickets por rodada e setor, combo dividido entre setores, status automático, expedição, telas vinculadas sem senha) | `feat/kds` | ✅ |
-| Delivery (clientes, áreas, entregadores) | `feat/delivery` | ⏳ |
+| Delivery (áreas por bairro ou raio com taxa, tempo e mínimo; saída com vários pedidos; app do entregador; não entregue e reenvio; acerto no caixa com remuneração e saldo; relatório) | `feat/delivery` | ✅ |
 | Cardápio digital (app `menu`) | `feat/digital-menu` | ⏳ |
 | Impressão (comanda e cupom 80mm) | `feat/printing` | ⏳ |
 | Dashboard e relatórios | `feat/reports` | ⏳ |
@@ -32,7 +32,9 @@ O layout será refeito trocando o tema (`packages/ui/src/styles/globals.css`), s
 - Financeiro (contas a pagar/receber, DRE)
 - CRM, fidelidade, campanhas, robô de WhatsApp
 - Apps de garçom, entregador e totem de autoatendimento
-- Roteirização de entregas e mapa
+- Roteirização de entregas e mapa; acompanhamento do pedido pelo cliente (o modelo de saídas e paradas já guarda os horários)
+- Delivery: maquininha própria do entregador (o acerto passa a separar o que entrou na maquininha dele)
+- Delivery: geocodificação paga ou Nominatim próprio para produção com volume (D029)
 - Postgres RLS como segunda camada de isolamento multi-tenant
 - Cardápio: copiar cardápio entre unidades
 - Cardápio: cardápio compartilhado da rede (matriz define, unidades ajustam preço/disponibilidade)
