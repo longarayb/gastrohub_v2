@@ -162,6 +162,16 @@ describe('Digital menu (e2e)', () => {
     });
     expect(pub.privacyNotice).toMatch(/é o responsável \(controlador\)/);
     expect(pub.privacyVersion).toBeTruthy();
+    // Editing the notice changes its version: devices that accepted the old one must accept again.
+    const current = (await get(owner, '/api/digital-menu/settings').expect(200)).body;
+    await put(owner, '/api/digital-menu/settings', {
+      ...current,
+      privacyNotice: 'Texto revisado pelo jurídico.',
+    }).expect(200);
+    const edited = (await get(null, `/api/public/${slug}`).expect(200)).body;
+    expect(edited.privacyNotice).toBe('Texto revisado pelo jurídico.');
+    expect(edited.privacyVersion).not.toBe(pub.privacyVersion);
+    await put(owner, '/api/digital-menu/settings', { ...current, privacyNotice: null }).expect(200);
     await get(null, '/api/public/nao-existe').expect(404);
 
     const catalog = (await get(null, `/api/public/${slug}/catalog`).expect(200)).body;

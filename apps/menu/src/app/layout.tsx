@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import { MENU_URL } from '@/lib/api';
+import { requestOrigin } from '@/lib/origin';
 import { storeCssVariables } from '@/lib/theme';
 import { Providers } from './providers';
 import './globals.css';
@@ -8,11 +8,14 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'], variable: '--font-app', display: 'swap' });
 
 // Each restaurant page sets its own name, colors and icon (the menu shows their brand, not ours).
-export const metadata: Metadata = {
-  metadataBase: new URL(MENU_URL),
-  title: { default: 'Cardápio digital', template: '%s' },
-  description: 'Peça online direto do restaurante',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    // Absolute links (preview image) follow the address the visitor used (LAN, tunnel, domain).
+    metadataBase: new URL(await requestOrigin()),
+    title: { default: 'Cardápio digital', template: '%s' },
+    description: 'Peça online direto do restaurante',
+  };
+}
 
 export const viewport: Viewport = {
   width: 'device-width',

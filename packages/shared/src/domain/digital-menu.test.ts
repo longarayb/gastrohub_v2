@@ -13,6 +13,7 @@ import {
   isHexColor,
   isMobilePhone,
   privacyNoticeTemplate,
+  privacyNoticeVersion,
   readableForeground,
   storeOpenState,
   trackingTimeline,
@@ -234,5 +235,14 @@ describe('describeItem', () => {
       }),
     ).toBe('Grande · ½ Calabresa, ½ Marguerita · Catupiry, 2× Bacon · Obs.: sem cebola');
     expect(describeItem({ size: null, flavors: [], modifiers: [], note: null })).toBeNull();
+  });
+});
+
+describe('privacyNoticeVersion', () => {
+  it('changes when the text changes', () => {
+    const a = privacyNoticeVersion('Aviso A');
+    expect(a).toMatch(/^\d{4}-\d{2}\.[0-9a-f]{8}$/);
+    expect(privacyNoticeVersion('Aviso A')).toBe(a);
+    expect(privacyNoticeVersion('Aviso B')).not.toBe(a);
   });
 });

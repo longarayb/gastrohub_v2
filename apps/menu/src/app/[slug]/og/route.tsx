@@ -1,14 +1,16 @@
 import { readableForeground } from '@app/shared';
 import { ImageResponse } from 'next/og';
 import { storeThemeColor } from '@/lib/theme';
-import { getStore } from './data';
+import { getStore } from '../data';
 
-export const size = { width: 1200, height: 630 };
-export const contentType = 'image/png';
-export const alt = 'Cardápio do restaurante';
+const size = { width: 1200, height: 630 };
 
 /** Link preview (WhatsApp, Instagram, Facebook): the restaurant's name, color, logo and cover. */
-export default async function OpenGraphImage({ params }: { params: Promise<{ slug: string }> }) {
+/**
+ * A plain route (not the opengraph-image file convention): its absolute URL is declared in the
+ * page metadata with the origin of the request, so it works through a proxy or a test tunnel.
+ */
+export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const store = await getStore(slug);
   const background = storeThemeColor(store.brandColor);
@@ -66,6 +68,10 @@ export default async function OpenGraphImage({ params }: { params: Promise<{ slu
         </div>
       </div>
     </div>,
-    size,
+    {
+      ...size,
+      // Brand changes show up within the hour (WhatsApp also caches previews).
+      headers: { 'cache-control': 'public, max-age=3600' },
+    },
   );
 }

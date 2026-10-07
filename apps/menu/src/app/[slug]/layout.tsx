@@ -1,5 +1,6 @@
 import { BRAND } from '@app/shared';
 import type { Metadata, Viewport } from 'next';
+import { requestOrigin } from '@/lib/origin';
 import { storeCssVariables, storeThemeColor } from '@/lib/theme';
 import { getStore } from './data';
 
@@ -7,7 +8,14 @@ type Params = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  const store = await getStore(slug);
+  const [store, origin] = await Promise.all([getStore(slug), requestOrigin()]);
+  // Absolute preview image on the address the visitor (or WhatsApp) used.
+  const image = {
+    url: `${origin}/${slug}/og`,
+    width: 1200,
+    height: 630,
+    alt: store.name,
+  };
   const title = `${store.name} · Cardápio e pedidos`;
   const description =
     store.description ??
@@ -24,8 +32,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       url: `/${slug}`,
       siteName: store.name,
       locale: 'pt_BR',
+      images: [image],
     },
-    twitter: { card: 'summary_large_image', title, description },
+    twitter: { card: 'summary_large_image', title, description, images: [image.url] },
   };
 }
 

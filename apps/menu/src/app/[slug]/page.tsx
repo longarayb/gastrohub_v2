@@ -1,5 +1,5 @@
 import { MenuView } from '@/components/menu-view';
-import { MENU_URL } from '@/lib/api';
+import { requestOrigin } from '@/lib/origin';
 import { getCatalog, getStore } from './data';
 
 type Params = { params: Promise<{ slug: string }> };
@@ -7,14 +7,18 @@ type Params = { params: Promise<{ slug: string }> };
 /** Restaurant menu: rendered on the server (fast first paint and SEO), cached per restaurant. */
 export default async function StoreMenuPage({ params }: Params) {
   const { slug } = await params;
-  const [store, catalog] = await Promise.all([getStore(slug), getCatalog(slug)]);
+  const [store, catalog, origin] = await Promise.all([
+    getStore(slug),
+    getCatalog(slug),
+    requestOrigin(),
+  ]);
   // Structured data: the restaurant, its address and opening hours (search engines).
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Restaurant',
     name: store.name,
     description: store.description ?? undefined,
-    url: `${MENU_URL}/${slug}`,
+    url: `${origin}/${slug}`,
     image: store.logoUrl ?? undefined,
     telephone: store.phone ? `+55${store.phone}` : undefined,
     address: store.address
@@ -34,7 +38,7 @@ export default async function StoreMenuPage({ params }: Params) {
       opens: h.opensAt,
       closes: h.closesAt,
     })),
-    hasMenu: `${MENU_URL}/${slug}`,
+    hasMenu: `${origin}/${slug}`,
   };
   return (
     <>
