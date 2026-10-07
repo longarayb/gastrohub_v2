@@ -195,6 +195,8 @@ Caixa de demonstração: a **Caixa** já entra com o caixa aberto (troco inicial
 
 Entregas: 4 áreas ("Pinheiros" suspensa por chuva), o Gustavo (usuário `entregador@demo.local`) em rota com uma entrega, a Helena de volta com uma entrega em dinheiro e uma não entregue esperando o **acerto** (Caixa ou Entregadores), e bairros sem área na tela Áreas de entrega. A geocodificação usa o Nominatim público (`GEOCODING_PROVIDER=nominatim`; `none` desliga), só quando uma área por raio precisa das coordenadas.
 
+Cardápio digital: `pnpm start:lite --menu` e abra http://localhost:3001/demo (de preferência no celular ou com a janela estreita). A loja demo tem a cor própria, um telefone bloqueado, um pedido recusado com motivo e o PIX "já pago" da Juliana na rota do Gustavo. Os horários do seed podem deixar a loja fechada: ajuste em Configurações › Horários. As variáveis `MENU_INTERNAL_URL`, `MENU_REVALIDATE_SECRET` e `TRUST_PROXY` estão no `.env.example`.
+
 Tela da cozinha: abra http://localhost:3000/kds com o login da **Cozinha** (ou de qualquer papel com acesso ao KDS), ou vincule um tablet sem senha: em **Cardápio › Setores de produção › Telas da cozinha**, gere o código da "TV da cozinha" e digite-o em http://localhost:3000/kds/vincular (código da unidade: `demo`).
 
 ## Conferir se está tudo certo
@@ -218,4 +220,5 @@ Roteiros visuais com Playwright (opcional): veja [tools/ui-walkthrough/README.md
 | `port is already allocated` (5432, 6379, 1025 ou 8025) no `pnpm infra:up`/`bootstrap` | Outro serviço usa a porta (outro projeto Docker, Postgres/Redis instalado no Windows). Descubra com `docker ps` ou `Get-NetTCPConnection -LocalPort 5432 \| Select OwningProcess`. Em vez de parar o outro serviço, mude a porta **só nesta máquina**, no `.env`: `POSTGRES_PORT=5433` (ou `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`). `DATABASE_URL`, `REDIS_URL` e `SMTP_PORT` usam essas variáveis (`${POSTGRES_PORT}`), então nada mais muda. Depois: `pnpm infra:down` e `pnpm infra:up`. O `.env.example` fica com as portas padrão |
 | Porta 3000/3333 em uso | Um servidor antigo ficou aberto: `Get-NetTCPConnection -LocalPort 3000 \| Select OwningProcess` e `Stop-Process -Id <pid>` |
 | Taxa de entrega pede "escolha a área manualmente" | O endereço não está em nenhuma área por bairro e o mapa não o encontrou (ou o Nominatim está fora/sem internet). Escolha a área no pedido, ou inclua o bairro numa área em Áreas de entrega ("Bairros sem área") |
+| Cardápio digital mostra dados antigos depois de mudar o cardápio | O cache é atualizado pela API com `MENU_REVALIDATE_SECRET` (igual nos dois apps; no `start:lite` o cardápio recebe o `.env`). Sem o segredo, a página se atualiza sozinha em até 5 minutos |
 | Login responde 429 | Limite de tentativas de login por minuto e IP (`LOGIN_RATE_LIMIT_PER_MINUTE`: 10 em produção; 300 no `.env.example` de desenvolvimento). Espere 1 minuto ou reinicie a API; se o seu `.env` é antigo, acrescente a variável |
