@@ -137,6 +137,8 @@ export const REALTIME_EVENTS = {
   CASH_UPDATED: 'cash.updated',
   /** Sent to a revoked KDS device: the screen signs out right away. */
   DEVICE_REVOKED: 'device.revoked',
+  /** Routes, settlements, courier balances or delivery areas changed (no personal data). */
+  DELIVERY_UPDATED: 'delivery.updated',
 } as const;
 
 export interface AreaDto {

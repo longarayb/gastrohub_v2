@@ -432,37 +432,17 @@ export class KdsService {
     if (!this.ctx.deviceId && !hasPermission(this.ctx.role, Permission.ORDERS_UPDATE_STATUS)) {
       throw new ForbiddenError();
     }
-    await this.db.$transaction(async (tx) => {
-      const order = await tx.order.findFirst({ where: { id: orderId } });
-      if (!order) throw new NotFoundError('Pedido');
-      if (order.type !== 'DELIVERY')
-        throw new ValidationError('Somente pedidos de delivery saem para entrega');
-      if (order.status !== 'READY') throw new ValidationError('O pedido ainda não está pronto');
-      const courier = await tx.courier.findFirst({
-        where: { id: input.courierId, isActive: true },
-      });
-      if (!courier) throw new ValidationError('Entregador não encontrado');
-      const now = new Date();
-      await this.orders.updateVersioned(tx, orderId, input.expectedVersion, {
-        courierId: courier.id,
-        status: 'DISPATCHED',
-        dispatchedAt: now,
-      });
-      await tx.orderStatusHistory.create({
-        data: {
-          orderId,
-          fromStatus: 'READY',
-          toStatus: 'DISPATCHED',
-          userId: this.ctx.userId ?? null,
-          reason: `Expedição · ${courier.name}`,
+    // Same route rules as the board (open run of the courier, one stop per attempt).
+    await this.db.$transaction((tx) =>
+      this.orders.dispatchInTx(
+        tx,
+        {
+          courierId: input.courierId,
+          orders: [{ orderId, expectedVersion: input.expectedVersion }],
         },
-      });
-      await this.production.completeOrder(tx, orderId, now);
-      await tx.orderItem.updateMany({
-        where: { orderId, status: 'READY' },
-        data: { status: 'SERVED', servedAt: now },
-      });
-    });
+        'Expedição',
+      ),
+    );
     await this.publish([orderId]);
   }
 

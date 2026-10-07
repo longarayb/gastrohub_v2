@@ -4,6 +4,8 @@ import {
   type Address,
   type CouponRule,
   type CreateOrderData,
+  type DeliveryFailureInput,
+  type DispatchInput,
   type DiscountData,
   type OrderDetailDto,
   type OrderItemData,
@@ -43,6 +45,8 @@ import { TenantContext } from '../../core/tenancy/tenant-context.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { MenuContext } from '../menu/menu-common.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
+import { DeliveryPricingService } from './delivery-pricing.service.js';
+import { DispatchService } from './dispatch.service.js';
 import { OrderPricingService, type PricedOrderItem } from './order-pricing.service.js';
 import { ProductionService } from './production.service.js';
 import {
@@ -86,6 +90,8 @@ export class OrdersService {
     private readonly audit: AuditService,
     private readonly realtime: RealtimeService,
     private readonly production: ProductionService,
+    private readonly deliveryPricing: DeliveryPricingService,
+    private readonly dispatch: DispatchService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -279,6 +285,8 @@ export class OrdersService {
     if (created) this.realtime.orderCreated(this.ctx.tenantId, event, sectors);
     else this.realtime.orderUpdated(this.ctx.tenantId, event, sectors);
     if (order.type === 'DINE_IN') this.realtime.tablesUpdated(this.ctx.tenantId);
+    // Routes and courier screens (dispatch, delivered, not delivered, canceled).
+    if (order.type === 'DELIVERY') this.realtime.deliveryUpdated(this.ctx.tenantId);
     return this.toDetail(order);
   }
 
@@ -379,6 +387,13 @@ export class OrdersService {
       isDigital,
     );
     const priced = this.pricing.priceItems(catalog, input.items);
+    const deliveryAddress =
+      input.type === 'DELIVERY' && input.deliveryAddress
+        ? await this.deliveryPricing.locate(input.deliveryAddress, {
+            id: input.customerId,
+            phone: input.customer?.phone,
+          })
+        : null;
 
     let orderId: string;
     try {
@@ -390,7 +405,7 @@ export class OrdersService {
 
         const tableSessionId =
           input.type === 'DINE_IN' ? await this.resolveTableSession(tx, input) : null;
-        const customer = await this.resolveCustomer(tx, input);
+        const customer = await this.resolveCustomer(tx, input, deliveryAddress);
         const coupon = input.couponCode
           ? await this.reserveCoupon(tx, input.couponCode, now)
           : null;
@@ -418,11 +433,11 @@ export class OrdersService {
             customerName: customer?.name ?? null,
             customerPhone: customer?.phone ?? null,
             customerDocument: customer?.document ?? null,
-            deliveryAddress:
-              input.type === 'DELIVERY' && input.deliveryAddress
-                ? (input.deliveryAddress as unknown as Prisma.InputJsonValue)
-                : Prisma.DbNull,
-            deliveryFeeCents: effectiveDeliveryFeeCents(input.type, input.deliveryFeeCents),
+            deliveryAddress: deliveryAddress
+              ? (deliveryAddress as unknown as Prisma.InputJsonValue)
+              : Prisma.DbNull,
+            // Delivery: decided by the area after the totals (DeliveryPricingService.apply).
+            deliveryFeeCents: 0,
             orderDiscountType: input.orderDiscount?.type ?? null,
             orderDiscountValue: input.orderDiscount?.value ?? null,
             orderDiscountReason: input.orderDiscount ? input.orderDiscountReason : null,
@@ -477,6 +492,20 @@ export class OrdersService {
           },
         });
         await this.recalculate(tx, order.id);
+        if (deliveryAddress) {
+          const totals = await tx.order.findFirstOrThrow({ where: { id: order.id } });
+          const fee = await this.deliveryPricing.apply(
+            tx,
+            { id: order.id, number, subtotalCents: totals.subtotalCents },
+            input,
+            deliveryAddress,
+            options.source,
+          );
+          if (fee > 0) {
+            await tx.order.update({ where: { id: order.id }, data: { deliveryFeeCents: fee } });
+            await this.recalculate(tx, order.id);
+          }
+        }
 
         const saved = await tx.order.findFirst({ where: { id: order.id } });
         if (coupon) {
@@ -566,7 +595,7 @@ export class OrdersService {
     return session.id;
   }
 
-  private async resolveCustomer(tx: DbTx, input: CreateOrderData) {
+  private async resolveCustomer(tx: DbTx, input: CreateOrderData, address: Address | null) {
     let customer = null;
     if (input.customerId) {
       customer = await tx.customer.findFirst({ where: { id: input.customerId } });
@@ -586,11 +615,18 @@ export class OrdersService {
       });
     }
     // Remember new delivery addresses on the customer record.
-    if (customer && input.type === 'DELIVERY' && input.deliveryAddress) {
-      const a = input.deliveryAddress as Address;
+    if (customer && address) {
+      const a = address;
       const known = await tx.customerAddress.findFirst({
         where: { customerId: customer.id, cep: a.cep, number: a.number },
       });
+      // Coordinates found for this order are cached on the saved address.
+      if (known && known.latitude == null && a.latitude != null && a.longitude != null) {
+        await tx.customerAddress.update({
+          where: { id: known.id },
+          data: { latitude: a.latitude, longitude: a.longitude },
+        });
+      }
       if (!known) {
         const count = await tx.customerAddress.count({ where: { customerId: customer.id } });
         await tx.customerAddress.create({
@@ -823,6 +859,8 @@ export class OrdersService {
           });
           break;
         case 'DISPATCHED':
+          // Delivery leaves with a courier (the stop of the route is created below).
+          if (!order.courierId) throw new ValidationError('Escolha o entregador para a saída');
           data.dispatchedAt = now;
           await this.production.completeOrder(tx, id, now);
           break;
@@ -846,6 +884,7 @@ export class OrdersService {
             where: { orderId: id, status: { in: ['QUEUED', 'PREPARING', 'READY'] } },
             data: { status: 'SERVED', servedAt: now },
           });
+          if (order.type === 'DELIVERY') await this.dispatch.markDelivered(tx, id, now);
           break;
         case 'CANCELED':
           this.require(Permission.ORDERS_CANCEL, 'Você não tem permissão para cancelar pedidos');
@@ -857,6 +896,7 @@ export class OrdersService {
           data.canceledById = this.ctx.userId ?? null;
           data.cancelReason = input.reason;
           await this.production.cancelOrder(tx, id, now);
+          if (order.type === 'DELIVERY') await this.dispatch.cancelPendingStop(tx, id, now);
           if (order.couponId) {
             await tx.coupon.updateMany({
               where: { id: order.couponId, usedCount: { gt: 0 } },
@@ -869,6 +909,7 @@ export class OrdersService {
         throw new ValidationError('Transição de status inválida');
       }
       await this.updateVersioned(tx, id, input.expectedVersion, data);
+      if (input.status === 'DISPATCHED') await this.dispatch.addStop(tx, id, order.courierId!, now);
       await tx.orderStatusHistory.create({
         data: {
           orderId: id,
@@ -975,6 +1016,67 @@ export class OrdersService {
         tx,
       );
     });
+    return this.publish(id);
+  }
+
+  /**
+   * Orders leave together with one courier (same route). Inside a transaction; also used by
+   * the KDS expedition. The caller publishes the orders after the commit.
+   */
+  async dispatchInTx(
+    tx: DbTx,
+    input: { courierId: string; orders: { orderId: string; expectedVersion: number }[] },
+    origin: string,
+  ): Promise<void> {
+    const courier = await tx.courier.findFirst({ where: { id: input.courierId, isActive: true } });
+    if (!courier) throw new ValidationError('Entregador não encontrado');
+    const now = new Date();
+    for (const { orderId, expectedVersion } of input.orders) {
+      const order = await tx.order.findFirst({ where: { id: orderId } });
+      if (!order) throw new NotFoundError('Pedido');
+      if (order.type !== 'DELIVERY') {
+        throw new ValidationError(`Pedido ${order.number}: somente delivery sai para entrega`);
+      }
+      if (order.status !== 'READY') {
+        throw new ValidationError(`Pedido ${order.number} ainda não está pronto`);
+      }
+      await this.updateVersioned(tx, orderId, expectedVersion, {
+        courierId: courier.id,
+        status: 'DISPATCHED',
+        dispatchedAt: now,
+      });
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId,
+          fromStatus: 'READY',
+          toStatus: 'DISPATCHED',
+          userId: this.ctx.userId ?? null,
+          reason: `${origin} · ${courier.name}`,
+        },
+      });
+      await this.production.completeOrder(tx, orderId, now);
+      await tx.orderItem.updateMany({
+        where: { orderId, status: 'READY' },
+        data: { status: 'SERVED', servedAt: now },
+      });
+      await this.dispatch.addStop(tx, orderId, courier.id, now);
+    }
+  }
+
+  async dispatchMany(input: DispatchInput): Promise<OrderDetailDto[]> {
+    const ids = input.orders.map((o) => o.orderId);
+    if (new Set(ids).size !== ids.length) throw new ValidationError('Pedido repetido na saída');
+    await this.db.$transaction((tx) => this.dispatchInTx(tx, input, 'Saída'));
+    const result: OrderDetailDto[] = [];
+    for (const id of ids) result.push(await this.publish(id));
+    return result;
+  }
+
+  /** Not delivered (told by the courier by phone, or the courier app). */
+  async deliveryFailed(id: string, input: DeliveryFailureInput): Promise<OrderDetailDto> {
+    await this.db.$transaction((tx) =>
+      this.dispatch.fail(tx, id, { reason: input.reason, note: input.note ?? null }),
+    );
     return this.publish(id);
   }
 

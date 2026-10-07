@@ -7,6 +7,8 @@ expand(loadEnv({ path: path.join(import.meta.dirname, '..', '..', '..', '.env'),
 process.env.NODE_ENV = 'test';
 // Suites create many accounts quickly; throttle.e2e.test.ts re-enables it.
 process.env.THROTTLE_DISABLED = 'true';
+// Never call the real geocoder from tests (addresses carry coordinates when a test needs them).
+process.env.GEOCODING_PROVIDER = 'none';
 if (process.env.DATABASE_URL_TEST) {
   process.env.DATABASE_URL = process.env.DATABASE_URL_TEST;
 }

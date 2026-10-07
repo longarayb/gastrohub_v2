@@ -95,6 +95,12 @@ export const collectionSchema = z
   });
 export type CollectionInput = z.input<typeof collectionSchema>;
 
+/** Courier app "Entregue": how the customer paid (required when the order has a balance). */
+export const courierDeliverSchema = z.object({
+  collection: collectionSchema.optional().nullable(),
+});
+export type CourierDeliverInput = z.input<typeof courierDeliverSchema>;
+
 export const deliveryFailureSchema = z
   .object({
     reason: z.enum(DELIVERY_FAILURE_REASONS),

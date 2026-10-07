@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { MenuModule } from '../menu/menu.module.js';
 import { CouponsService } from './coupons.service.js';
 import { CustomersService } from './customers.service.js';
+import { DeliveryPricingService } from './delivery-pricing.service.js';
+import { DispatchService } from './dispatch.service.js';
 import { OrderPricingService } from './order-pricing.service.js';
 import {
   CouponsController,
@@ -32,7 +34,9 @@ import { TabsService } from './tabs.service.js';
     ProductionService,
     CustomersService,
     CouponsService,
+    DeliveryPricingService,
+    DispatchService,
   ],
-  exports: [OrdersService, ProductionService],
+  exports: [OrdersService, ProductionService, DeliveryPricingService, DispatchService],
 })
 export class OrdersModule {}

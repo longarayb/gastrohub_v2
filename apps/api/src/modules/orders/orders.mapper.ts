@@ -1,7 +1,12 @@
 import { randomInt } from 'node:crypto';
+import {
+  type Address,
+  type DeliveryFailureReason,
+  type MenuItemSnapshot,
+  mapLinks,
+} from '@app/shared';
 import type {
-  Address,
-  MenuItemSnapshot,
+  OrderDeliveryDto,
   OrderDetailDto,
   OrderEvent,
   OrderSummaryDto,
@@ -19,6 +24,12 @@ export const orderSummaryInclude = {
   },
   courier: { select: { name: true } },
   items: { select: { status: true, quantity: true } },
+  // Latest delivery attempt: a failed one is shown on the board until dispatched again.
+  stops: {
+    orderBy: { dispatchedAt: 'desc' },
+    take: 1,
+    select: { dispatchedAt: true, failedAt: true, failureReason: true, failureNote: true },
+  },
 } satisfies Prisma.OrderInclude;
 
 export const orderDetailInclude = {
@@ -27,6 +38,11 @@ export const orderDetailInclude = {
   items: { orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }], include: { round: true } },
   history: { orderBy: { createdAt: 'asc' } },
   payments: { orderBy: { createdAt: 'asc' } },
+  delivery: true,
+  stops: {
+    orderBy: { dispatchedAt: 'desc' },
+    include: { run: { select: { courier: { select: { name: true } } } } },
+  },
 } satisfies Prisma.OrderInclude;
 
 export type OrderSummaryRow = Prisma.OrderGetPayload<{ include: typeof orderSummaryInclude }>;
@@ -37,6 +53,7 @@ const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null);
 export function toOrderSummary(o: OrderSummaryRow): OrderSummaryDto {
   const address = o.deliveryAddress as Address | null;
   const active = o.items.filter((i) => i.status !== 'CANCELED');
+  const last = o.stops[0];
   return {
     id: o.id,
     number: o.number,
@@ -53,6 +70,14 @@ export function toOrderSummary(o: OrderSummaryRow): OrderSummaryDto {
     customerPhone: o.customerPhone,
     neighborhood: address?.neighborhood ?? null,
     courierName: o.courier?.name ?? null,
+    deliveryFailure:
+      o.status === 'READY' && last?.failedAt && last.failureReason
+        ? {
+            reason: last.failureReason as DeliveryFailureReason,
+            note: last.failureNote,
+            at: last.failedAt.toISOString(),
+          }
+        : null,
     itemCount: active.reduce((sum, i) => sum + i.quantity, 0),
     draftItemCount: active.filter((i) => i.status === 'DRAFT').length,
     totalCents: o.totalCents,
@@ -128,6 +153,44 @@ export function toOrderDetail(o: OrderDetailRow, userNames: Map<string, string>)
       createdAt: h.createdAt.toISOString(),
     })),
     payments: o.payments.map((p) => toPaymentDto(p, userNames)),
+    delivery: o.type === 'DELIVERY' ? toOrderDelivery(o) : null,
+  };
+}
+
+function toOrderDelivery(o: OrderDetailRow): OrderDeliveryDto {
+  const address = o.deliveryAddress as Address | null;
+  const d = o.delivery;
+  return {
+    areaId: d?.areaId ?? null,
+    areaName: d?.areaName ?? null,
+    areaSource: d?.areaSource ?? 'NONE',
+    etaMinutes: d?.etaMinutes ?? null,
+    distanceMeters: d?.distanceMeters ?? null,
+    suggestedFeeCents: d?.suggestedFeeCents ?? null,
+    feeChangeReason: d?.feeChangeReason ?? null,
+    attempts: d?.attempts ?? 0,
+    links: address
+      ? mapLinks({
+          ...address,
+          latitude: address.latitude ?? d?.latitude ?? null,
+          longitude: address.longitude ?? d?.longitude ?? null,
+        })
+      : null,
+    stops: o.stops.map((st) => ({
+      id: st.id,
+      runId: st.runId,
+      courierName: st.run.courier.name,
+      sequence: st.sequence,
+      dispatchedAt: st.dispatchedAt.toISOString(),
+      deliveredAt: iso(st.deliveredAt),
+      failedAt: iso(st.failedAt),
+      failureReason: st.failureReason as DeliveryFailureReason | null,
+      failureNote: st.failureNote,
+      collectedMethod: st.collectedMethod as PaymentMethod | null,
+      collectedCents: st.collectedCents,
+      receivedCents: st.receivedCents,
+      changeCents: st.changeCents,
+    })),
   };
 }
 

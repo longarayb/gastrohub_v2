@@ -147,7 +147,14 @@ export interface SettlementStopDto {
 
 export interface SettlementPreviewDto {
   courier: { id: string; name: string };
-  runs: { id: string; departedAt: string; returnedAt: string | null; stops: number }[];
+  /** Runs not settled yet; a run with pending stops (still on route) cannot be settled. */
+  runs: {
+    id: string;
+    departedAt: string;
+    returnedAt: string | null;
+    stops: number;
+    pending: number;
+  }[];
   stops: SettlementStopDto[];
   earnings: {
     perDeliveryCents: number;
@@ -214,4 +221,6 @@ export interface DeliveryReportDto {
   deliveryFeesCents: number;
   byArea: DeliveryReportRowDto[];
   byCourier: DeliveryReportRowDto[];
+  /** Who owes whom: balance now (restaurant owes) and missing cash in the period (courier owes). */
+  balances: { courierId: string; name: string; balanceCents: number; courierOwesCents: number }[];
 }

@@ -431,7 +431,16 @@ describe('POS: cash register, payments and tables (e2e)', () => {
       deliveryFeeCents: 500,
       items: [item(ids.dish!)],
     });
-    o = await advance(o, ['PREPARING', 'READY', 'DISPATCHED', 'DELIVERED']);
+    o = await advance(o, ['PREPARING', 'READY']);
+    const courierId = (await post(owner, '/api/couriers', { name: 'Moto Caixa' }).expect(201)).body
+      .id;
+    o = (
+      await post(owner, '/api/orders/dispatch', {
+        courierId,
+        orders: [{ orderId: o.id, expectedVersion: o.version }],
+      }).expect(200)
+    ).body[0];
+    o = await advance(o, ['DELIVERED']);
     expect(o).toMatchObject({ status: 'DELIVERED', paymentStatus: 'UNPAID', balanceCents: 2_500 });
 
     const receivable = (await get(cashier, '/api/orders?receivable=true').expect(200)).body;
