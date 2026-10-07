@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { MENU_URL, serverGet } from '@/lib/api';
 
-export const revalidate = 3600;
+// Built on request (the API is not reachable at build time); the list itself is cached 1 h.
+export const dynamic = 'force-dynamic';
 
 /** One entry per restaurant with a public menu. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

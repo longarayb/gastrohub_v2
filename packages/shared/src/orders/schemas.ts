@@ -21,25 +21,8 @@ const zText = (max: number) =>
 export const zOrderType = z.enum(ORDER_TYPES as [OrderType, ...OrderType[]]);
 export const zOrderStatus = z.enum(ORDER_STATUSES as [OrderStatus, ...OrderStatus[]]);
 
-export const PAYMENT_METHODS = [
-  'CASH',
-  'PIX',
-  'CREDIT_CARD',
-  'DEBIT_CARD',
-  'MEAL_VOUCHER',
-  'ONLINE',
-  'OTHER',
-] as const;
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  CASH: 'Dinheiro',
-  PIX: 'PIX',
-  CREDIT_CARD: 'Cartão de crédito',
-  DEBIT_CARD: 'Cartão de débito',
-  MEAL_VOUCHER: 'Vale-refeição',
-  ONLINE: 'Pagamento online',
-  OTHER: 'Outro',
-};
+export { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, type PaymentMethod } from './payment-methods.js';
+import { PAYMENT_METHODS } from './payment-methods.js';
 export const zPaymentMethod = z.enum(PAYMENT_METHODS);
 
 /** VALUE in cents; PERCENT in basis points (1000 = 10%). */

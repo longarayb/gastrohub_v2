@@ -7,7 +7,7 @@
  * register that is open when it happens, so a closed register never changes.
  */
 
-import { PAYMENT_METHODS, type PaymentMethod } from '../orders/schemas.js';
+import { PAYMENT_METHODS, type PaymentMethod } from '../orders/payment-methods.js';
 import { formatBRL } from '../utils/money.js';
 import { usesCashRegister } from './payments.js';
 

@@ -11,7 +11,9 @@ const cached = (slug: string) => ({
   revalidate: MENU_REVALIDATE_SECONDS,
 });
 
-async function orNotFound<T>(load: () => Promise<T>): Promise<T> {
+async function orNotFound<T>(slug: string, load: () => Promise<T>): Promise<T> {
+  // "/favicon.ico" and other non-slugs never reach the API.
+  if (!/^[a-z0-9-]{2,80}$/.test(slug)) notFound();
   try {
     return await load();
   } catch (error) {
@@ -22,9 +24,9 @@ async function orNotFound<T>(load: () => Promise<T>): Promise<T> {
 
 /** The restaurant (deduplicated per request: layout, page and metadata share it). */
 export const getStore = cache((slug: string) =>
-  orNotFound(() => serverGet<PublicStoreDto>(`/public/${slug}`, cached(slug))),
+  orNotFound(slug, () => serverGet<PublicStoreDto>(`/public/${slug}`, cached(slug))),
 );
 
 export const getCatalog = cache((slug: string) =>
-  orNotFound(() => serverGet<CatalogDto>(`/public/${slug}/catalog`, cached(slug))),
+  orNotFound(slug, () => serverGet<CatalogDto>(`/public/${slug}/catalog`, cached(slug))),
 );

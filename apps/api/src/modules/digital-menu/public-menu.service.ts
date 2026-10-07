@@ -51,8 +51,8 @@ import { OrdersService } from '../orders/orders.service.js';
 
 /** The tracking page stays available this long after the order ends. */
 const TRACKING_DAYS_AFTER_END = 7;
-/** Bots submit the checkout right after loading it; people take longer. */
-const MIN_FILL_MS = 3_000;
+/** Bots submit the checkout right after loading it; people (even with saved data) take longer. */
+const MIN_FILL_MS = 1_500;
 /** A missed address is recorded once per neighborhood in this window. */
 const MISS_DEDUP_MS = 30 * 60_000;
 

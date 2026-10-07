@@ -1,4 +1,4 @@
-import { isOpenAt, type BusinessHour } from '../stores/schemas.js';
+import { type BusinessHour, isOpenAt } from './opening-hours.js';
 import {
   DEFAULT_TIMEZONE,
   addDaysToDate,

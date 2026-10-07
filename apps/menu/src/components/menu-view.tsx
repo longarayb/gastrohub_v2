@@ -13,13 +13,17 @@ import {
 import { Button } from '@app/ui/components/button';
 import { cn } from '@app/ui/lib/utils';
 import { Bike, Clock, MapPin, Phone, ShoppingBag, Store } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { type CartLine, useCart, useRecentOrders } from '@/lib/storage';
-import { CartSheet } from './cart-sheet';
 import { useNow } from './common';
-import { type ItemTarget, ItemSheet } from './item-sheet';
+import type { ItemTarget } from './item-sheet';
+
+// The sheets (and their dialog code) load on the first tap, not with the page: lighter on 3G.
+const ItemSheet = dynamic(() => import('./item-sheet').then((m) => m.ItemSheet), { ssr: false });
+const CartSheet = dynamic(() => import('./cart-sheet').then((m) => m.CartSheet), { ssr: false });
 
 function priceLabel(p: CatalogProduct): { text: string; was: string | null } {
   const { fromCents, toCents, hasPromo } = p.price;
@@ -99,6 +103,11 @@ export function MenuView({ store, catalog }: { store: PublicStoreDto; catalog: C
   const recent = useRecentOrders(store.slug);
   const [target, setTarget] = useState<ItemTarget | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  // Mounted after the first use only (their code is downloaded then).
+  const [itemUsed, setItemUsed] = useState(false);
+  const [cartUsed, setCartUsed] = useState(false);
+  if (target && !itemUsed) setItemUsed(true);
+  if (cartOpen && !cartUsed) setCartUsed(true);
 
   const categories = catalog.categories.filter((c) => c.products.length > 0);
   // Items of a cart saved earlier that ran out or changed price.
@@ -278,21 +287,25 @@ export function MenuView({ store, catalog }: { store: PublicStoreDto; catalog: C
         </div>
       )}
 
-      <ItemSheet
-        index={index}
-        target={target}
-        canAdd={canOrder}
-        onClose={() => setTarget(null)}
-        onAdd={addLine}
-      />
-      <CartSheet
-        open={cartOpen}
-        onOpenChange={setCartOpen}
-        store={store}
-        canOrder={canOrder}
-        changes={changes}
-        onAddMore={() => setCartOpen(false)}
-      />
+      {itemUsed && (
+        <ItemSheet
+          index={index}
+          target={target}
+          canAdd={canOrder}
+          onClose={() => setTarget(null)}
+          onAdd={addLine}
+        />
+      )}
+      {cartUsed && (
+        <CartSheet
+          open={cartOpen}
+          onOpenChange={setCartOpen}
+          store={store}
+          canOrder={canOrder}
+          changes={changes}
+          onAddMore={() => setCartOpen(false)}
+        />
+      )}
     </main>
   );
 }
