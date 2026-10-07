@@ -42,6 +42,12 @@ export const envSchema = z.object({
 
   WEB_PUBLIC_URL: z.url().default('http://localhost:3000'),
   MENU_PUBLIC_URL: z.url().default('http://localhost:3001'),
+  /** Where the API reaches the menu app to refresh its cache (internal network in production). */
+  MENU_INTERNAL_URL: z.url().default('http://localhost:3001'),
+  /** Shared secret of the menu cache refresh; empty disables it (the cache expires by itself). */
+  MENU_REVALIDATE_SECRET: z.string().default(''),
+  /** Express "trust proxy": which proxies may set X-Forwarded-For (real client IP). */
+  TRUST_PROXY: z.string().default('loopback'),
   STORAGE_DIR: z.string().default('uploads'),
 
   GEOCODING_PROVIDER: z.enum(['nominatim', 'none']).default('nominatim'),

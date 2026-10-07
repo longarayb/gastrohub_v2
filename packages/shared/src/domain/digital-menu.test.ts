@@ -7,6 +7,7 @@ import {
   cartChanges,
   contrastRatio,
   customerRejectionMessage,
+  describeItem,
   digitalOrderLimitError,
   estimatedTime,
   isHexColor,
@@ -213,5 +214,25 @@ describe('privacyNoticeTemplate', () => {
     expect(text).toContain('Cantina LTDA (CNPJ 11.222.333/0001-81) é o responsável (controlador)');
     expect(text).toContain('pelo contato contato@cantina.com');
     expect(text).toContain('sem seu nome ou telefone');
+  });
+});
+
+describe('describeItem', () => {
+  it('summarizes size, flavors, modifiers and note', () => {
+    expect(
+      describeItem({
+        size: { name: 'Grande' },
+        flavors: [
+          { name: 'Calabresa', fraction: { numerator: 1, denominator: 2 } },
+          { name: 'Marguerita', fraction: { numerator: 1, denominator: 2 } },
+        ],
+        modifiers: [
+          { name: 'Catupiry', quantity: 1 },
+          { name: 'Bacon', quantity: 2 },
+        ],
+        note: 'sem cebola',
+      }),
+    ).toBe('Grande · ½ Calabresa, ½ Marguerita · Catupiry, 2× Bacon · Obs.: sem cebola');
+    expect(describeItem({ size: null, flavors: [], modifiers: [], note: null })).toBeNull();
   });
 });

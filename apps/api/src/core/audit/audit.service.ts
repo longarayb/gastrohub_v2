@@ -38,6 +38,9 @@ export const AuditAction = {
   COURIER_PAY_CHANGED: 'courier.pay_changed',
   COURIER_SETTLED: 'courier.settled',
   COURIER_PAYOUT: 'courier.payout',
+  PHONE_BLOCKED: 'digital_menu.phone_blocked',
+  PHONE_UNBLOCKED: 'digital_menu.phone_unblocked',
+  DIGITAL_MENU_UPDATED: 'digital_menu.settings_updated',
 } as const;
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 

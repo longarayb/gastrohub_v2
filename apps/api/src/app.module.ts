@@ -15,6 +15,7 @@ import { StorageModule } from './core/storage/storage.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { CashModule } from './modules/cash/cash.module.js';
 import { DeliveryModule } from './modules/delivery/delivery.module.js';
+import { DigitalMenuModule } from './modules/digital-menu/digital-menu.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { KdsModule } from './modules/kds/kds.module.js';
 import { MenuModule } from './modules/menu/menu.module.js';
@@ -74,6 +75,7 @@ const isTest = process.env.NODE_ENV === 'test';
     CashModule,
     KdsModule,
     DeliveryModule,
+    DigitalMenuModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

@@ -302,3 +302,31 @@ export function privacyNoticeTemplate(store: {
     `Você pode pedir acesso, correção ou exclusão dos seus dados${contact ? ` pelo contato ${contact}` : ' com o restaurante'}.`,
   ].join('\n\n');
 }
+
+// ---------------------------------------------------------------------------
+// Item description (cart, tracking)
+
+/** "Grande · ½ Calabresa, ½ Marguerita · 2× Bacon, Catupiry · Obs.: sem cebola". */
+export function describeItem(snapshot: {
+  size: { name: string } | null;
+  flavors: { name: string; fraction: { numerator: number; denominator: number } }[];
+  modifiers: { name: string; quantity: number }[];
+  note: string | null;
+}): string | null {
+  const fraction = (f: { numerator: number; denominator: number }) =>
+    f.numerator === 1 && f.denominator > 1
+      ? (({ 2: '½', 3: '⅓', 4: '¼' } as Record<number, string>)[f.denominator] ??
+        `1/${f.denominator}`)
+      : '';
+  const parts = [
+    snapshot.size?.name,
+    snapshot.flavors.length > 1
+      ? snapshot.flavors.map((f) => `${fraction(f.fraction)} ${f.name}`.trim()).join(', ')
+      : snapshot.flavors[0]?.name,
+    snapshot.modifiers
+      .map((m) => (m.quantity > 1 ? `${m.quantity}× ${m.name}` : m.name))
+      .join(', '),
+    snapshot.note ? `Obs.: ${snapshot.note}` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : null;
+}
