@@ -9,7 +9,8 @@
     "orders": "node orders.mjs",
     "pos": "node pos.mjs",
     "kds": "node kds.mjs",
-    "delivery": "node delivery.mjs"
+    "delivery": "node delivery.mjs",
+    "digital-menu": "node digital-menu.mjs"
   },
   "dependencies": {
     "playwright-core": "^1.63.0"

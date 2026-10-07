@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { type OrderEvent, REALTIME_EVENTS } from '@app/shared';
 import { RealtimeGateway, deviceRoom, sectorRoom, tenantRoom } from './realtime.gateway.js';
+import { TrackingGateway } from './tracking.gateway.js';
 
 /**
  * Publishes realtime notifications. Call it AFTER the database transaction commits, so a
@@ -8,7 +9,15 @@ import { RealtimeGateway, deviceRoom, sectorRoom, tenantRoom } from './realtime.
  */
 @Injectable()
 export class RealtimeService {
-  constructor(private readonly gateway: RealtimeGateway) {}
+  constructor(
+    private readonly gateway: RealtimeGateway,
+    private readonly tracking: TrackingGateway,
+  ) {}
+
+  /** Public tracking page of one order (digital menu): status only. */
+  trackingUpdated(token: string, payload: { status: string; version: number }): void {
+    this.tracking.emit(token, REALTIME_EVENTS.TRACKING_UPDATED, payload);
+  }
 
   orderCreated(tenantId: string, event: OrderEvent, sectorIds: string[] = []): void {
     this.gateway.emit(tenantRoom(tenantId), REALTIME_EVENTS.ORDER_CREATED, event);

@@ -11,6 +11,8 @@ export function setupApp(app: INestApplication): void {
   const config = app.get(AppConfig);
 
   app.setGlobalPrefix('api');
+  // Real client IP behind the reverse proxy (digital menu limits, throttling).
+  (app as NestExpressApplication).set('trust proxy', config.get('TRUST_PROXY'));
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use(cookieParser());
   app.enableCors({

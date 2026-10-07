@@ -12,6 +12,7 @@ import {
   Navigation,
   MonitorPlay,
   ReceiptText,
+  Smartphone,
   TicketPercent,
   type LucideIcon,
   Users,
@@ -125,6 +126,12 @@ export const NAV: NavGroup[] = [
         href: '/configuracoes/empresa',
         label: 'Empresa',
         icon: Building2,
+        permissions: [Permission.STORE_MANAGE],
+      },
+      {
+        href: '/configuracoes/cardapio-digital',
+        label: 'Cardápio digital',
+        icon: Smartphone,
         permissions: [Permission.STORE_MANAGE],
       },
       {

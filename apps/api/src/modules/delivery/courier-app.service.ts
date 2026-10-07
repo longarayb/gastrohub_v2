@@ -79,6 +79,7 @@ export class CourierAppService {
                 paidCents: true,
                 expectedPaymentMethod: true,
                 changeForCents: true,
+                pixReportedAt: true,
                 delivery: { select: { latitude: true, longitude: true } },
               },
             },
@@ -117,6 +118,7 @@ export class CourierAppService {
                 receivedCents: s.receivedCents,
                 changeCents: s.changeCents,
                 failureReason: s.failureReason as DeliveryFailureReason | null,
+                pixReportedAt: s.order.pixReportedAt?.toISOString() ?? null,
               };
             }),
           }

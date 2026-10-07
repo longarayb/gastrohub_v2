@@ -7,6 +7,7 @@ import type {
 } from '../domain/order-status.js';
 import type { OrderPaymentStatus } from '../domain/payments.js';
 import type { OrderDeliveryDto } from '../delivery/types.js';
+import type { OrderRejectionDto } from '../digital-menu/types.js';
 import type { DeliveryFailureReason } from '../domain/delivery.js';
 import type { PaymentDto } from '../pos/types.js';
 import type { Address } from '../schemas/common.js';
@@ -32,6 +33,8 @@ export interface OrderSummaryDto {
   courierName: string | null;
   /** Delivery back at the store after a failed attempt (until dispatched again or canceled). */
   deliveryFailure: { reason: DeliveryFailureReason; note: string | null; at: string } | null;
+  /** The customer said they paid by PIX (digital menu): check before charging again. */
+  pixReportedAt: string | null;
   itemCount: number;
   /** Items in a round not yet sent to the kitchen. */
   draftItemCount: number;
@@ -117,6 +120,8 @@ export interface OrderDetailDto extends OrderSummaryDto {
   history: OrderHistoryDto[];
   payments: PaymentDto[];
   delivery: OrderDeliveryDto | null;
+  /** Refused digital menu order: what the customer saw. */
+  rejection: OrderRejectionDto | null;
 }
 
 /** Realtime event payload: a notification, clients refetch what they need. */
@@ -139,6 +144,8 @@ export const REALTIME_EVENTS = {
   DEVICE_REVOKED: 'device.revoked',
   /** Routes, settlements, courier balances or delivery areas changed (no personal data). */
   DELIVERY_UPDATED: 'delivery.updated',
+  /** Public tracking page of one order (namespace /tracking, room = tracking token). */
+  TRACKING_UPDATED: 'tracking.updated',
 } as const;
 
 export interface AreaDto {

@@ -10,6 +10,8 @@ process.env.NODE_ENV = 'test';
 process.env.THROTTLE_DISABLED = 'true';
 // Never call the real geocoder from tests (addresses carry coordinates when a test needs them).
 process.env.GEOCODING_PROVIDER = 'none';
+// No calls to the menu app from tests (its cache refresh is fire-and-forget).
+process.env.MENU_REVALIDATE_SECRET = '';
 if (process.env.DATABASE_URL_TEST) {
   process.env.DATABASE_URL = process.env.DATABASE_URL_TEST;
 }

@@ -23,7 +23,16 @@ export function Kbd({ children, className }: { children: React.ReactNode; classN
  * QR Code drawn as SVG modules with the theme's QR tokens (always dark on light, which
  * scanners need), so it also prints on thermal paper.
  */
-export function QrCode({ value, className }: { value: string; className?: string }) {
+export function QrCode({
+  value,
+  className,
+  label = 'QR Code PIX',
+}: {
+  value: string;
+  className?: string;
+  /** Accessible name (default: the PIX QR Code). */
+  label?: string;
+}) {
   const path = useMemo(() => {
     const qr = QRCode.create(value, { errorCorrectionLevel: 'M' });
     const size = qr.modules.size;
@@ -42,7 +51,7 @@ export function QrCode({ value, className }: { value: string; className?: string
       viewBox={`${-margin} ${-margin} ${view} ${view}`}
       className={cn('bg-qr-background text-qr-foreground', className)}
       role="img"
-      aria-label="QR Code PIX"
+      aria-label={label}
       shapeRendering="crispEdges"
     >
       <path d={path.d} fill="currentColor" />

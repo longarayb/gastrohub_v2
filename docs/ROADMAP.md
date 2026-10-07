@@ -13,7 +13,8 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Salão, mesas, PDV e caixa (pagamentos, troco, PIX estático, caixa por operador com fechamento cego, divisão da conta, transferir/juntar/separar mesas, pré-conta) | `feat/tables-pos` | ✅ |
 | KDS e setores de produção (tickets por rodada e setor, combo dividido entre setores, status automático, expedição, telas vinculadas sem senha) | `feat/kds` | ✅ |
 | Delivery (áreas por bairro ou raio com taxa, tempo e mínimo; saída com vários pedidos; app do entregador; não entregue e reenvio; acerto no caixa com remuneração e saldo; relatório) | `feat/delivery` | ✅ |
-| Cardápio digital (app `menu`) | `feat/digital-menu` | ⏳ |
+| Cardápio digital (app `menu`: marca do restaurante, carrinho com complementos/pizza/combos, entrega ou retirada, pagamento na entrega, limites contra trote, acompanhamento em tempo real com PIX e "Já paguei", LGPD, SEO e prévia de link) | `feat/digital-menu` | ✅ |
+| QR Code na mesa (pedido pelo celular no salão, rodadas na conta da mesa) | `feat/table-qr` | ⏳ |
 | Impressão (comanda e cupom 80mm) | `feat/printing` | ⏳ |
 | Dashboard e relatórios | `feat/reports` | ⏳ |
 | Seed de demonstração e documentação | `chore/seed-docs` | ⏳ |
@@ -33,6 +34,9 @@ O layout será refeito trocando o tema (`packages/ui/src/styles/globals.css`), s
 - CRM, fidelidade, campanhas, robô de WhatsApp
 - Apps de garçom, entregador e totem de autoatendimento
 - Roteirização de entregas e mapa; acompanhamento do pedido pelo cliente (o modelo de saídas e paradas já guarda os horários)
+- Cardápio digital: pedido agendado (faixas de horário com capacidade, produção na hora certa)
+- Cardápio digital: verificação do telefone por código (SMS/WhatsApp, `OtpProvider`) e captcha opcional
+- Clientes: tela de clientes com histórico, anonimização (direito de exclusão da LGPD) e mesclagem de duplicados
 - Delivery: maquininha própria do entregador (o acerto passa a separar o que entrou na maquininha dele)
 - Delivery: geocodificação paga ou Nominatim próprio para produção com volume (D029)
 - Postgres RLS como segunda camada de isolamento multi-tenant

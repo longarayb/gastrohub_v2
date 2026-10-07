@@ -3,7 +3,7 @@
  * two rounds, a canceled order, customers, couriers and coupons. Prices and totals come from
  * the same pure functions the API uses (priceMenuItem / calculateOrderTotals).
  */
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import {
   type BusinessHour,
   type CardBrand,
@@ -344,6 +344,7 @@ export async function seedOrders(
         businessDate,
         number,
         publicCode: publicCode(),
+        trackingToken: randomBytes(16).toString('base64url'),
         type: spec.type,
         source: spec.source ?? 'POS',
         status: spec.status,

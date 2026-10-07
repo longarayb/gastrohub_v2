@@ -130,6 +130,8 @@ export interface CourierAppStopDto {
   receivedCents: number | null;
   changeCents: number | null;
   failureReason: DeliveryFailureReason | null;
+  /** The customer said they paid by PIX: confirm, do not charge again. */
+  pixReportedAt: string | null;
 }
 
 export interface CourierAppDto {

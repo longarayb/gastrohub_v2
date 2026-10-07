@@ -46,6 +46,7 @@ import { useAuth } from '@/lib/auth';
 import { createPayment, refundPayment, useCurrentCash, usePixCharge } from '@/lib/cash';
 import { useHotkeys } from '@/lib/hotkeys';
 import { changeOrderStatus, orderTitle } from '@/lib/orders';
+import { PixReportedBadge } from '@/components/digital-menu/order-badges';
 import { Kbd, QrCode } from './common';
 
 /** Methods in shortcut order (keys 1–7). */
@@ -216,6 +217,7 @@ export function PaymentDialog({
             <span className="font-medium text-foreground">saldo {formatBRL(balance)}</span>
           </DialogDescription>
         </DialogHeader>
+        {order.pixReportedAt && balance > 0 && <PixReportedBadge className="text-sm" />}
 
         {balance === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-md bg-success/10 p-4 text-center">

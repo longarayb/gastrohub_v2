@@ -29,6 +29,7 @@ import {
   moveItemsSchema,
   orderDiscountSchema,
   orderListQuerySchema,
+  rejectOrderSchema,
   sendRoundSchema,
   serviceFeeSchema,
   splitSessionSchema,
@@ -165,6 +166,20 @@ export class OrdersController {
     @ZBody(deliveryFailureSchema) body: z.output<typeof deliveryFailureSchema>,
   ) {
     return this.orders.deliveryFailed(id, body);
+  }
+
+  @Post(':id/reject')
+  @HttpCode(200)
+  @RequirePermissions(Permission.ORDERS_CANCEL)
+  @ApiOperation({
+    summary: 'Recusa um pedido do cardápio digital (motivo para o cliente + nota interna)',
+  })
+  @ApiZodBody(rejectOrderSchema)
+  reject(
+    @Param('id') id: string,
+    @ZBody(rejectOrderSchema) body: z.output<typeof rejectOrderSchema>,
+  ) {
+    return this.orders.reject(id, body);
   }
 
   @Post(':id/discount')

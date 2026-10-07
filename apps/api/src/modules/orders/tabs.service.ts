@@ -13,7 +13,7 @@ import { type Db, type DbTx, InjectDb } from '../../core/tenancy/db.provider.js'
 import { TenantContext } from '../../core/tenancy/tenant-context.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
-import { newPublicCode, nextOrderNumber, toOrderEvent } from './orders.mapper.js';
+import { newPublicCode, newTrackingToken, nextOrderNumber, toOrderEvent } from './orders.mapper.js';
 import { OrdersService } from './orders.service.js';
 import { ProductionService } from './production.service.js';
 import { TablesService } from './tables.service.js';
@@ -143,6 +143,7 @@ export class TabsService {
             businessDate: source.businessDate,
             number: await nextOrderNumber(tx, this.ctx.tenantId, source.businessDate),
             publicCode: newPublicCode(),
+            trackingToken: newTrackingToken(),
             type: 'DINE_IN',
             source: source.source,
             status: source.status,

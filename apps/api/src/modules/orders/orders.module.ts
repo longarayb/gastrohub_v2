@@ -37,6 +37,12 @@ import { TabsService } from './tabs.service.js';
     DeliveryPricingService,
     DispatchService,
   ],
-  exports: [OrdersService, ProductionService, DeliveryPricingService, DispatchService],
+  exports: [
+    OrdersService,
+    OrderPricingService,
+    ProductionService,
+    DeliveryPricingService,
+    DispatchService,
+  ],
 })
 export class OrdersModule {}

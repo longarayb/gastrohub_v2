@@ -12,6 +12,7 @@ import type {
   OrderStatus,
   OrderSummaryDto,
   OrderType,
+  RejectOrderInput,
   TableDto,
   TableInput,
 } from '@app/shared';
@@ -135,6 +136,16 @@ export const setServiceFee = (order: OrderDetailDto, waived: boolean, reason: st
     expectedVersion: order.version,
     waived,
     reason,
+  });
+
+/** Refuse a digital menu order (reason for the customer + internal note). */
+export const rejectOrder = (
+  order: OrderDetailDto,
+  input: Omit<RejectOrderInput, 'expectedVersion'>,
+) =>
+  apiPost<OrderDetailDto>(`/orders/${order.id}/reject`, {
+    expectedVersion: order.version,
+    ...input,
   });
 
 export const assignCourier = (order: OrderDetailDto, courierId: string | null) =>

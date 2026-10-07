@@ -4,6 +4,8 @@ import {
   type Address,
   type CouponRule,
   type CreateOrderData,
+  CUSTOMER_REJECTION_LABELS,
+  type CustomerRejectionReason,
   type DeliveryFailureInput,
   type DispatchInput,
   type DiscountData,
@@ -52,6 +54,7 @@ import { ProductionService } from './production.service.js';
 import {
   type OrderDetailRow,
   newPublicCode,
+  newTrackingToken,
   nextOrderNumber,
   orderDetailInclude,
   orderSummaryInclude,
@@ -63,6 +66,8 @@ import {
 export interface CreateOrderOptions {
   source: OrderSource;
   idempotencyKey?: string | null;
+  /** Digital menu: hash of the client IP (limit per IP), never the IP itself. */
+  clientIpHash?: string | null;
 }
 
 const CONFLICT_MESSAGE =
@@ -285,6 +290,12 @@ export class OrdersService {
     if (created) this.realtime.orderCreated(this.ctx.tenantId, event, sectors);
     else this.realtime.orderUpdated(this.ctx.tenantId, event, sectors);
     if (order.type === 'DINE_IN') this.realtime.tablesUpdated(this.ctx.tenantId);
+    if (order.source === 'DIGITAL_MENU') {
+      this.realtime.trackingUpdated(order.trackingToken, {
+        status: order.status,
+        version: order.version,
+      });
+    }
     // Routes and courier screens (dispatch, delivered, not delivered, canceled).
     if (order.type === 'DELIVERY') this.realtime.deliveryUpdated(this.ctx.tenantId);
     return this.toDetail(order);
@@ -422,11 +433,13 @@ export class OrdersService {
             businessDate: businessDay.date,
             number,
             publicCode: newPublicCode(),
+            trackingToken: newTrackingToken(),
             type: input.type,
             source: options.source,
             status,
             idempotencyKey: options.idempotencyKey ?? null,
             requestHash,
+            clientIpHash: options.clientIpHash ?? null,
             tableSessionId,
             tabLabel: input.tabLabel ?? null,
             customerId: customer?.id ?? null,
@@ -835,7 +848,13 @@ export class OrdersService {
 
   async changeStatus(
     id: string,
-    input: { expectedVersion: number; status: OrderStatus; reason: string | null },
+    input: {
+      expectedVersion: number;
+      status: OrderStatus;
+      reason: string | null;
+      /** Digital menu: reason the customer sees (the `reason` above stays internal). */
+      customerReject?: { reason: CustomerRejectionReason; text: string | null };
+    },
   ): Promise<OrderDetailDto> {
     await this.db.$transaction(async (tx) => {
       const order = await tx.order.findFirst({ where: { id }, include: { items: true } });
@@ -895,6 +914,11 @@ export class OrdersService {
           data.canceledAt = now;
           data.canceledById = this.ctx.userId ?? null;
           data.cancelReason = input.reason;
+          if (input.customerReject) {
+            data.customerRejectReason = input.customerReject.reason;
+            data.customerRejectText =
+              input.customerReject.reason === 'OTHER' ? input.customerReject.text : null;
+          }
           await this.production.cancelOrder(tx, id, now);
           if (order.type === 'DELIVERY') await this.dispatch.cancelPendingStop(tx, id, now);
           if (order.couponId) {
@@ -1078,6 +1102,55 @@ export class OrdersService {
       this.dispatch.fail(tx, id, { reason: input.reason, note: input.note ?? null }),
     );
     return this.publish(id);
+  }
+
+  /**
+   * Refuses (or cancels) a digital menu order: a reason for the customer, an internal note
+   * that the customer never sees and, optionally, blocks the phone (prank orders).
+   */
+  async reject(
+    id: string,
+    input: {
+      expectedVersion: number;
+      reason: CustomerRejectionReason;
+      reasonText: string | null;
+      internalNote: string | null;
+      blockPhone: boolean;
+    },
+  ): Promise<OrderDetailDto> {
+    const order = await this.db.order.findFirst({ where: { id } });
+    if (!order) throw new NotFoundError('Pedido');
+    if (order.source !== 'DIGITAL_MENU') {
+      throw new ValidationError(
+        'Recusa com motivo para o cliente só em pedidos do cardápio digital',
+      );
+    }
+    const label = CUSTOMER_REJECTION_LABELS[input.reason];
+    const detail = await this.changeStatus(id, {
+      expectedVersion: input.expectedVersion,
+      status: 'CANCELED',
+      reason: input.internalNote ?? `Recusado: ${input.reasonText ?? label}`,
+      customerReject: { reason: input.reason, text: input.reasonText },
+    });
+    if (input.blockPhone && order.customerPhone) {
+      await this.db.blockedPhone.upsert({
+        where: { tenantId_phone: { tenantId: this.ctx.tenantId, phone: order.customerPhone } },
+        create: {
+          phone: order.customerPhone,
+          reason: input.internalNote ?? `Pedido #${order.number} recusado: ${label}`,
+          createdById: this.ctx.userId ?? null,
+        },
+        update: {},
+      });
+      await this.audit.log({
+        action: AuditAction.PHONE_BLOCKED,
+        entity: 'BlockedPhone',
+        entityId: order.customerPhone,
+        reason: input.internalNote ?? label,
+        after: { orderNumber: order.number },
+      });
+    }
+    return detail;
   }
 
   async assignCourier(id: string, input: { expectedVersion: number; courierId: string | null }) {

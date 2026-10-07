@@ -209,7 +209,7 @@ export class DeliveryAreasService {
   /** Neighborhoods of recent delivery orders and customers that no area covers. */
   async unmatched(): Promise<UnmatchedNeighborhoodDto[]> {
     const since = new Date(Date.now() - UNMATCHED_DAYS * 86_400_000);
-    const [areas, orders, addresses] = await Promise.all([
+    const [areas, orders, addresses, misses] = await Promise.all([
       this.db.deliveryArea.findMany({ where: { deletedAt: null } }),
       this.db.order.findMany({
         where: { type: 'DELIVERY', createdAt: { gte: since } },
@@ -218,6 +218,12 @@ export class DeliveryAreasService {
         take: 2000,
       }),
       this.db.customerAddress.findMany({
+        where: { createdAt: { gte: since } },
+        select: { neighborhood: true, city: true, createdAt: true },
+        take: 2000,
+      }),
+      // Addresses the digital menu could not deliver to (D033).
+      this.db.deliveryQuoteMiss.findMany({
         where: { createdAt: { gte: since } },
         select: { neighborhood: true, city: true, createdAt: true },
         take: 2000,
@@ -232,6 +238,7 @@ export class DeliveryAreasService {
         .filter((o) => o.address)
         .map((o) => ({ neighborhood: o.address!.neighborhood, city: o.address!.city, at: o.at })),
       ...addresses.map((a) => ({ neighborhood: a.neighborhood, city: a.city, at: a.createdAt })),
+      ...misses.map((m) => ({ neighborhood: m.neighborhood, city: m.city, at: m.createdAt })),
     ];
     return unmatchedNeighborhoods(seen, named).slice(0, 50);
   }
