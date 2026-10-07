@@ -7,7 +7,6 @@
   "globalPassThroughEnv": [
     "DATABASE_URL",
     "REDIS_URL",
-    "NEXT_PUBLIC_*",
     "API_*",
     "JWT_*",
     "SMTP_*",
@@ -18,7 +17,8 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["NEXT_PUBLIC_*"]
     },
     "dev": {
       "dependsOn": ["^build"],

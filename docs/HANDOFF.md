@@ -51,7 +51,15 @@
 
 ## Próximos passos (nesta ordem)
 
-### 1. Etapa `feat/table-qr` — apresentar a proposta ANTES de codar
+### 1. Etapa `feat/printing` — proposta apresentada, aguardando aprovação
+
+Ordem combinada: **`feat/printing` → `feat/dashboard` → `feat/table-qr`** (fechar o escopo do MVP antes do QR na mesa). A proposta da impressão foi apresentada na sessão de 2026-10-07 (agente local, impressoras por unidade, fila com confirmação, layouts 58/80 mm, vínculo por código, instalação sem ajuda técnica; NFC-e fora). Aguardar a aprovação e seguir a ordem de sempre.
+
+### 2. Etapa `feat/dashboard`
+
+Depois da impressão. Apresentar a proposta antes de codar.
+
+### 3. Etapa `feat/table-qr` — apresentar a proposta ANTES de codar
 
 QR Code na mesa: o cliente sentado no salão faz o pedido pelo celular e os itens viram rodadas na conta da mesa (sessão). Decidido na `feat/digital-menu`: etapa própria, logo depois, reaproveitando os componentes do `apps/menu` (cardápio, montagem de item, carrinho, preço pelo shared).
 
@@ -66,6 +74,8 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 Nenhuma no momento.
 
 ## Lembretes de ambiente
+
+- **Testar no celular:** `pnpm start:lite --menu --lan` e `pnpm lan:links` (mesma rede Wi-Fi; regra do firewall em docs/SETUP.md). Prévia do link no WhatsApp: `pnpm tunnel:menu` (túnel temporário que se fecha em 30 min; expõe o ambiente de desenvolvimento).
 
 - Surface (8 GB): `.env` com `POSTGRES_PORT=5433`, `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1`. Playwright headless, um navegador, sem paralelismo; pare os servidores antes de builds.
 - Depois de reiniciar o Windows, abra o Docker Desktop antes do `pnpm test:e2e`/`start:lite` (o `global-setup` do e2e falha com "dockerDesktopLinuxEngine" se o engine estiver parado).

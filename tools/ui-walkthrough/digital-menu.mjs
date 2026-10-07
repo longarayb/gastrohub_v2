@@ -324,10 +324,18 @@ await step('"Não é você?": clears the data saved on the phone', async () => {
   await sheet.getByRole('button', { name: 'Continuar' }).click();
   if ((await sheet.getByLabel('Nome', { exact: true }).inputValue()) !== 'Ana Cardápio')
     throw new Error('not prefilled');
+  // The current notice was accepted on this device: a line with the link, no checkbox.
+  await sheet.getByText(/Ao enviar, você concorda com o/).waitFor();
+  if (await sheet.getByRole('checkbox', { name: /Li e aceito/ }).count()) {
+    throw new Error('consent checkbox shown again');
+  }
+  await shot(page, '09b-consent-known');
   await sheet.getByRole('button', { name: 'Não é você? Limpar meus dados' }).click();
   await toast(page, 'Seus dados foram apagados deste aparelho');
   if ((await sheet.getByLabel('Nome', { exact: true }).inputValue()) !== '')
     throw new Error('name kept');
+  // Data cleared: the required checkbox is back.
+  await sheet.getByRole('checkbox', { name: /Li e aceito/ }).waitFor();
   await page.keyboard.press('Escape');
 });
 
@@ -369,7 +377,7 @@ await step('closed store: menu visible with the next opening, ordering blocked',
 
 await step('link preview image of the restaurant', async () => {
   const og = await phone.newPage();
-  const res = await og.goto(`${MENU}/demo/opengraph-image`);
+  const res = await og.goto(`${MENU}/demo/og`);
   if (res.headers()['content-type'] !== 'image/png') throw new Error('not a PNG');
   await og.screenshot({ path: path.join(OUT, 'menu-11-og.png') });
   await og.close();

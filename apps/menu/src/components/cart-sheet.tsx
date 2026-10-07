@@ -39,7 +39,13 @@ import { ArrowLeft, Bike, ShoppingBag, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import { PublicApiError, clientApi } from '@/lib/api';
-import { type Cart, useCart, useRecentOrders, useSavedCustomer } from '@/lib/storage';
+import {
+  type Cart,
+  useAcceptedPrivacy,
+  useCart,
+  useRecentOrders,
+  useSavedCustomer,
+} from '@/lib/storage';
 import { Field, MoneyInput } from './common';
 
 const EMPTY_ADDRESS: AddressInput = {
@@ -144,6 +150,9 @@ export function CartSheet({
   const { cart, setCart, clear } = useCart(store.slug);
   const saved = useSavedCustomer();
   const recent = useRecentOrders(store.slug);
+  const acceptedPrivacy = useAcceptedPrivacy(store.slug);
+  // This device already accepted the current notice: no checkbox, a line with the link instead.
+  const consentKnown = acceptedPrivacy.version === store.privacyVersion;
   const [step, setStep] = useState<'cart' | 'checkout'>('cart');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -188,6 +197,7 @@ export function CartSheet({
   function forgetMe() {
     saved.clear();
     recent.clear();
+    acceptedPrivacy.clear();
     setName('');
     setPhone('');
     setAddress(EMPTY_ADDRESS);
@@ -238,7 +248,9 @@ export function CartSheet({
     ) {
       found.changeForCents = 'O valor para troco é menor que o total';
     }
-    if (!privacy) found.acceptPrivacy = 'Aceite o aviso de privacidade para continuar';
+    if (!privacy && !consentKnown) {
+      found.acceptPrivacy = 'Aceite o aviso de privacidade para continuar';
+    }
     setErrors(found);
     if (Object.keys(found).length || !preview) return;
     setBusy(true);
@@ -267,6 +279,7 @@ export function CartSheet({
         phone: onlyDigits(phone),
         address: type === 'DELIVERY' ? address : (saved.customer?.address ?? null),
       });
+      acceptedPrivacy.accept(store.privacyVersion);
       recent.add({
         slug: store.slug,
         number: created.number,
@@ -674,20 +687,30 @@ export function CartSheet({
             </section>
 
             <section className="space-y-2 text-sm" aria-label="Privacidade">
-              <Label className="flex items-start gap-2 font-normal">
-                <Checkbox
-                  className="mt-0.5"
-                  checked={privacy}
-                  onCheckedChange={(v) => setPrivacy(v === true)}
-                />
-                <span>
-                  Li e aceito o{' '}
+              {consentKnown ? (
+                <p className="text-muted-foreground">
+                  Ao enviar, você concorda com o{' '}
                   <button type="button" className="underline" onClick={() => setNoticeOpen(true)}>
                     aviso de privacidade
                   </button>{' '}
                   do {store.name}.
-                </span>
-              </Label>
+                </p>
+              ) : (
+                <Label className="flex items-start gap-2 font-normal">
+                  <Checkbox
+                    className="mt-0.5"
+                    checked={privacy}
+                    onCheckedChange={(v) => setPrivacy(v === true)}
+                  />
+                  <span>
+                    Li e aceito o{' '}
+                    <button type="button" className="underline" onClick={() => setNoticeOpen(true)}>
+                      aviso de privacidade
+                    </button>{' '}
+                    do {store.name}.
+                  </span>
+                </Label>
+              )}
               {errors.acceptPrivacy && <p className="text-destructive">{errors.acceptPrivacy}</p>}
               <Label className="flex items-start gap-2 font-normal text-muted-foreground">
                 <Checkbox

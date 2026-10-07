@@ -14,10 +14,12 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | KDS e setores de produção (tickets por rodada e setor, combo dividido entre setores, status automático, expedição, telas vinculadas sem senha) | `feat/kds` | ✅ |
 | Delivery (áreas por bairro ou raio com taxa, tempo e mínimo; saída com vários pedidos; app do entregador; não entregue e reenvio; acerto no caixa com remuneração e saldo; relatório) | `feat/delivery` | ✅ |
 | Cardápio digital (app `menu`: marca do restaurante, carrinho com complementos/pizza/combos, entrega ou retirada, pagamento na entrega, limites contra trote, acompanhamento em tempo real com PIX e "Já paguei", LGPD, SEO e prévia de link) | `feat/digital-menu` | ✅ |
+| Impressão (comanda de produção por setor automática, via de entrega, pré-conta, fechamento de caixa e acerto; agente local; 58 e 80 mm) — sem cupom fiscal | `feat/printing` | ⏳ próxima |
+| Dashboard e relatórios | `feat/dashboard` | ⏳ |
 | QR Code na mesa (pedido pelo celular no salão, rodadas na conta da mesa) | `feat/table-qr` | ⏳ |
-| Impressão (comanda e cupom 80mm) | `feat/printing` | ⏳ |
-| Dashboard e relatórios | `feat/reports` | ⏳ |
 | Seed de demonstração e documentação | `chore/seed-docs` | ⏳ |
+
+Ordem combinada (2026-10-07): fechar o escopo do MVP primeiro — impressão, depois dashboard e só então o QR Code na mesa. A NFC-e (cupom fiscal) fica para a etapa fiscal (Fase 2, `FiscalProvider`).
 
 ## Redesign visual (planejado)
 

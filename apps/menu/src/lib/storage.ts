@@ -108,3 +108,10 @@ export function useRecentOrders(slug: string) {
     clear: () => setOrders(null),
   };
 }
+
+// ---- Privacy notice version accepted on this device (per restaurant) ----
+
+export function useAcceptedPrivacy(slug: string) {
+  const [version, setVersion] = useStored<string | null>(`menu:${slug}:privacy`, null);
+  return { version, accept: (v: string) => setVersion(v), clear: () => setVersion(null) };
+}

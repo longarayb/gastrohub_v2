@@ -19,7 +19,6 @@ import {
   type PublicTrackingDto,
   DOOR_PAYMENT_METHODS,
   ItemPricingError,
-  PRIVACY_NOTICE_VERSION,
   buildPixBrCode,
   calculateOrderTotals,
   currentBusinessDay,
@@ -34,6 +33,7 @@ import {
   indexCatalog,
   priceCatalogItem,
   privacyNoticeTemplate,
+  privacyNoticeVersion,
   storeOpenState,
   trackingTimeline,
 } from '@app/shared';
@@ -135,7 +135,7 @@ export class PublicMenuService {
       minimumOrderCents: store.deliveryMinimumCents,
       paymentMethods: [...DOOR_PAYMENT_METHODS],
       privacyNotice: this.privacyNotice(store),
-      privacyVersion: PRIVACY_NOTICE_VERSION,
+      privacyVersion: privacyNoticeVersion(this.privacyNotice(store)),
     };
   }
 
@@ -418,7 +418,10 @@ export class PublicMenuService {
     if (order.customerId) {
       await this.db.customer.updateMany({
         where: { id: order.customerId, privacyAcceptedAt: null },
-        data: { privacyAcceptedAt: now, privacyVersion: PRIVACY_NOTICE_VERSION },
+        data: {
+          privacyAcceptedAt: now,
+          privacyVersion: privacyNoticeVersion(this.privacyNotice(store)),
+        },
       });
       if (input.marketingOptIn) {
         await this.db.customer.update({

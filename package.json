@@ -28,7 +28,9 @@
     "db:studio": "pnpm --filter @app/api db:studio",
     "bootstrap": "node scripts/bootstrap.mjs",
     "clean": "turbo run clean && rimraf node_modules .turbo",
-    "check:imports": "node scripts/check-tracked-imports.mjs"
+    "check:imports": "node scripts/check-tracked-imports.mjs",
+    "lan:links": "node scripts/lan-links.mjs",
+    "tunnel:menu": "node scripts/tunnel-menu.mjs"
   },
   "devDependencies": {
     "@app/config": "workspace:*",
