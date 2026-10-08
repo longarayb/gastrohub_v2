@@ -4,8 +4,7 @@
 //
 //   pnpm --filter @app/print-agent package -- --api https://api.exemplo.com.br/api
 //
-// WinSW is not downloaded by this script (no executables fetched at build time): place
-// WinSW-x64.exe (https://github.com/winsw/winsw/releases, v2.12.0) in installer/vendor/.
+// WinSW comes from scripts/fetch-winsw.mjs (official release, pinned SHA-256; not versioned).
 // The release must be signed (code-signing certificate) before going to customers: see ROADMAP.
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -76,11 +75,9 @@ const xml = readFileSync(join(root, 'installer', 'service.template.xml'), 'utf8'
   .replaceAll('{{SERVICE_NAME}}', serviceName.replace(/[<>&"]/g, ''))
   .replaceAll('{{API_URL}}', apiUrl);
 writeFileSync(join(release, 'PrintAgentService.xml'), xml, 'utf8');
+// Downloaded and checked (or only re-checked when already there).
+execFileSync(process.execPath, [join(root, 'scripts', 'fetch-winsw.mjs')], { stdio: 'inherit' });
 const winsw = join(root, 'installer', 'vendor', 'WinSW-x64.exe');
-if (!existsSync(winsw)) {
-  log('Falta installer/vendor/WinSW-x64.exe (v2.12.0, github.com/winsw/winsw/releases).');
-  process.exit(1);
-}
 copyFileSync(winsw, join(release, 'PrintAgentService.exe'));
 
 // 4. Installer (Inno Setup 6).
@@ -88,6 +85,9 @@ const iscc = [
   arg('--iscc'),
   'C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe',
   'C:\\Program Files\\Inno Setup 6\\ISCC.exe',
+  // winget install --id JRSoftware.InnoSetup --scope user
+  process.env.LOCALAPPDATA &&
+    join(process.env.LOCALAPPDATA, 'Programs', 'Inno Setup 6', 'ISCC.exe'),
 ].find((p) => p && existsSync(p));
 if (!iscc) {
   log('Inno Setup 6 não encontrado: arquivos prontos em release/, instalador não gerado.');
