@@ -57,6 +57,7 @@ import { PixReportedBadge, RejectOrderDialog } from '@/components/digital-menu/o
 import { Kbd } from '@/components/pos/common';
 import { PaymentDialog } from '@/components/pos/payment-dialog';
 import { PreBillDialog } from '@/components/pos/pre-bill';
+import { OrderPrintSection } from '@/components/printing/order-print';
 import { MoveItemsDialog, TransferTabDialog } from '@/components/pos/table-actions';
 import { useAuth } from '@/lib/auth';
 import { reportDeliveryFailure } from '@/lib/delivery';
@@ -620,6 +621,8 @@ export function OrderDetailSheet({
                   </div>
                 </section>
               )}
+
+              <OrderPrintSection order={order} />
 
               {/* History */}
               <section className="space-y-2 text-sm">

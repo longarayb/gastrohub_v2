@@ -76,6 +76,7 @@ import {
 } from '@/lib/cash';
 import { useHotkeys } from '@/lib/hotkeys';
 import { orderTitle, useOrder, useOrderBoard } from '@/lib/orders';
+import { hasCashPrinter, printCashSession, usePrintStatus } from '@/lib/printing';
 import { useCurrentStore } from '@/lib/stores';
 
 const signed = (cents: number) => (cents > 0 ? `+${formatBRL(cents)}` : formatBRL(cents));
@@ -744,6 +745,20 @@ export default function CashPage() {
   const paying = useOrder(payingId);
   const session = data?.session ?? null;
   const donePrinting = useCallback(() => setPrinting(null), []);
+  // With a print agent the report goes to the cash printer; otherwise through the browser.
+  const { can } = useAuth();
+  const printStatus = usePrintStatus(can(Permission.PRINT));
+  const onPaper = can(Permission.PRINT) && hasCashPrinter(printStatus.data);
+  const printReport = useCallback(
+    (id: string) => {
+      if (!onPaper) return setPrinting(id);
+      printCashSession(id).then(
+        () => toast.success('Relatório enviado para a impressora do caixa'),
+        (error) => toast.error(errorMessage(error)),
+      );
+    },
+    [onPaper],
+  );
   const anyDialog = !!movement || closing || !!closed || !!payingId;
 
   useHotkeys(
@@ -771,7 +786,7 @@ export default function CashPage() {
             <Button variant="outline" onClick={() => setMovement('WITHDRAWAL')}>
               <ArrowUpFromLine /> Sangria <Kbd>F9</Kbd>
             </Button>
-            <Button variant="outline" onClick={() => setPrinting(session.id)}>
+            <Button variant="outline" onClick={() => printReport(session.id)}>
               <Printer /> Parcial
             </Button>
             <Button onClick={() => setClosing(true)}>
@@ -805,7 +820,7 @@ export default function CashPage() {
           </div>
         </div>
       )}
-      <SessionsCard onPrint={setPrinting} onClosed={setClosed} />
+      <SessionsCard onPrint={printReport} onClosed={setClosed} />
 
       <MovementDialog type={movement} onOpenChange={(o) => !o && setMovement(null)} />
       {session && (
@@ -820,7 +835,7 @@ export default function CashPage() {
       <ClosingResultDialog
         session={closed}
         onOpenChange={(o) => !o && setClosed(null)}
-        onPrint={(s) => setPrinting(s.id)}
+        onPrint={(s) => printReport(s.id)}
       />
       {paying.data && (
         <PaymentDialog

@@ -40,6 +40,7 @@ import { errorMessage } from '@/lib/api';
 import { cashKeys } from '@/lib/cash';
 import { deliveryKeys, settleCourier, useSettlementPreview } from '@/lib/delivery';
 import { orderKeys } from '@/lib/orders';
+import { printSettlement } from '@/lib/printing';
 
 const METHODS: PaymentMethod[] = [
   'CASH',
@@ -178,6 +179,17 @@ function SettlementForm({ courier, onDone }: { courier: CourierDetailDto; onDone
       });
       toast.success(
         `Acerto de ${courier.name} concluído · saldo ${formatBRL(result.newBalanceCents)}`,
+        {
+          // Paper receipt for the courier, on the cash printer (when there is a print agent).
+          action: {
+            label: 'Imprimir',
+            onClick: () =>
+              void printSettlement(result.id).then(
+                () => toast.success('Acerto enviado para a impressora do caixa'),
+                (error) => toast.error(errorMessage(error)),
+              ),
+          },
+        },
       );
       onDone();
     } catch (error) {
