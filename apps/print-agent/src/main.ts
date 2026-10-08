@@ -1,6 +1,7 @@
 import { PrintAgent, memoryMb } from './agent.js';
 import { AGENT_VERSION, credentialFile, logsDir, parseArgs } from './config.js';
 import { FileCredentialStore } from './credential.js';
+import { listenWithRetry, watchParent } from './lifecycle.js';
 import { startLocalPage } from './local-page.js';
 import { Logger, errorText } from './log.js';
 
@@ -26,7 +27,11 @@ async function main(): Promise<void> {
   process.on('unhandledRejection', (error) =>
     log.error('Erro não tratado', { error: errorText(error) }),
   );
-  const server = await startLocalPage(agent, options.port);
+  // After a restart the old instance may still hold the port for a few seconds.
+  const server = await listenWithRetry(() => startLocalPage(agent, options.port), {
+    onRetry: (attempt) =>
+      log.warn('Porta da página local ocupada; tentando de novo', { port: options.port, attempt }),
+  });
   log.info(`Página local: http://127.0.0.1:${options.port}`);
   await agent.start();
 
@@ -40,6 +45,11 @@ async function main(): Promise<void> {
     server.close();
     setTimeout(() => process.exit(0), 500).unref();
   };
+  // The service process (WinSW) died: leave too, so Windows restarts one clean instance.
+  watchParent(() => {
+    log.warn('Processo do serviço encerrado; saindo para o Windows reiniciar o serviço');
+    shutdown();
+  });
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 }
