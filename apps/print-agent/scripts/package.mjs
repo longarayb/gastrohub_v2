@@ -36,7 +36,10 @@ const release = join(root, 'release');
 mkdirSync(release, { recursive: true });
 
 // 1. Bundle.
-execFileSync(process.execPath, [join(root, 'scripts', 'bundle.mjs')], { cwd: root, stdio: 'inherit' });
+execFileSync(process.execPath, [join(root, 'scripts', 'bundle.mjs')], {
+  cwd: root,
+  stdio: 'inherit',
+});
 
 // 2. Single executable: the bundle inside a copy of this Node (24 LTS).
 const seaConfig = join(release, 'sea-config.json');
