@@ -9,6 +9,7 @@ import { useAuth } from './auth';
 import { cashKeys } from './cash';
 import { deliveryKeys } from './delivery';
 import { orderKeys } from './orders';
+import { printKeys } from './printing';
 
 export type RealtimeStatus = 'connecting' | 'online' | 'offline';
 
@@ -89,6 +90,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     // Routes, courier balances, settlements and areas (also the courier app).
     socket.on(REALTIME_EVENTS.DELIVERY_UPDATED, () => {
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
+    });
+    // Agents, printers or the print queue (alerts badge, settings screen).
+    socket.on(REALTIME_EVENTS.PRINTING_UPDATED, () => {
+      void queryClient.invalidateQueries({ queryKey: printKeys.all });
     });
     socket.on(REALTIME_EVENTS.TABLES_UPDATED, () => {
       void queryClient.invalidateQueries({ queryKey: orderKeys.tables });

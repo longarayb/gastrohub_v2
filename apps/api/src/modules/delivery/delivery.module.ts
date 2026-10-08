@@ -20,5 +20,7 @@ import { SettlementsService } from './settlements.service.js';
     SettlementsService,
     DeliveryReportService,
   ],
+  // Printing the courier settlement (printing module).
+  exports: [SettlementsService],
 })
 export class DeliveryModule {}

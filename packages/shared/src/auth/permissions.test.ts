@@ -1,12 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { isOpenAt } from '../stores/schemas.js';
-import { Permission, Role, assignableRoles, hasPermission } from './permissions.js';
+import {
+  PRINT_AGENT_ROLE,
+  Permission,
+  Role,
+  assignableRoles,
+  hasPermission,
+} from './permissions.js';
 
 describe('permissions', () => {
-  it('owner has every permission except the courier app', () => {
+  it('owner has every permission except the courier app and the print agent', () => {
     for (const p of Object.values(Permission)) {
-      expect(hasPermission(Role.OWNER, p)).toBe(p !== Permission.COURIER_APP);
+      expect(hasPermission(Role.OWNER, p)).toBe(
+        p !== Permission.COURIER_APP && p !== Permission.PRINT_AGENT,
+      );
     }
+  });
+
+  it('the print agent only prints', () => {
+    for (const p of Object.values(Permission)) {
+      expect(hasPermission(PRINT_AGENT_ROLE, p)).toBe(p === Permission.PRINT_AGENT);
+    }
+    expect(hasPermission(Role.WAITER, Permission.PRINT)).toBe(true);
+    expect(hasPermission(Role.CASHIER, Permission.PRINTERS_MANAGE)).toBe(false);
+    expect(hasPermission(Role.COURIER, Permission.PRINT)).toBe(false);
   });
 
   it('restricts operational roles', () => {

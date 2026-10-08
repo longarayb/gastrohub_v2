@@ -239,6 +239,33 @@ Envie o link numa conversa do WhatsApp (por exemplo, para você mesmo) e confira
 
 > **Atenção:** o túnel deixa o ambiente de **desenvolvimento** acessível por qualquer pessoa na internet enquanto estiver aberto. Use só para este teste, com os dados de demonstração, e encerre logo depois (Ctrl+C). O comando se encerra sozinho em 30 minutos (`pnpm tunnel:menu --minutes 10` para menos). Pelo túnel só o cardápio é exposto; pedidos e fotos usam a API local, então para testar pedidos no celular use a rede local (seção acima). O WhatsApp guarda a prévia em cache: para ver uma mudança, gere um link novo.
 
+## Agente de impressão (impressoras térmicas)
+
+O agente (`apps/print-agent`) é um serviço do Windows instalado no computador ligado às impressoras (caixa, cozinha). Ele só faz conexões de saída e imprime o que o painel manda (D035–D037).
+
+**Requisitos do computador do restaurante:** Windows 10 (1809 ou mais novo) ou Windows 11, **64 bits**; qualquer PC que rode o Windows serve. **Meta de memória do agente: até 80 MB** (medido: ~45 MB parado, ~54 MB conectado, ~59 MB depois de 40 comandas). Impressoras USB e compartilhadas usam o PowerShell por alguns instantes a cada impressão; as de rede (IP) não.
+
+**Em desenvolvimento (impressora virtual, sem hardware):**
+
+```powershell
+pnpm --filter @app/print-agent build
+pnpm --filter @app/print-agent start:virtual     # página local em http://127.0.0.1:9180
+```
+
+1. No painel, **Configurações › Impressão › Adicionar computador** mostra o código da unidade e o código de 6 números.
+2. Em `http://127.0.0.1:9180`, informe o endereço da API (`http://localhost:3333/api`), o código da unidade (`demo`) e o código de vínculo.
+3. Cadastre as impressoras (qualquer tipo: no modo `--virtual` tudo vira arquivo), aponte os setores e a impressora do caixa.
+4. As impressões caem em `apps/print-agent/.data/impressoes/` (texto do que sairia no papel, mais os bytes ESC/POS em `.bin`).
+
+**Gerar o instalador (Windows, antes de entregar a um cliente):**
+
+1. Baixe o `WinSW-x64.exe` v2.12.0 em https://github.com/winsw/winsw/releases e coloque em `apps/print-agent/installer/vendor/` (fora do git; o script não baixa executáveis sozinho).
+2. Instale o Inno Setup 6 (https://jrsoftware.org/isinfo.php).
+3. `pnpm --filter @app/print-agent package -- --api https://api.seu-dominio.com.br/api`
+4. Sai `apps/print-agent/release/instalar-impressao.exe`. **Assine o instalador e o `print-agent.exe` antes de distribuir** (certificado de assinatura de código; ver ROADMAP, "Antes do lançamento"); sem assinatura o Windows mostra um alerta na instalação.
+
+No restaurante: executar o instalador, avançar até o fim e, na página que abre (`http://127.0.0.1:9180`), digitar os códigos mostrados no painel. Os dados do agente ficam em `C:\ProgramData\app-print-agent` (credencial protegida pelo Windows, logs em `logs\`). Para trocar de computador: "Vincular outro computador" no painel gera um código novo.
+
 ## Conferir se está tudo certo
 
 ```powershell

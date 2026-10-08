@@ -1,7 +1,7 @@
 import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { type AccessTokenPayload, KDS_DEVICE_ROLE } from '@app/shared';
+import { type AccessTokenPayload, KDS_DEVICE_ROLE, PRINT_AGENT_ROLE } from '@app/shared';
 import type { Request } from 'express';
 import { AppConfig } from '../../core/config/app-config.service.js';
 import { UnauthorizedError } from '../../core/errors/domain-error.js';
@@ -52,6 +52,15 @@ export class JwtAuthGuard implements CanActivate {
         where: { id: payload.sub, tenantId: payload.tenantId, revokedAt: null },
       });
       if (!active) throw new UnauthorizedError('Esta tela foi desvinculada pelo gerente');
+      this.ctx.set({ tenantId: payload.tenantId, deviceId: payload.sub, role: payload.role });
+      return true;
+    }
+    if (payload.role === PRINT_AGENT_ROLE) {
+      // Same for a print agent revoked in the panel.
+      const active = await this.prisma.printAgent.count({
+        where: { id: payload.sub, tenantId: payload.tenantId, revokedAt: null },
+      });
+      if (!active) throw new UnauthorizedError('Este computador foi desvinculado no painel');
       this.ctx.set({ tenantId: payload.tenantId, deviceId: payload.sub, role: payload.role });
       return true;
     }

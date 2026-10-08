@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Brand } from '@/components/brand';
+import { PrintAlerts } from '@/components/printing/alerts';
 import { errorMessage } from '@/lib/api';
 import { useAuth, useSession } from '@/lib/auth';
 import { NAV } from './nav';
@@ -212,6 +213,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
           <div id="page-header" className="flex min-w-0 flex-1 items-center gap-2" />
+          <PrintAlerts />
           <UserMenu />
         </header>
         <main className="flex-1">{children}</main>

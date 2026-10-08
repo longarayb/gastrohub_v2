@@ -1,6 +1,13 @@
 'use client';
 
-import { BRAND, type OrderDetailDto, type TableDto, formatBRL, splitEvenly } from '@app/shared';
+import {
+  BRAND,
+  type OrderDetailDto,
+  Permission,
+  type TableDto,
+  formatBRL,
+  splitEvenly,
+} from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import { Checkbox } from '@app/ui/components/checkbox';
 import {
@@ -20,8 +27,10 @@ import { Printer } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { ItemDescription } from '@/components/orders/common';
 import { apiGet, errorMessage } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { cashKeys, requestBill, usePixCharge } from '@/lib/cash';
 import { orderKeys } from '@/lib/orders';
+import { hasCashPrinter, printPreBill, usePrintStatus } from '@/lib/printing';
 import { useCurrentStore } from '@/lib/stores';
 import { PrintPortal, QrCode, ReceiptDivider, ReceiptRow } from './common';
 
@@ -167,6 +176,28 @@ export function PreBillDialog({
   );
 
   const done = useCallback(() => setPrinting(false), []);
+  // With a print agent, the pre-bill goes straight to the cash printer (browser as fallback).
+  const { can } = useAuth();
+  const canPrint = can(Permission.PRINT);
+  const printStatus = usePrintStatus(open && canPrint);
+  const onPaper = canPrint && hasCashPrinter(printStatus.data);
+  const [sending, setSending] = useState(false);
+
+  async function printOnPaper() {
+    setSending(true);
+    try {
+      if (table.session) await requestBill(table.session.id);
+      await printPreBill({ orderIds: selected, people, withPix: withPix && !!single });
+      void queryClient.invalidateQueries({ queryKey: orderKeys.tables });
+      void queryClient.invalidateQueries({ queryKey: cashKeys.all });
+      toast.success('Pré-conta enviada para a impressora do caixa');
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setSending(false);
+    }
+  }
 
   async function print() {
     try {
@@ -245,11 +276,21 @@ export function PreBillDialog({
           )}
         </div>
         <DialogFooter>
+          {onPaper && (
+            <Button
+              onClick={() => void printOnPaper()}
+              loading={sending}
+              disabled={loading || orders.length === 0}
+            >
+              <Printer /> Imprimir no caixa
+            </Button>
+          )}
           <Button
+            variant={onPaper ? 'outline' : 'default'}
             onClick={() => void print()}
             disabled={loading || orders.length === 0 || printing}
           >
-            <Printer /> Imprimir pré-conta
+            <Printer /> {onPaper ? 'Imprimir pelo navegador' : 'Imprimir pré-conta'}
           </Button>
         </DialogFooter>
         {printing && store.data && (

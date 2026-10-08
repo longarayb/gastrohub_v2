@@ -6,9 +6,11 @@ import { UnauthorizedError } from '../errors/domain-error.js';
 export interface AppClsStore extends ClsStore {
   tenantId?: string;
   userId?: string;
-  /** Paired KDS device (role KDS_DEVICE) instead of a user. */
+  /** Paired device (KDS screen or print agent) instead of a user. */
   deviceId?: string;
   role?: ActorRole;
+  /** Print jobs were queued in this request: nudge the agents after the commit. */
+  printQueued?: boolean;
 }
 
 /** Request-scoped tenant and user information, backed by AsyncLocalStorage. */

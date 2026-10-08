@@ -14,12 +14,17 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | KDS e setores de produção (tickets por rodada e setor, combo dividido entre setores, status automático, expedição, telas vinculadas sem senha) | `feat/kds` | ✅ |
 | Delivery (áreas por bairro ou raio com taxa, tempo e mínimo; saída com vários pedidos; app do entregador; não entregue e reenvio; acerto no caixa com remuneração e saldo; relatório) | `feat/delivery` | ✅ |
 | Cardápio digital (app `menu`: marca do restaurante, carrinho com complementos/pizza/combos, entrega ou retirada, pagamento na entrega, limites contra trote, acompanhamento em tempo real com PIX e "Já paguei", LGPD, SEO e prévia de link) | `feat/digital-menu` | ✅ |
-| Impressão (comanda de produção por setor automática, via de entrega, pré-conta, fechamento de caixa e acerto; agente local; 58 e 80 mm) — sem cupom fiscal | `feat/printing` | ⏳ próxima |
-| Dashboard e relatórios | `feat/dashboard` | ⏳ |
+| Impressão (agente local no Windows, vários por unidade; comanda por setor automática com vias, "CANCELADO", via de entrega, pré-conta, fechamento de caixa e acerto; perfis Elgin, Bematech, Epson, Daruma e Tanca; fila com confirmação, atraso, retenção e 2ª via; alertas no painel) — sem cupom fiscal | `feat/printing` | ✅ |
+| Dashboard e relatórios | `feat/dashboard` | ⏳ próxima |
 | QR Code na mesa (pedido pelo celular no salão, rodadas na conta da mesa) | `feat/table-qr` | ⏳ |
 | Seed de demonstração e documentação | `chore/seed-docs` | ⏳ |
 
 Ordem combinada (2026-10-07): fechar o escopo do MVP primeiro — impressão, depois dashboard e só então o QR Code na mesa. A NFC-e (cupom fiscal) fica para a etapa fiscal (Fase 2, `FiscalProvider`).
+
+## Antes do lançamento (importante)
+
+- **Certificado de assinatura de código para o agente de impressão** (`instalar-impressao.exe` e `print-agent.exe`). Sem ele o Windows mostra o alerta do SmartScreen ("O Windows protegeu o computador"), que assusta o cliente e parece vírus. Quando chegar a hora, pesquisar as opções mais baratas: certificados OV de autoridades e revendedores (Sectigo, Certum, SSL.com e revendas) e o Azure Trusted Signing (assinatura na nuvem com mensalidade; exige empresa com histórico). Desde 2023 a chave precisa ficar em token físico ou HSM na nuvem — considerar isso no custo.
+- Publicar o instalador num endereço fixo (`NEXT_PUBLIC_PRINT_AGENT_DOWNLOAD_URL` mostra o botão "Baixar instalador") e atualização automática do agente.
 
 ## Redesign visual (planejado)
 
@@ -30,7 +35,7 @@ O layout será refeito trocando o tema (`packages/ui/src/styles/globals.css`), s
 - Integrações com marketplaces (iFood, 99Food, Aiqfome, Open Delivery) via `MarketplaceAdapter`
 - Emissão fiscal NFC-e/NF-e via `FiscalProvider`
 - Pagamento online (PIX dinâmico, cartão) via `PaymentGateway`; TEF via `TefProvider`
-- Agente local de impressão ESC/POS por setor via `PrintProvider`
+- Impressão: atualização automática do agente, impressoras Bluetooth/Android (garçom e entregador), logo do restaurante na pré-conta, agente para macOS/Linux
 - Estoque e ficha técnica
 - Financeiro (contas a pagar/receber, DRE)
 - CRM, fidelidade, campanhas, robô de WhatsApp

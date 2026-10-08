@@ -10,6 +10,7 @@ import {
   ListPlus,
   MapPinned,
   Navigation,
+  Printer,
   MonitorPlay,
   ReceiptText,
   Smartphone,
@@ -133,6 +134,12 @@ export const NAV: NavGroup[] = [
         label: 'Cardápio digital',
         icon: Smartphone,
         permissions: [Permission.STORE_MANAGE],
+      },
+      {
+        href: '/configuracoes/impressao',
+        label: 'Impressão',
+        icon: Printer,
+        permissions: [Permission.PRINTERS_MANAGE],
       },
       {
         href: '/configuracoes/horarios',

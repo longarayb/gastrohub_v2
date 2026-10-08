@@ -52,4 +52,8 @@ export const TENANT_MODELS = new Set<string>([
   // Digital menu
   'BlockedPhone',
   'DeliveryQuoteMiss',
+  // Printing
+  'PrintAgent',
+  'Printer',
+  'PrintJob',
 ]);
