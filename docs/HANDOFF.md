@@ -2,20 +2,27 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções e regras de trabalho em duas máquinas), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-08**, no Surface (`C:\GastroHub_v2`), depois da `chore/print-installer` (instalador do agente gerado e testado) e com a proposta da `feat/dashboard` apresentada.
+> Atualizado em **2026-10-08** (noite), no Surface (`C:\GastroHub_v2`). A `feat/dashboard` tem o código pronto e enviado, **mas não foi validada nem integrada**: o Smart App Control do Surface passou a bloquear o pnpm. A validação e o merge ficam para o desktop de casa (passos abaixo).
 
 ## Estado atual
 
-- `main` contém tudo o que foi feito; todas as branches estão no GitHub (`longarayb/gastrohub_v2`, público). Nenhuma frente em paralelo.
-- Validação no último commit da `feat/printing`: `pnpm check` verde (22 tarefas; unitários: shared 233, api 22, print-agent 12, web 5), `pnpm format:check` verde, `pnpm test:e2e` com 93 testes (9 novos de impressão), roteiro visual `printing.mjs` 13/13 (agente real em modo virtual). Na `chore/print-installer` (2026-10-08) **todos os roteiros** rodaram de novo, com seed limpo antes de cada um: auth 19, menu 15, orders 18, pos 12, kds 8, delivery 16, digital-menu 11 e printing 13 — todos verdes, sem erros inesperados.
-- Migrations: `auth_tenancy`, `menu`, `orders`, `tables_pos`, `kds`, `delivery`, `digital_menu`, `printing`. Um clone novo fica igual com `pnpm bootstrap` (ou `pnpm --filter @app/api db:deploy` + `pnpm db:seed`).
-- O seed **não** configura impressão (sem computador conectado, uma impressora cadastrada geraria alertas permanentes na demonstração); o roteiro `printing.mjs` configura tudo pelas telas e remove no fim.
+- `main` tem tudo até a impressão (com `chore/print-installer` e `fix/print-agent-orphan`). Todas as branches estão no GitHub.
+- **Frentes em andamento:** só a `feat/dashboard` (último commit `8ce27ae` ou o desta passagem de bastão). **Ela é a única que pode alterar o schema do Prisma** (tem a migration `20261010090000_reports`).
+- **Bloqueio no Surface:** o **Smart App Control** do Windows 11 está ligado (estado 1) e, desde 2026-10-08 20:15, bloqueia o `pnpm-native.exe` ("Uma política de Controle de Aplicativo bloqueou este arquivo"). Decisão do usuário: **não desligar nem contornar**. No Surface, só documentação até nova decisão; alternativa futura documentada em docs/SETUP.md ("o projeto inteiro dentro do WSL").
+- O que já foi validado na `feat/dashboard` (antes do bloqueio): e2e `reports` 7/7 e suíte e2e completa 100/100; unitários shared 245; typecheck e lint de API e painel; roteiro `dashboard.mjs` 12/12. **Ainda não rodaram:** `pnpm check` completo, `pnpm format:check` final, a suíte e2e depois dos últimos ajustes de desempenho e os roteiros antigos com o seed novo (90 dias de histórico).
+- Migrations: `auth_tenancy`, `menu`, `orders`, `tables_pos`, `kds`, `delivery`, `digital_menu`, `printing` e, na `feat/dashboard`, `reports` (preenche os dados antigos).
+- O seed **não** configura impressão; gera **90 dias de histórico** para o dashboard (~15 s no total).
+- **Agente de impressão no Surface:** o serviço `app-print-agent` ficou instalado (aponta para a API local, não vinculado). Não serve para o teste de reinicialização (o resultado seria contaminado pelo Smart App Control); pode ser removido em Configurações › Aplicativos quando quiser.
 
-### Desktop de casa, na próxima sessão
+### Desktop de casa, na próxima sessão (fechar a `feat/dashboard`)
 
-1. `git pull` na `main` e `pnpm install` (pacote novo `apps/print-agent`, com `esbuild`, `socket.io-client` e `postject`).
-2. `pnpm --filter @app/api db:deploy` (migration `printing`) e `pnpm db:seed`. Nenhuma variável nova obrigatória no `.env` (opcional no painel: `NEXT_PUBLIC_PRINT_AGENT_DOWNLOAD_URL`, link do instalador).
-3. Para ver a impressão funcionando sem impressora: `pnpm start:lite`, depois `pnpm --filter @app/print-agent build` e `pnpm --filter @app/print-agent start:virtual`, e siga docs/SETUP.md ("Agente de impressão").
+1. `git fetch`, `git checkout feat/dashboard`, `git pull` (e `git pull` na `main`, que já tem a impressão).
+2. `pnpm install` (novidades desde a última vez no desktop: `apps/print-agent` com `esbuild`, `socket.io-client` e `postject`; `packages/ui` ganhou o `popover`).
+3. `pnpm --filter @app/api db:deploy` (migrations `printing` e `reports`; a `reports` preenche o dia de negócio dos pagamentos e pedidos antigos) e `pnpm db:seed` (seed novo com 90 dias de histórico; deve levar uns 15 s e terminar com "✔ Histórico: … pedidos em 90 dias").
+4. `pnpm check` + `pnpm format:check` + `pnpm test:e2e` — tudo verde.
+5. **Todos os roteiros visuais, com seed limpo antes de cada um:** `pnpm start:lite --menu` num terminal (depois de `pnpm --filter @app/print-agent build`, que o `printing.mjs` usa); no outro, para cada roteiro: `pnpm db:seed` e `npm run <roteiro>` em `tools/ui-walkthrough` — auth, menu, orders, pos, kds, delivery, digital-menu, printing e **dashboard** (novo). Esperado: tudo PASS e "inesperados: 0". O seed agora tem histórico: se algum roteiro antigo contar itens de listas (bairros sem área, clientes, saídas), ajuste a expectativa sem tirar o histórico.
+6. Merge: `git checkout main`, `git merge --no-ff feat/dashboard`, `git push`. Atualize ROADMAP (✅), HANDOFF e CLAUDE.md.
+7. **Teste de reinicialização do agente de impressão** (no desktop, porque no Surface o Smart App Control contamina o resultado): `winget install --id JRSoftware.InnoSetup -e --scope user`; `pnpm --filter @app/print-agent package -- --api http://localhost:3333/api`; instalar `apps/print-agent/release/instalar-impressao.exe` (pede administrador); com `pnpm start:lite` rodando, vincular pela página `http://127.0.0.1:9180` (Configurações › Impressão › Adicionar computador) e cadastrar uma impressora virtual; **reiniciar o Windows** e conferir que o serviço sobe sozinho (`(Get-Service app-print-agent).Status` = Running), que a página local mostra "Conectado" e que a página de teste imprime (arquivo em `C:\ProgramData\app-print-agent\impressoes`). Se o desktop também tiver o Smart App Control ligado, registre o resultado: reforça a assinatura de código (ROADMAP).
 
 ### Etapas concluídas
 
@@ -55,13 +62,13 @@
 
 ## Próximos passos (nesta ordem)
 
-### 1. Etapa `feat/dashboard` — proposta apresentada, aguardando aprovação
+### 1. Fechar a `feat/dashboard` no desktop de casa
 
-Proposta apresentada na sessão de 2026-10-08 (definições de faturamento, recebimentos e conciliação com o caixa e o relatório de entregas; dashboard do dia em tempo real com comparação; relatórios por período com curva ABC e mapa de calor; prevenção de perdas; tempos do KDS; consolidado da rede para o dono; CSV e impressão; celular; desempenho com `Payment.businessDate` e tabelas de resumo condicionadas a medição; gráficos em SVG próprio com tokens; seed com 90 dias). Esperar as respostas às perguntas da proposta e seguir a ordem de sempre.
+Seguir os passos da seção "Desktop de casa, na próxima sessão" acima. O escopo aprovado e as decisões estão em DECISOES.md D038 e em docs/DESIGN.md (especificação visual validada; o tema completo do painel fica para a etapa de redesign depois do MVP).
 
 ### 2. Antes do lançamento (não é etapa de código agora)
 
-Certificado de assinatura de código para o `instalar-impressao.exe` e o `print-agent.exe` (ROADMAP, "Antes do lançamento"). O instalador já é gerado por `pnpm --filter @app/print-agent package -- --api <url>` (Inno Setup instalado no Surface por winget, por usuário; WinSW baixado da release oficial com SHA-256 fixado) e foi testado neste computador: instalação, serviço automático como LocalSystem, vínculo pela página local, impressão virtual, atualização por cima mantendo o vínculo e desinstalação limpa (serviço, programa e `C:\ProgramData\app-print-agent` com a credencial removidos). Reinício automático em falha testado em 2026-10-08 (agente morto: volta em 10 s; serviço morto: volta em 19 s, depois da correção `fix/print-agent-orphan`, em que o agente sai junto com o serviço e espera a porta liberar). O serviço **ficou instalado no Surface** (aponta para a API local, não vinculado) para o usuário testar a reinicialização do Windows. Falta: esse teste de reinicialização (com o usuário) e uma impressora térmica física (rede e USB). No desktop de casa, para gerar o instalador: `winget install --id JRSoftware.InnoSetup -e --scope user`.
+**Assinatura de código agora é requisito obrigatório** (Smart App Control do Windows 11; ver ROADMAP, com a pesquisa do serviço de assinatura da Microsoft no Azure para empresas no Brasil). Certificado de assinatura de código para o `instalar-impressao.exe` e o `print-agent.exe` (ROADMAP, "Antes do lançamento"). O instalador já é gerado por `pnpm --filter @app/print-agent package -- --api <url>` (Inno Setup instalado no Surface por winget, por usuário; WinSW baixado da release oficial com SHA-256 fixado) e foi testado neste computador: instalação, serviço automático como LocalSystem, vínculo pela página local, impressão virtual, atualização por cima mantendo o vínculo e desinstalação limpa (serviço, programa e `C:\ProgramData\app-print-agent` com a credencial removidos). Reinício automático em falha testado em 2026-10-08 (agente morto: volta em 10 s; serviço morto: volta em 19 s, depois da correção `fix/print-agent-orphan`, em que o agente sai junto com o serviço e espera a porta liberar). O serviço **ficou instalado no Surface** (aponta para a API local, não vinculado) para o usuário testar a reinicialização do Windows. Falta: esse teste de reinicialização (com o usuário) e uma impressora térmica física (rede e USB). No desktop de casa, para gerar o instalador: `winget install --id JRSoftware.InnoSetup -e --scope user`.
 
 ### 3. Etapa `feat/table-qr` — apresentar a proposta ANTES de codar
 
@@ -75,7 +82,7 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-Nenhuma no momento.
+- **Surface e o Smart App Control:** continuar trabalhando no Surface só quando houver um caminho que respeite o bloqueio. Alternativa documentada (não executada): o projeto inteiro dentro do WSL (docs/SETUP.md). Decidir se e quando adotar.
 
 ## Lembretes de ambiente
 
