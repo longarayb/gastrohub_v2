@@ -10,7 +10,8 @@
     "pos": "node pos.mjs",
     "kds": "node kds.mjs",
     "delivery": "node delivery.mjs",
-    "digital-menu": "node digital-menu.mjs"
+    "digital-menu": "node digital-menu.mjs",
+    "printing": "node printing.mjs"
   },
   "dependencies": {
     "playwright-core": "^1.63.0"

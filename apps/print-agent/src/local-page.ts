@@ -73,7 +73,7 @@ function page(agent: PrintAgent, csrf: string, message: string | null): string {
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Impressão · ${escape(BRAND.name)}</title>
-${paired ? '<meta http-equiv="refresh" content="10">' : ''}
+${paired ? `<meta http-equiv="refresh" content="${agent.state === 'ONLINE' ? 10 : 2}">` : ''}
 <style>
 body{font-family:system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:0 1rem;color:#1f2328;background:#fff}
 h1{font-size:1.4rem}h2{font-size:1.05rem;margin-top:1.5rem}
@@ -156,6 +156,10 @@ export function startLocalPage(agent: PrintAgent, port: number): Promise<Server>
             store: form.get('store') ?? '',
             code: form.get('code') ?? '',
           });
+          // First contact usually takes a second: show the page already connected.
+          for (let i = 0; i < 20 && agent.state === 'CONNECTING'; i++) {
+            await new Promise((r) => setTimeout(r, 250));
+          }
           message = 'Computador vinculado. As impressões já podem chegar.';
         } else {
           await agent.unpair();

@@ -11,7 +11,7 @@ cd ../..
 pnpm db:seed           # dados limpos (os roteiros alteram pedidos)
 pnpm start:lite        # em outro terminal: API 3333 + painel 3000
 cd tools/ui-walkthrough
-npm run orders         # ou: npm run auth / menu / pos / kds / delivery / digital-menu
+npm run orders         # ou: npm run auth / menu / pos / kds / delivery / digital-menu / printing
 ```
 
 Cada roteiro imprime `PASS`/`FAIL` por passo e os erros HTTP/console vistos; capturas de tela ficam em `screenshots/`.
@@ -25,6 +25,8 @@ Cada roteiro imprime `PASS`/`FAIL` por passo e os erros HTTP/console vistos; cap
 - `delivery.mjs`: áreas (bairros sem área, nova área, suspender e retomar), taxa da área no novo pedido com redução e motivo, detalhe com mapas, saída com vários pedidos, não entregue, app do entregador no celular (só a própria rota, entregue com PIX, volta), acerto no caixa (falta descontada, pagar agora e acumular), extrato com pagamento semanal, relatório, tema escuro e celular.
 
 - `digital-menu.mjs` (precisa de `pnpm start:lite --menu`): celular com 3G simulado (mede LCP e JS transferido), marca do restaurante, montagem de item e pizza, checkout com área, PIX e consentimento, acompanhamento em tempo real com o aceite no painel e "Já paguei", recusa com motivo para o cliente, "Não é você?", configurações, loja fechada e imagem de prévia do link.
+
+- `printing.mjs` (precisa do bundle do agente: `pnpm --filter @app/print-agent build`, e do Docker para envelhecer um trabalho): computador novo com código, vínculo pela página local do agente real em modo virtual (código errado e certo), impressoras (validação do IP, modelo, 58 mm), página de teste com acentos, setores com vias e impressora do caixa, comandas por setor conferidas nos arquivos, 2ª via e histórico no detalhe do pedido, pré-conta direto no caixa, trabalho retido com o agente desligado e liberado pelo alerta (sai como atrasado), tema escuro, celular e desvínculo imediato; no fim remove as impressoras.
 
 Rode `pnpm db:seed` antes de cada roteiro: eles alteram pedidos e saídas.
 
