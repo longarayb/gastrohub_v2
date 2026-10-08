@@ -57,7 +57,8 @@ export class DeliveryReportService {
 
     const [orders, stops, couriers, balances, settlements] = await Promise.all([
       this.db.order.findMany({
-        where: { type: 'DELIVERY', status: 'DELIVERED', businessDate: period },
+        // Day of conclusion, like the dashboard and the cash (D038).
+        where: { type: 'DELIVERY', status: 'DELIVERED', closedBusinessDate: period },
         select: {
           totalCents: true,
           deliveryFeeCents: true,
