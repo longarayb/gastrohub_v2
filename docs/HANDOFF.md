@@ -2,12 +2,12 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções e regras de trabalho em duas máquinas), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-08**, no Surface (`C:\GastroHub_v2`), ao fim da etapa `feat/printing` (impressão automática com agente local no Windows).
+> Atualizado em **2026-10-08**, no Surface (`C:\GastroHub_v2`), depois da `chore/print-installer` (instalador do agente gerado e testado) e com a proposta da `feat/dashboard` apresentada.
 
 ## Estado atual
 
 - `main` contém tudo o que foi feito; todas as branches estão no GitHub (`longarayb/gastrohub_v2`, público). Nenhuma frente em paralelo.
-- Validação no último commit da `feat/printing`: `pnpm check` verde (22 tarefas; unitários: shared 233, api 22, print-agent 12, web 5), `pnpm format:check` verde, `pnpm test:e2e` com 93 testes (9 novos de impressão), roteiro visual `printing.mjs` 13/13 (agente real em modo virtual). Os roteiros anteriores não foram rodados de novo nesta etapa: as telas que mudaram (pré-conta, caixa, acerto, detalhe do pedido) só ganharam botões novos, e o caminho pelo navegador continua igual.
+- Validação no último commit da `feat/printing`: `pnpm check` verde (22 tarefas; unitários: shared 233, api 22, print-agent 12, web 5), `pnpm format:check` verde, `pnpm test:e2e` com 93 testes (9 novos de impressão), roteiro visual `printing.mjs` 13/13 (agente real em modo virtual). Na `chore/print-installer` (2026-10-08) **todos os roteiros** rodaram de novo, com seed limpo antes de cada um: auth 19, menu 15, orders 18, pos 12, kds 8, delivery 16, digital-menu 11 e printing 13 — todos verdes, sem erros inesperados.
 - Migrations: `auth_tenancy`, `menu`, `orders`, `tables_pos`, `kds`, `delivery`, `digital_menu`, `printing`. Um clone novo fica igual com `pnpm bootstrap` (ou `pnpm --filter @app/api db:deploy` + `pnpm db:seed`).
 - O seed **não** configura impressão (sem computador conectado, uma impressora cadastrada geraria alertas permanentes na demonstração); o roteiro `printing.mjs` configura tudo pelas telas e remove no fim.
 
@@ -55,13 +55,13 @@
 
 ## Próximos passos (nesta ordem)
 
-### 1. Etapa `feat/dashboard` — apresentar a proposta ANTES de codar
+### 1. Etapa `feat/dashboard` — proposta apresentada, aguardando aprovação
 
-Próxima na ordem combinada (**`feat/dashboard` → `feat/table-qr`**). Dashboard e relatórios: vendas do dia e do período, ticket médio, por canal e forma de pagamento, produtos mais vendidos, cancelamentos e descontos, tempos de preparo e entrega (já existem relatórios de caixa e de entregas para reaproveitar). Considerar o **redesign** planejado no ROADMAP (dashboard escuro, KPIs com borda colorida, gráficos) ao propor o layout. Mostrar a proposta ao usuário e esperar aprovação.
+Proposta apresentada na sessão de 2026-10-08 (definições de faturamento, recebimentos e conciliação com o caixa e o relatório de entregas; dashboard do dia em tempo real com comparação; relatórios por período com curva ABC e mapa de calor; prevenção de perdas; tempos do KDS; consolidado da rede para o dono; CSV e impressão; celular; desempenho com `Payment.businessDate` e tabelas de resumo condicionadas a medição; gráficos em SVG próprio com tokens; seed com 90 dias). Esperar as respostas às perguntas da proposta e seguir a ordem de sempre.
 
 ### 2. Antes do lançamento (não é etapa de código agora)
 
-Certificado de assinatura de código para o `instalar-impressao.exe` e o `print-agent.exe` (ROADMAP, "Antes do lançamento": pesquisar as opções mais baratas quando chegar a hora). O instalador completo ainda **não foi gerado** nesta máquina (faltam o WinSW em `apps/print-agent/installer/vendor/` e o Inno Setup); o executável único foi gerado e testado (vínculo, impressão e memória). Também falta testar com uma impressora térmica física (rede e USB): o caminho do spooler foi conferido com uma impressora inexistente (mensagem de erro certa) e o de rede com um servidor TCP simulado.
+Certificado de assinatura de código para o `instalar-impressao.exe` e o `print-agent.exe` (ROADMAP, "Antes do lançamento"). O instalador já é gerado por `pnpm --filter @app/print-agent package -- --api <url>` (Inno Setup instalado no Surface por winget, por usuário; WinSW baixado da release oficial com SHA-256 fixado) e foi testado neste computador: instalação, serviço automático como LocalSystem, vínculo pela página local, impressão virtual, atualização por cima mantendo o vínculo e desinstalação limpa (serviço, programa e `C:\ProgramData\app-print-agent` com a credencial removidos). Falta: reiniciar o Windows com o serviço instalado (início automático conferido só pela configuração), testar o reinício automático em falha e testar com uma impressora térmica física (rede e USB). No desktop de casa, para gerar o instalador: `winget install --id JRSoftware.InnoSetup -e --scope user`.
 
 ### 3. Etapa `feat/table-qr` — apresentar a proposta ANTES de codar
 

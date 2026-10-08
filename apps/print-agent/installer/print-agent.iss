@@ -51,6 +51,11 @@ Filename: "{app}\PrintAgentService.exe"; Parameters: "install"; Flags: runhidden
 Filename: "{app}\PrintAgentService.exe"; Parameters: "start"; Flags: runhidden waituntilterminated
 Filename: "http://127.0.0.1:9180"; Description: "Abrir a página para vincular este computador"; Flags: postinstall shellexec nowait skipifsilent
 
+[UninstallDelete]
+; Clean uninstall: credential, settings, logs and virtual prints of the agent (the service is
+; stopped and removed by [UninstallRun] first). Updates keep this folder, so the PC stays paired.
+Type: filesandordirs; Name: "{commonappdata}\app-print-agent"
+
 [UninstallRun]
 Filename: "{app}\PrintAgentService.exe"; Parameters: "stop"; Flags: runhidden waituntilterminated; RunOnceId: "StopService"
 Filename: "{app}\PrintAgentService.exe"; Parameters: "uninstall"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveService"

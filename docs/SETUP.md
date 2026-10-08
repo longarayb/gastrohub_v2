@@ -259,10 +259,25 @@ pnpm --filter @app/print-agent start:virtual     # página local em http://127.0
 
 **Gerar o instalador (Windows, antes de entregar a um cliente):**
 
-1. Baixe o `WinSW-x64.exe` v2.12.0 em https://github.com/winsw/winsw/releases e coloque em `apps/print-agent/installer/vendor/` (fora do git; o script não baixa executáveis sozinho).
-2. Instale o Inno Setup 6 (https://jrsoftware.org/isinfo.php).
-3. `pnpm --filter @app/print-agent package -- --api https://api.seu-dominio.com.br/api`
-4. Sai `apps/print-agent/release/instalar-impressao.exe`. **Assine o instalador e o `print-agent.exe` antes de distribuir** (certificado de assinatura de código; ver ROADMAP, "Antes do lançamento"); sem assinatura o Windows mostra um alerta na instalação.
+1. Instale o Inno Setup 6 uma vez (sem precisar de administrador):
+
+   ```powershell
+   winget install --id JRSoftware.InnoSetup -e --scope user
+   ```
+
+2. Gere o pacote, informando o endereço da API que os restaurantes vão usar:
+
+   ```powershell
+   pnpm --filter @app/print-agent package -- --api https://api.seu-dominio.com.br/api
+   ```
+
+   O script monta o bundle, o executável único (`print-agent.exe`, com o Node 24 desta máquina), o arquivo do serviço e o instalador. O WinSW (que transforma o agente em serviço do Windows) é baixado da release oficial no GitHub por `pnpm --filter @app/print-agent fetch:winsw`, chamado automaticamente: o arquivo só é aceito se o SHA-256 bater com o fixado no script (conferido na release oficial e no manifesto do Scoop, já que o WinSW não é assinado). Fica em `apps/print-agent/installer/vendor/`, fora do git.
+
+3. Sai `apps/print-agent/release/instalar-impressao.exe` (~30 MB). **Assine o instalador e o `print-agent.exe` antes de distribuir** (certificado de assinatura de código; ver ROADMAP, "Antes do lançamento"); sem assinatura o Windows mostra o alerta do SmartScreen na instalação.
+
+O instalador pede administrador, instala em `C:\Program Files\<marca> Impressao`, registra o serviço `app-print-agent` (início automático com o Windows, conta LocalSystem, reinício automático em falha) e abre a página de vínculo. Instalar uma versão nova por cima mantém o computador vinculado. A desinstalação (Configurações do Windows › Aplicativos) para e remove o serviço e apaga `C:\ProgramData\app-print-agent` (credencial, configurações e logs); depois, desvincule o computador no painel.
+
+Para testar sem cliques (como no teste desta etapa): `instalar-impressao.exe /SILENT /LOG="%TEMP%\instalacao.log"` e, para remover, `"C:\Program Files\<marca> Impressao\unins000.exe" /SILENT`.
 
 No restaurante: executar o instalador, avançar até o fim e, na página que abre (`http://127.0.0.1:9180`), digitar os códigos mostrados no painel. Os dados do agente ficam em `C:\ProgramData\app-print-agent` (credencial protegida pelo Windows, logs em `logs\`). Para trocar de computador: "Vincular outro computador" no painel gera um código novo.
 
