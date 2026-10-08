@@ -1,5 +1,6 @@
 import { Permission } from '@app/shared';
 import {
+  BarChart3,
   Bike,
   BookOpen,
   Building2,
@@ -13,8 +14,10 @@ import {
   Printer,
   MonitorPlay,
   ReceiptText,
+  ShieldAlert,
   Smartphone,
   TicketPercent,
+  Timer,
   type LucideIcon,
   Users,
   Wallet,
@@ -94,6 +97,29 @@ export const NAV: NavGroup[] = [
         label: 'Cupons',
         icon: TicketPercent,
         permissions: [Permission.STORE_MANAGE],
+      },
+    ],
+  },
+  {
+    label: 'Relatórios',
+    items: [
+      {
+        href: '/relatorios/vendas',
+        label: 'Vendas',
+        icon: BarChart3,
+        permissions: [Permission.REPORTS_READ],
+      },
+      {
+        href: '/relatorios/perdas',
+        label: 'Controle de perdas',
+        icon: ShieldAlert,
+        permissions: [Permission.REPORTS_READ],
+      },
+      {
+        href: '/relatorios/tempos',
+        label: 'Tempos de operação',
+        icon: Timer,
+        permissions: [Permission.REPORTS_READ],
       },
     ],
   },

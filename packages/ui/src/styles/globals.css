@@ -56,6 +56,24 @@
   --kanban-column-width: 20rem;
   /* Thermal printer paper (pre-bill, cash report). */
   --receipt-width: 72mm;
+  /* Dashboard and reports (docs/DESIGN.md): accents, signals, chart series, bar track. */
+  --accent-blue: #2f6fdb;
+  --accent-green: #13865a;
+  --accent-purple: #7e46b8;
+  --accent-orange: #b86e00;
+  --signal-attention: #a86400;
+  --signal-critical: #d23a2e;
+  --signal-positive: #13865a;
+  --chart-1: var(--accent-blue);
+  --chart-2: var(--accent-green);
+  --chart-3: var(--accent-purple);
+  --chart-4: var(--accent-orange);
+  --chart-5: var(--signal-critical);
+  --chart-compare: #9aa9bf;
+  /* Cap line of the comparison series (non-text contrast ≥ 3:1, WCAG 1.4.11). */
+  --chart-compare-cap: #52627a;
+  --track: #e7ecf3;
+  --card-radius: 18px;
 }
 
 .dark {
@@ -90,6 +108,16 @@
   --status-dispatched: oklch(0.72 0.11 200);
   --status-delivered: oklch(0.65 0.02 70);
   --status-canceled: oklch(0.68 0.18 25);
+  --accent-blue: #4c8df6;
+  --accent-green: #2ebd85;
+  --accent-purple: #a06cd5;
+  --accent-orange: #f59e0b;
+  --signal-attention: #f5a524;
+  --signal-critical: #ff6b5e;
+  --signal-positive: #3fcf8e;
+  --chart-compare: #3a4a66;
+  --chart-compare-cap: #9aaac2;
+  --track: #1e2a40;
 }
 
 @theme inline {
@@ -138,6 +166,31 @@
   --color-qr-background: var(--qr-background);
   --width-kanban-column: var(--kanban-column-width);
   --width-receipt: var(--receipt-width);
+  /* Dashboard (docs/DESIGN.md): display font (Nunito Sans), sizes, accents and charts. */
+  --font-display: var(--font-display-app), var(--font-app), ui-sans-serif, system-ui, sans-serif;
+  --text-display: 2.125rem;
+  --text-display--line-height: 1.15;
+  --text-kpi: 2.375rem;
+  --text-kpi--line-height: 1.1;
+  --text-attention: 2.125rem;
+  --text-attention--line-height: 1;
+  --text-kpi-label: 0.8125rem;
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-green: var(--accent-green);
+  --color-accent-purple: var(--accent-purple);
+  --color-accent-orange: var(--accent-orange);
+  --color-signal-attention: var(--signal-attention);
+  --color-signal-critical: var(--signal-critical);
+  --color-signal-positive: var(--signal-positive);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-compare: var(--chart-compare);
+  --color-chart-compare-cap: var(--chart-compare-cap);
+  --color-track: var(--track);
+  --radius-card: var(--card-radius);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -171,6 +224,15 @@
       display: block;
       color: var(--qr-foreground);
       background: var(--qr-background);
+    }
+    /* Reports print on A4 (named page), receipts keep the 80 mm page above. */
+    @page report {
+      size: A4;
+      margin: 12mm;
+    }
+    .print-a4 {
+      page: report;
+      font-size: 10pt;
     }
   }
 }
