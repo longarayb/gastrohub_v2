@@ -20,7 +20,10 @@ const step = async (name, fn) => {
   } catch (e) {
     const lines = e.message.split('\n').slice(0, process.env.DEBUG ? 12 : 1);
     results.push(`FAIL  ${name}: ${lines.join(' | ')} @ ${page.url()}`);
-    await page.screenshot({ path: path.join(OUT, `dashboard-fail-${results.length}.png`), fullPage: true });
+    await page.screenshot({
+      path: path.join(OUT, `dashboard-fail-${results.length}.png`),
+      fullPage: true,
+    });
   }
 };
 
@@ -43,7 +46,11 @@ async function apiCall(token, method, p, body) {
   return data;
 }
 
-const browser = await chromium.launch({ channel: 'msedge', headless: true, args: ['--disable-gpu'] });
+const browser = await chromium.launch({
+  channel: 'msedge',
+  headless: true,
+  args: ['--disable-gpu'],
+});
 const errors = [];
 const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
@@ -61,13 +68,19 @@ await context.addInitScript(() => {
 page = await context.newPage();
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 page.on('console', (m) => m.type() === 'error' && errors.push(`console: ${m.text()}`));
-page.on('response', (r) => r.status() >= 400 && errors.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`));
+page.on(
+  'response',
+  (r) => r.status() >= 400 && errors.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`),
+);
 
-const shot = (name, full = false) => page.screenshot({ path: path.join(OUT, `dashboard-${name}.png`), fullPage: full });
+const shot = (name, full = false) =>
+  page.screenshot({ path: path.join(OUT, `dashboard-${name}.png`), fullPage: full });
 const card = (label) => page.getByRole('region', { name: label, exact: true });
 const kpiValue = async (label) => (await card(label).locator('p').first().innerText()).trim();
 const noHorizontalScroll = async () => {
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth,
+  );
   if (overflow) throw new Error('page scrolls horizontally');
 };
 
@@ -80,25 +93,38 @@ async function login(email) {
   await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 15_000 });
 }
 
-await step('owner lands on the day dashboard: KPIs, comparison, attention now, charts', async () => {
-  await login('dono@demo.local');
-  await page.waitForURL(/\/painel/);
-  await page.getByRole('heading', { name: 'Hoje' }).waitFor();
-  for (const label of ['Faturamento', 'Pedidos', 'Ticket médio', 'Em aberto', 'Cancelados']) {
-    await card(label).waitFor();
-  }
-  if (!/^R\$/.test(await kpiValue('Faturamento'))) throw new Error('revenue not in BRL');
-  await card('Faturamento').getByText(/vs\. .*passada, até agora|sem base de comparação/).waitFor();
-  await card('Atenção agora').getByRole('link', { name: /aguardando aceite/ }).waitFor();
-  await card('Vendas por canal').getByText(/canais · \d+ pedidos/).waitFor();
-  await card('Mais vendidos').locator('li').first().waitFor();
-  await card('Pedidos por hora').getByRole('img', { name: /Pedidos por hora/ }).waitFor();
-  await shot('01-day', true);
-});
+await step(
+  'owner lands on the day dashboard: KPIs, comparison, attention now, charts',
+  async () => {
+    await login('dono@demo.local');
+    await page.waitForURL(/\/painel/);
+    await page.getByRole('heading', { name: 'Hoje' }).waitFor();
+    for (const label of ['Faturamento', 'Pedidos', 'Ticket médio', 'Em aberto', 'Cancelados']) {
+      await card(label).waitFor();
+    }
+    if (!/^R\$/.test(await kpiValue('Faturamento'))) throw new Error('revenue not in BRL');
+    await card('Faturamento')
+      .getByText(/vs\. .*passada, até agora|sem base de comparação/)
+      .waitFor();
+    await card('Atenção agora')
+      .getByRole('link', { name: /aguardando aceite/ })
+      .waitFor();
+    await card('Vendas por canal')
+      .getByText(/canais · \d+ pedidos/)
+      .waitFor();
+    await card('Mais vendidos').locator('li').first().waitFor();
+    await card('Pedidos por hora')
+      .getByRole('img', { name: /Pedidos por hora/ })
+      .waitFor();
+    await shot('01-day', true);
+  },
+);
 
 await step('help icon explains each indicator (tap)', async () => {
   await page.getByRole('button', { name: 'O que é Faturamento?' }).click();
-  await page.getByText(/Pedido aberto num dia e concluído no outro conta no dia da conclusão/).waitFor();
+  await page
+    .getByText(/Pedido aberto num dia e concluído no outro conta no dia da conclusão/)
+    .waitFor();
   await shot('02-help');
   await page.keyboard.press('Escape');
 });
@@ -115,7 +141,9 @@ await step('ticket: total and products only, alternated in the card', async () =
 
 await step('comparison with the 4-week average', async () => {
   await page.getByRole('radio', { name: 'Média 4 semanas' }).click();
-  await card('Faturamento').getByText(/vs\. média das 4 semanas|sem base/).waitFor();
+  await card('Faturamento')
+    .getByText(/vs\. média das 4 semanas|sem base/)
+    .waitFor();
   await page.getByRole('radio', { name: 'Semana passada' }).click();
 });
 
@@ -125,7 +153,10 @@ await step('real time: a new order shows up on the dashboard by itself', async (
   const products = await apiCall(token, 'GET', '/menu/products');
   // A simple product without required options (a canned drink).
   const pick = products.find((p) => p.kind === 'STANDARD' && !p.isPaused && /lata/i.test(p.name));
-  await apiCall(token, 'POST', '/orders', { type: 'TAKEOUT', items: [{ productId: pick.id, quantity: 1 }] });
+  await apiCall(token, 'POST', '/orders', {
+    type: 'TAKEOUT',
+    items: [{ productId: pick.id, quantity: 1 }],
+  });
   await page.waitForFunction(
     (prev) => {
       const el = document.querySelector('[aria-label="Em aberto"] p');
@@ -152,10 +183,11 @@ await step('phone: the day dashboard fits without horizontal scroll', async () =
   await noHorizontalScroll();
   await shot('03-phone', true);
   // Touch targets: period/compare buttons and help icons have at least 44 px.
-  const small = await page.evaluate(() =>
-    [...document.querySelectorAll('[role="radio"], [aria-label^="O que é"]')]
-      .map((el) => el.getBoundingClientRect())
-      .filter((r) => r.width > 0 && (r.height < 44 || r.width < 44)).length,
+  const small = await page.evaluate(
+    () =>
+      [...document.querySelectorAll('[role="radio"], [aria-label^="O que é"]')]
+        .map((el) => el.getBoundingClientRect())
+        .filter((r) => r.width > 0 && (r.height < 44 || r.width < 44)).length,
   );
   if (small) throw new Error(`${small} touch targets under 44 px`);
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -174,7 +206,9 @@ await step('sales report: 90 days, ABC curve, heatmap, CSV and A4 print', async 
   await page.getByRole('link', { name: 'Vendas' }).click();
   await page.getByRole('heading', { name: 'Vendas', level: 1 }).waitFor();
   await page.getByRole('radio', { name: '90 dias' }).click();
-  await card('Produtos').getByText(/\d+ produtos · A \d+ · B \d+ · C \d+/).waitFor();
+  await card('Produtos')
+    .getByText(/\d+ produtos · A \d+ · B \d+ · C \d+/)
+    .waitFor();
   await card('Produtos').getByRole('radio', { name: 'C', exact: true }).click();
   const classes = await card('Produtos').locator('tbody td:last-child').allInnerTexts();
   if (!classes.length || classes.some((c) => c.trim() !== 'C')) throw new Error('ABC filter');
@@ -202,7 +236,10 @@ await step('loss prevention: by user, reasons, "after production" filter', async
   await page.getByRole('link', { name: 'Controle de perdas' }).click();
   await page.getByRole('heading', { name: 'Controle de perdas', level: 1 }).waitFor();
   await page.getByRole('radio', { name: '90 dias' }).click();
-  await card('Por usuário').getByText(/após produção/).first().waitFor();
+  await card('Por usuário')
+    .getByText(/após produção/)
+    .first()
+    .waitFor();
   await card('Motivos').locator('li').first().waitFor();
   await page.getByText('Só depois da produção').click();
   await card('Eventos').getByText('depois da produção').first().waitFor();
@@ -229,7 +266,8 @@ await step('cashier has no reports; manager sees only their unit', async () => {
   await login('gerente@demo.local');
   await page.goto(`${WEB}/painel`);
   await card('Faturamento').waitFor();
-  if (await page.getByRole('radio', { name: 'Todas as unidades' }).count()) throw new Error('network for manager');
+  if (await page.getByRole('radio', { name: 'Todas as unidades' }).count())
+    throw new Error('network for manager');
 });
 
 await browser.close();
