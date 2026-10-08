@@ -43,7 +43,7 @@ function TicketCard({ day, against }: { day: DayReportDto; against: string }) {
           type="button"
           onClick={() => setView((v) => (v === 'total' ? 'products' : 'total'))}
           aria-label={view === 'total' ? 'Ver só produtos' : 'Ver total com taxas'}
-          className="-my-2 h-11 rounded-lg px-2 text-xs font-semibold text-accent-blue hover:bg-muted"
+          className="h-11 rounded-lg px-2 text-xs font-semibold text-accent-blue hover:bg-muted"
         >
           {view === 'total' ? 'Só produtos' : 'Total'}
         </button>

@@ -104,7 +104,8 @@ export function KpiCard({
         TONES[tone].stripe,
       )}
     >
-      <div className="flex items-center gap-2">
+      {/* Same header height in every card (the ticket card has a 44 px toggle). */}
+      <div className="flex min-h-11 items-center gap-2">
         <h2 className="text-kpi-label font-bold tracking-[0.1em] text-muted-foreground uppercase">
           {label}
         </h2>

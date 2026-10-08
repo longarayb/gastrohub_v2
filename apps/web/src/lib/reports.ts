@@ -35,6 +35,8 @@ export const useSalesReport = (scope: ReportScope, from: string, to: string) =>
     queryKey: reportKeys.sales(scope, from, to),
     queryFn: () => apiGet<SalesReportDto>('/reports/sales', { scope, from, to }),
     placeholderData: keepPreviousData,
+    // The period depends on the store hours (business day): wait for it.
+    enabled: !!from && !!to,
   });
 
 export const useLossesReport = (from: string, to: string) =>
@@ -42,6 +44,7 @@ export const useLossesReport = (from: string, to: string) =>
     queryKey: reportKeys.losses(from, to),
     queryFn: () => apiGet<LossesReportDto>('/reports/losses', { from, to }),
     placeholderData: keepPreviousData,
+    enabled: !!from && !!to,
   });
 
 export const useTimesReport = (from: string, to: string, enabled = true) =>
@@ -49,13 +52,15 @@ export const useTimesReport = (from: string, to: string, enabled = true) =>
     queryKey: reportKeys.times(from, to),
     queryFn: () => apiGet<TimesReportDto>('/reports/times', { from, to }),
     placeholderData: keepPreviousData,
-    enabled,
+    enabled: enabled && !!from && !!to,
   });
 
 /** Downloads one section of a report as CSV (Excel pt-BR). */
 export async function downloadCsv(report: ReportKind, section: string, from: string, to: string) {
   const text = await api<string>(`/reports/${report}/csv`, { query: { from, to, section } });
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+  // Decoding the response drops the BOM; Excel needs it to read the accents as UTF-8.
+  const withBom = text.startsWith('\uFEFF') ? text : `\uFEFF${text}`;
+  const url = URL.createObjectURL(new Blob([withBom], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;
   link.download = `${report}-${section}-${from}-a-${to}.csv`;
