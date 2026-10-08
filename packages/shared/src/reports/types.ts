@@ -181,7 +181,9 @@ export interface LossUserRow {
 export interface LossesReportDto {
   from: string;
   to: string;
+  /** The most recent events (up to 500 on screen); `eventCount` has them all. */
   events: LossEvent[];
+  eventCount: number;
   totals: { kind: LossKind; count: number; cents: number }[];
   users: LossUserRow[];
   reasons: { kind: LossKind; reason: string; count: number; cents: number }[];

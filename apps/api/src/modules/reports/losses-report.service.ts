@@ -7,22 +7,31 @@ import {
   type LossesReportDto,
   PRINT_JOB_KIND_LABELS,
   type TimesReportDto,
-  addDaysToDate,
   applyBasisPoints,
-  currentBusinessDay,
+  businessDateResolver,
+  businessDayWindow,
   durationStats,
 } from '@app/shared';
+import { ValidationError } from '../../core/errors/domain-error.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';
 import { type Db, InjectDb } from '../../core/tenancy/db.provider.js';
 import { TenantContext } from '../../core/tenancy/tenant-context.js';
 import { AuditAction } from '../../core/audit/audit.service.js';
 import { MenuContext } from '../menu/menu-common.js';
 
+/** Events listed on the screen (most recent first). */
+export const MAX_LOSS_EVENTS = 500;
+
+/** Operation times use every task of the period: up to about one quarter. */
+export const MAX_TIMES_DAYS = 120;
+
+const daysInPeriod = (from: string, to: string) =>
+  Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000) + 1;
+
 /**
  * Loss prevention and operation times (D038). Events without a stored business day (item
- * cancellations, reprints, discounts and service fee removals from the audit) are mapped to
- * the business day of their instant with the store hours; the query window is widened by a day
- * on each side and filtered after.
+ * cancellations, reprints, cash reopenings) are filtered in the database by the exact instants
+ * of the period (`businessDayWindow`) and labeled with the business day of their instant.
  */
 @Injectable()
 export class LossesReportService {
@@ -34,7 +43,8 @@ export class LossesReportService {
     private readonly menu: MenuContext,
   ) {}
 
-  private async dayMapper() {
+  /** Business date of an instant, and the exact instants of a period (database filter). */
+  private async calendar() {
     const [hours, store] = await Promise.all([
       this.menu.hours(),
       this.prisma.store.findUnique({
@@ -42,14 +52,11 @@ export class LossesReportService {
         select: { timezone: true },
       }),
     ]);
-    return (at: Date) => currentBusinessDay(hours, at, store?.timezone).date;
-  }
-
-  /** Instants that may belong to the business days of the period. */
-  private static window(from: string, to: string) {
+    const timeZone = store?.timezone;
     return {
-      gte: new Date(`${addDaysToDate(from, -1)}T00:00:00Z`),
-      lt: new Date(`${addDaysToDate(to, 2)}T12:00:00Z`),
+      dayOf: businessDateResolver(hours, timeZone),
+      window: (from: string, to: string) =>
+        businessDayWindow(from, to, hours, timeZone) ?? { gt: new Date(0), lte: new Date(0) },
     };
   }
 
@@ -66,10 +73,13 @@ export class LossesReportService {
       id ? (map.get(id) ?? 'Usuário removido') : 'Sistema';
   }
 
-  async losses(query: { from: string; to: string }): Promise<LossesReportDto> {
+  async losses(
+    query: { from: string; to: string },
+    options: { allEvents?: boolean } = {},
+  ): Promise<LossesReportDto> {
     const period = { gte: query.from, lte: query.to };
-    const window = LossesReportService.window(query.from, query.to);
-    const dayOf = await this.dayMapper();
+    const { dayOf, window: windowOf } = await this.calendar();
+    const window = windowOf(query.from, query.to);
     const inPeriod = (date: string) => date >= query.from && date <= query.to;
 
     const [orders, items, refunds, discounted, waived, audits, reprints, sessions, reopened] =
@@ -158,7 +168,8 @@ export class LossesReportService {
                 AuditAction.SERVICE_FEE_REMOVED,
               ],
             },
-            createdAt: { gte: new Date(window.gte.getTime() - 30 * 86_400_000), lt: window.lt },
+            // Discounts and fee removals happen before the order closes (up to a few days).
+            createdAt: { gt: new Date(window.gt.getTime() - 30 * 86_400_000), lte: window.lte },
           },
           orderBy: { createdAt: 'asc' },
           select: { action: true, entityId: true, userId: true },
@@ -363,7 +374,9 @@ export class LossesReportService {
     return {
       from: query.from,
       to: query.to,
-      events: full,
+      // The screen shows the most recent; totals, users, reasons and the CSV use every event.
+      events: options.allEvents ? full : full.slice(0, MAX_LOSS_EVENTS),
+      eventCount: full.length,
       totals: LOSS_KINDS.map((kind) => ({
         kind,
         count: full.filter((e) => e.kind === kind).length,
@@ -378,26 +391,24 @@ export class LossesReportService {
   // Operation times
 
   async times(query: { from: string; to: string }): Promise<TimesReportDto> {
-    const dayOf = await this.dayMapper();
-    const tasks = await this.db.productionTask.findMany({
-      where: {
-        sentAt: LossesReportService.window(query.from, query.to),
-        status: 'READY',
-        readyAt: { not: null },
-      },
-      select: {
-        name: true,
-        sentAt: true,
-        startedAt: true,
-        readyAt: true,
-        sectorId: true,
-        sector: { select: { name: true, lateAfterMinutes: true } },
-      },
-    });
-    const valid = tasks.filter((t) => {
-      const date = dayOf(t.sentAt);
-      return date >= query.from && date <= query.to;
-    });
+    if (daysInPeriod(query.from, query.to) > MAX_TIMES_DAYS) {
+      throw new ValidationError(`Para os tempos de preparo, escolha até ${MAX_TIMES_DAYS} dias`);
+    }
+    const { window } = await this.calendar();
+    const [rows, sectorList] = await Promise.all([
+      this.db.productionTask.findMany({
+        where: { sentAt: window(query.from, query.to), status: 'READY', readyAt: { not: null } },
+        select: { name: true, sentAt: true, startedAt: true, readyAt: true, sectorId: true },
+      }),
+      this.db.productionSector.findMany({
+        select: { id: true, name: true, lateAfterMinutes: true },
+      }),
+    ]);
+    const sectorOf = new Map(sectorList.map((s) => [s.id, s]));
+    const valid = rows.map((t) => ({
+      ...t,
+      sector: sectorOf.get(t.sectorId) ?? { name: 'Setor removido', lateAfterMinutes: 20 },
+    }));
     const seconds = (a: Date | null, b: Date | null) =>
       a && b ? Math.round((b.getTime() - a.getTime()) / 1000) : NaN;
     const group = (key: (t: (typeof valid)[number]) => string) => {

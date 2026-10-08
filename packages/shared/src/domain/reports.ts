@@ -116,6 +116,12 @@ export function salesBreakdown(orders: readonly OrderAmounts[]): SalesBreakdown 
   return b;
 }
 
+/** Same breakdown from totals already summed by the database (long periods). */
+export function salesBreakdownFromSums(orders: number, sums: OrderAmounts): SalesBreakdown {
+  const b = salesBreakdown([sums]);
+  return { ...b, orders };
+}
+
 export function addBreakdowns(list: readonly SalesBreakdown[]): SalesBreakdown {
   const sum = emptyBreakdown();
   for (const b of list) {

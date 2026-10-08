@@ -12,6 +12,7 @@ import { expand } from 'dotenv-expand';
 import { PrismaClient } from '../../src/generated/prisma/client.js';
 import { seedMenu } from './menu.js';
 import { seedDelivery } from './delivery.js';
+import { seedHistory } from './history.js';
 import { seedDigitalMenu } from './digital-menu.js';
 import { seedOrders } from './orders.js';
 
@@ -77,11 +78,31 @@ const TENANT_TABLES = [
   'Membership',
 ] as const;
 
+async function deleteTenantRows(
+  run: (sql: string, ...values: unknown[]) => Promise<unknown>,
+  tenantId: string,
+): Promise<void> {
+  for (const table of TENANT_TABLES) {
+    await run(`DELETE FROM "${table}" WHERE "tenantId" = $1`, tenantId);
+  }
+}
+
 async function wipeDemo(prisma: PrismaClient): Promise<void> {
   const store = await prisma.store.findUnique({ where: { slug: DEMO_SLUG } });
   if (!store) return;
-  for (const table of TENANT_TABLES) {
-    await prisma.$executeRawUnsafe(`DELETE FROM "${table}" WHERE "tenantId" = $1`, store.id);
+  try {
+    // Every table of the unit is emptied (children first): the foreign key checks of each
+    // deleted row only cost time (90 days of history). Needs a superuser (the local Docker
+    // user is one); otherwise the plain deletes below run instead.
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRawUnsafe(`SET LOCAL session_replication_role = replica`);
+        await deleteTenantRows((sql, ...values) => tx.$executeRawUnsafe(sql, ...values), store.id);
+      },
+      { timeout: 120_000 },
+    );
+  } catch {
+    await deleteTenantRows((sql, ...values) => prisma.$executeRawUnsafe(sql, ...values), store.id);
   }
   await prisma.user.deleteMany({ where: { email: { in: DEMO_USERS.map((u) => u.email) } } });
   await prisma.store.delete({ where: { id: store.id } });
@@ -107,8 +128,14 @@ async function main(): Promise<void> {
   if (!url) throw new Error('DATABASE_URL não definido');
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 
+  const timing = (label: string, start: number) => {
+    if (process.env.SEED_TIMINGS) console.log(`[seed] ${label}: ${Date.now() - start} ms`);
+  };
   try {
+    let t = Date.now();
     await wipeDemo(prisma);
+    timing('limpeza', t);
+    t = Date.now();
 
     const org = await prisma.organization.create({ data: { name: `${BRAND.name} Demo LTDA` } });
     const store = await prisma.store.create({
@@ -153,6 +180,8 @@ async function main(): Promise<void> {
       userIds[user.role] = created.id;
     }
 
+    timing('unidade e usuários', t);
+    t = Date.now();
     const menu = await seedMenu(prisma, store.id);
     const orders = await seedOrders(prisma, store.id, {
       cashierId: userIds.CASHIER!,
@@ -165,6 +194,21 @@ async function main(): Promise<void> {
       cashierId: userIds.CASHIER!,
     });
     const digital = await seedDigitalMenu(prisma, store.id, { managerId: userIds.MANAGER! });
+    timing('cardápio, pedidos de hoje, entregas e cardápio digital', t);
+    t = Date.now();
+    const history = await seedHistory(
+      prisma,
+      store.id,
+      {
+        cashierId: userIds.CASHIER!,
+        waiterId: userIds.WAITER!,
+        managerId: userIds.MANAGER!,
+        ownerId: userIds.OWNER!,
+      },
+      // HISTORY_DAYS=365 to measure the reports with a year of data (D038).
+      Number(process.env.HISTORY_DAYS) || 90,
+    );
+    timing('histórico', t);
 
     console.log(`\n✔ Unidade "${store.tradeName}" (slug: ${store.slug})`);
     console.log(`✔ ${DEMO_USERS.length} usuários — senha de demonstração: ${DEMO_PASSWORD}`);
@@ -183,6 +227,9 @@ async function main(): Promise<void> {
     );
     console.log(
       `✔ Cardápio digital: http://localhost:3001/${store.slug} · ${digital.menuOrders} pedidos pelo cardápio · telefone bloqueado (11) 90000-0000`,
+    );
+    console.log(
+      `✔ Histórico: ${history.orders} pedidos em ${history.days} dias de negócio (dashboard e relatórios)`,
     );
     console.log(
       `✔ Cozinha: ${orders.kitchenTasks} tarefas de produção · tela "TV da cozinha" aguardando vínculo (Setores)\n`,

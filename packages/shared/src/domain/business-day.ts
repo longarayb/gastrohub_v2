@@ -80,3 +80,79 @@ export function isWithinSchedule(
   const { weekday, minutes } = toLocalTime(now, timeZone);
   return isOpenAt(schedule, weekday, minutes);
 }
+
+/**
+ * Business date of many instants (reports): same rule as `currentBusinessDay`, with the end
+ * of each calendar day computed once.
+ */
+function dayEnds(hours: readonly BusinessHour[], timeZone: string) {
+  const ends = new Map<string, number | null>();
+  return (date: string): number | null => {
+    if (ends.has(date)) return ends.get(date)!;
+    const shifts = hours.filter((h) => h.weekday === weekdayOfDate(date));
+    const end = shifts.length
+      ? Math.max(
+          ...shifts.map((h) => {
+            const open = timeToMinutes(h.opensAt);
+            const close = timeToMinutes(h.closesAt);
+            return zonedTimeToInstant(
+              date,
+              close <= open ? close + 1440 : close,
+              timeZone,
+            ).getTime();
+          }),
+        )
+      : null;
+    ends.set(date, end);
+    return end;
+  };
+}
+
+export function businessDateResolver(
+  hours: readonly BusinessHour[],
+  timeZone = DEFAULT_TIMEZONE,
+): (at: Date) => string {
+  const endOf = dayEnds(hours, timeZone);
+  return (at) => {
+    const today = toLocalTime(at, timeZone).businessDate;
+    if (!hours.length) return today;
+    for (let offset = -1; offset <= 7; offset++) {
+      const date = addDaysToDate(today, offset);
+      const end = endOf(date);
+      if (end !== null && end > at.getTime()) return date;
+    }
+    return today;
+  };
+}
+
+/**
+ * Instants of a period of business days, for filtering in the database: an instant belongs to
+ * the period when `gt < instant <= lte` (same rule as `businessDateResolver`; closed days
+ * belong to the next open one). Null when the period has no open day.
+ */
+export function businessDayWindow(
+  from: string,
+  to: string,
+  hours: readonly BusinessHour[],
+  timeZone = DEFAULT_TIMEZONE,
+): { gt: Date; lte: Date } | null {
+  if (!hours.length) {
+    return {
+      gt: new Date(zonedTimeToInstant(from, 0, timeZone).getTime() - 1),
+      lte: new Date(zonedTimeToInstant(addDaysToDate(to, 1), 0, timeZone).getTime() - 1),
+    };
+  }
+  const endOf = dayEnds(hours, timeZone);
+  const lastOpen = (date: string, limit: number): string | null => {
+    for (let i = 0; i < limit; i++) {
+      const d = addDaysToDate(date, -i);
+      if (endOf(d) !== null) return d;
+    }
+    return null;
+  };
+  const last = lastOpen(to, 400);
+  if (!last || last < from) return null;
+  const before = lastOpen(addDaysToDate(from, -1), 8);
+  const start = before ? endOf(before)! : zonedTimeToInstant(from, 0, timeZone).getTime() - 1;
+  return { gt: new Date(start), lte: new Date(endOf(last)!) };
+}

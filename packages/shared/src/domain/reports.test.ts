@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { centsToCsv, toCsv } from '../utils/csv.js';
+import { businessDateResolver, businessDayWindow, currentBusinessDay } from './business-day.js';
 import { calculateOrderTotals } from './order-totals.js';
 import {
   abcCurve,
@@ -174,5 +175,44 @@ describe('CSV for Excel pt-BR', () => {
       '',
     ]);
     expect(centsToCsv(0)).toBe('0,00');
+  });
+});
+
+describe('business date of many instants', () => {
+  it('matches currentBusinessDay, night shifts included', () => {
+    const hours = [
+      { weekday: 5, opensAt: '18:00', closesAt: '02:00' }, // Friday night
+      { weekday: 6, opensAt: '11:00', closesAt: '15:00' },
+      { weekday: 1, opensAt: '11:00', closesAt: '15:00' },
+    ];
+    const resolve = businessDateResolver(hours);
+    const start = Date.parse('2026-10-08T00:00:00Z');
+    for (let m = 0; m < 6 * 24 * 60; m += 37) {
+      const at = new Date(start + m * 60_000);
+      expect(resolve(at)).toBe(currentBusinessDay(hours, at).date);
+    }
+    // Saturday 01:30 in São Paulo belongs to Friday.
+    expect(resolve(new Date('2026-10-10T04:30:00Z'))).toBe('2026-10-09');
+    expect(businessDateResolver([])(new Date('2026-10-10T04:30:00Z'))).toBe('2026-10-10');
+  });
+
+  it('turns a period into the exact window of instants', () => {
+    const hours = [
+      { weekday: 5, opensAt: '18:00', closesAt: '02:00' },
+      { weekday: 6, opensAt: '11:00', closesAt: '15:00' },
+      { weekday: 1, opensAt: '11:00', closesAt: '15:00' },
+    ];
+    const resolve = businessDateResolver(hours);
+    const window = businessDayWindow('2026-10-09', '2026-10-10', hours)!;
+    const start = Date.parse('2026-10-06T00:00:00Z');
+    for (let m = 0; m < 10 * 24 * 60; m += 23) {
+      const at = new Date(start + m * 60_000);
+      const date = resolve(at);
+      const inside = at > window.gt && at <= window.lte;
+      expect(inside).toBe(date >= '2026-10-09' && date <= '2026-10-10');
+    }
+    expect(businessDayWindow('2026-10-07', '2026-10-08', hours)).toBeNull(); // Wed–Thu closed
+    const all = businessDayWindow('2026-10-09', '2026-10-09', [])!;
+    expect(all.lte.getTime() - all.gt.getTime()).toBe(86_400_000);
   });
 });

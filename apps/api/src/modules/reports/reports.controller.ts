@@ -82,7 +82,8 @@ export class ReportsController {
     let body: string;
     if (report === 'sales')
       body = salesCsv(await this.reports.sales({ ...period, scope: 'STORE' }), query.section);
-    else if (report === 'losses') body = lossesCsv(await this.losses.losses(period), query.section);
+    else if (report === 'losses')
+      body = lossesCsv(await this.losses.losses(period, { allEvents: true }), query.section);
     else body = timesCsv(await this.losses.times(period), query.section);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(

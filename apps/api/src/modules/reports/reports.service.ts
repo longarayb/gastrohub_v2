@@ -19,10 +19,11 @@ import {
   byHour,
   compare,
   comparisonDates,
-  heatmap,
+  localHourAndWeekday,
   reconcile,
   reportChannelOf,
   salesBreakdown,
+  salesBreakdownFromSums,
   sameMomentOn,
 } from '@app/shared';
 import { ForbiddenError } from '../../core/errors/domain-error.js';
@@ -50,6 +51,18 @@ const amountsSelect = {
 } satisfies Prisma.OrderSelect;
 
 const sum = (values: readonly number[]) => values.reduce((a, b) => a + b, 0);
+
+/** Orders and revenue by weekday × hour, converting each instant once. */
+function heatmaps(orders: readonly { createdAt: Date; totalCents: number }[]) {
+  const ordersGrid = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+  const revenueGrid = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+  for (const o of orders) {
+    const { hour, weekday } = localHourAndWeekday(o.createdAt);
+    ordersGrid[weekday]![hour]! += 1;
+    revenueGrid[weekday]![hour]! += o.totalCents;
+  }
+  return { orders: ordersGrid, revenueCents: revenueGrid };
+}
 
 function channelRows(
   orders: readonly { type: string; source: string; totalCents: number }[],
@@ -561,50 +574,86 @@ export class ReportsService {
       closedBusinessDate: period,
       status: 'DELIVERED',
     };
-    const [concluded, refunds, perDay, refundsPerDay, products, received, refundedBy, created] =
-      await Promise.all([
-        this.db.order.findMany({ where: concludedWhere, select: amountsSelect }),
-        this.db.payment.aggregate({
-          where: {
-            refundBusinessDate: period,
-            status: 'REFUNDED',
-            order: { status: 'DELIVERED', closedBusinessDate: { lte: query.to } },
-          },
-          _sum: { amountCents: true },
+    const [
+      concludedGroups,
+      refunds,
+      perDay,
+      refundsPerDay,
+      products,
+      received,
+      refundedBy,
+      created,
+      waiters,
+    ] = await Promise.all([
+      // Summed by the database: a year has tens of thousands of orders.
+      this.db.order.groupBy({
+        by: ['type', 'source'],
+        where: concludedWhere,
+        _count: true,
+        _sum: {
+          subtotalCents: true,
+          itemDiscountCents: true,
+          orderDiscountCents: true,
+          couponDiscountCents: true,
+          serviceFeeCents: true,
+          deliveryFeeCents: true,
+          totalCents: true,
+        },
+      }),
+      this.db.payment.aggregate({
+        where: {
+          refundBusinessDate: period,
+          status: 'REFUNDED',
+          order: { status: 'DELIVERED', closedBusinessDate: { lte: query.to } },
+        },
+        _sum: { amountCents: true },
+      }),
+      this.db.order.groupBy({
+        by: ['closedBusinessDate'],
+        where: concludedWhere,
+        _count: true,
+        _sum: { totalCents: true },
+      }),
+      this.db.payment.groupBy({
+        by: ['refundBusinessDate'],
+        where: {
+          refundBusinessDate: period,
+          status: 'REFUNDED',
+          order: { status: 'DELIVERED', closedBusinessDate: { lte: query.to } },
+        },
+        _sum: { amountCents: true },
+      }),
+      this.topProducts(concludedWhere),
+      this.db.payment.groupBy({
+        by: ['method'],
+        where: { businessDate: period },
+        _sum: { amountCents: true },
+        _count: true,
+      }),
+      this.db.payment.groupBy({
+        by: ['method'],
+        where: { refundBusinessDate: period, status: 'REFUNDED' },
+        _sum: { amountCents: true },
+      }),
+      this.db.order.findMany({
+        where: { businessDate: period, status: { not: 'CANCELED' } },
+        select: { createdAt: true, totalCents: true },
+      }),
+      this.waiters(concludedWhere),
+    ]);
+    const breakdown = addBreakdowns(
+      concludedGroups.map((g) =>
+        salesBreakdownFromSums(g._count, {
+          subtotalCents: g._sum.subtotalCents ?? 0,
+          itemDiscountCents: g._sum.itemDiscountCents ?? 0,
+          orderDiscountCents: g._sum.orderDiscountCents ?? 0,
+          couponDiscountCents: g._sum.couponDiscountCents ?? 0,
+          serviceFeeCents: g._sum.serviceFeeCents ?? 0,
+          deliveryFeeCents: g._sum.deliveryFeeCents ?? 0,
+          totalCents: g._sum.totalCents ?? 0,
         }),
-        this.db.order.groupBy({
-          by: ['closedBusinessDate'],
-          where: concludedWhere,
-          _count: true,
-          _sum: { totalCents: true },
-        }),
-        this.db.payment.groupBy({
-          by: ['refundBusinessDate'],
-          where: {
-            refundBusinessDate: period,
-            status: 'REFUNDED',
-            order: { status: 'DELIVERED', closedBusinessDate: { lte: query.to } },
-          },
-          _sum: { amountCents: true },
-        }),
-        this.topProducts(concludedWhere),
-        this.db.payment.groupBy({
-          by: ['method'],
-          where: { businessDate: period },
-          _sum: { amountCents: true },
-          _count: true,
-        }),
-        this.db.payment.groupBy({
-          by: ['method'],
-          where: { refundBusinessDate: period, status: 'REFUNDED' },
-          _sum: { amountCents: true },
-        }),
-        this.db.order.findMany({
-          where: { businessDate: period, status: { not: 'CANCELED' } },
-          select: { createdAt: true, totalCents: true },
-        }),
-      ]);
-    const breakdown = salesBreakdown(concluded);
+      ),
+    );
     const refundsCents = refunds._sum.amountCents ?? 0;
 
     // Categories of the products sold.
@@ -696,22 +745,38 @@ export class ReportsService {
       products: productRows,
       categories,
       payments,
-      channels: channelRows(concluded),
-      heatmap: {
-        orders: heatmap(created.map((o) => ({ at: o.createdAt, value: 1 }))),
-        revenueCents: heatmap(created.map((o) => ({ at: o.createdAt, value: o.totalCents }))),
-      },
-      waiters: await this.waiters(concludedWhere),
+      channels: mergeRows(
+        [
+          concludedGroups.map((g) => ({
+            channel: reportChannelOf(g.type, g.source),
+            orders: g._count,
+            revenueCents: g._sum.totalCents ?? 0,
+          })),
+        ],
+        (r) => r.channel,
+        (t, r) => {
+          t.orders += r.orders;
+          t.revenueCents += r.revenueCents;
+        },
+      ).sort((a, b) => REPORT_CHANNELS.indexOf(a.channel) - REPORT_CHANNELS.indexOf(b.channel)),
+      heatmap: heatmaps(created),
+      waiters,
       elapsedMs: Date.now() - started,
     };
   }
 
   /** Items sent by each user (rounds) and service fee of the tables each one served. */
   private async waiters(where: Prisma.OrderWhereInput): Promise<WaiterRow[]> {
-    const [items, tables] = await Promise.all([
-      this.db.orderItem.findMany({
+    // Items summed per round by the database, then each round's sender.
+    const [itemsByRound, roundSenders, tables] = await Promise.all([
+      this.db.orderItem.groupBy({
+        by: ['roundId'],
         where: { order: { ...where, type: 'DINE_IN' }, status: { not: 'CANCELED' } },
-        select: { totalCents: true, quantity: true, round: { select: { sentById: true } } },
+        _sum: { totalCents: true, quantity: true },
+      }),
+      this.db.orderRound.findMany({
+        where: { order: { ...where, type: 'DINE_IN' } },
+        select: { id: true, sentById: true },
       }),
       this.db.order.findMany({
         where: { ...where, type: 'DINE_IN' },
@@ -730,10 +795,11 @@ export class ReportsService {
       }
       return rows.get(key)!;
     };
-    for (const i of items) {
-      const r = row(i.round.sentById);
-      r.itemsCents += i.totalCents;
-      r.items += i.quantity;
+    const senderOf = new Map(roundSenders.map((r) => [r.id, r.sentById]));
+    for (const i of itemsByRound) {
+      const r = row(senderOf.get(i.roundId) ?? null);
+      r.itemsCents += i._sum.totalCents ?? 0;
+      r.items += i._sum.quantity ?? 0;
     }
     const sessions = new Map<string, string | null>();
     for (const t of tables) {
