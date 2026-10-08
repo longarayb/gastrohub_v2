@@ -1,5 +1,11 @@
-import type { PaperWidth, PrintDocument } from '../domain/printing.js';
-import type { PrintJobKind, PrintJobStatus, PrinterConnection, PrinterStatus } from './schemas.js';
+import type {
+  PaperWidth,
+  PrintDocument,
+  PrintJobKind,
+  PrintJobStatus,
+  PrinterConnection,
+  PrinterStatus,
+} from '../domain/printing.js';
 
 /** Response DTOs of printing. Dates are ISO strings. */
 

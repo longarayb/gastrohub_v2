@@ -1,0 +1,31 @@
+{
+  "name": "@app/print-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local print agent: Windows service that prints the store's jobs on thermal printers",
+  "scripts": {
+    "build": "node scripts/bundle.mjs",
+    "start": "node dist/agent.cjs",
+    "start:virtual": "node dist/agent.cjs --virtual --data .data",
+    "package": "node scripts/package.mjs",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rimraf dist .data .turbo"
+  },
+  "dependencies": {
+    "@app/shared": "workspace:*",
+    "socket.io-client": "^4.8.4"
+  },
+  "devDependencies": {
+    "@app/config": "workspace:*",
+    "@types/node": "^24.9.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.12.0",
+    "postject": "1.0.0-alpha.6",
+    "rimraf": "^6.0.1",
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.5"
+  }
+}

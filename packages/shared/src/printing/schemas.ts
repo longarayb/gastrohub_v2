@@ -1,84 +1,18 @@
 import { z } from 'zod';
-import { PAPER_WIDTHS, PRINTER_PROFILES } from '../domain/printing.js';
+import {
+  PAPER_WIDTHS,
+  PRINTER_CONNECTIONS,
+  PRINTER_PROFILES,
+  PRINTER_STATUSES,
+  PRINT_JOB_STATUSES,
+  isSharedPrinterPath,
+  parseNetworkAddress,
+} from '../domain/printing.js';
 import { zSlug } from '../schemas/common.js';
 
-/** Request schemas of printing (D035–D037): agents, printers, settings and the print queue. */
-
-export const PRINTER_CONNECTIONS = ['NETWORK', 'USB', 'SHARED', 'VIRTUAL'] as const;
-export type PrinterConnection = (typeof PRINTER_CONNECTIONS)[number];
-
-export const PRINTER_CONNECTION_LABELS: Record<PrinterConnection, string> = {
-  NETWORK: 'Rede (IP)',
-  USB: 'USB (instalada no Windows)',
-  SHARED: 'Compartilhada na rede',
-  VIRTUAL: 'Virtual (arquivo, para testes)',
-};
-
-export const PRINTER_STATUSES = ['UNKNOWN', 'OK', 'PAPER_OUT', 'OFFLINE', 'ERROR'] as const;
-export type PrinterStatus = (typeof PRINTER_STATUSES)[number];
-
-export const PRINTER_STATUS_LABELS: Record<PrinterStatus, string> = {
-  UNKNOWN: 'Sem informação',
-  OK: 'Pronta',
-  PAPER_OUT: 'Sem papel',
-  OFFLINE: 'Desligada ou sem conexão',
-  ERROR: 'Com erro',
-};
-
-export const PRINT_JOB_KINDS = [
-  'KITCHEN_TICKET',
-  'CANCEL_SLIP',
-  'DELIVERY_COPY',
-  'PRE_BILL',
-  'CASH_CLOSE',
-  'COURIER_SETTLEMENT',
-  'TEST_PAGE',
-] as const;
-export type PrintJobKind = (typeof PRINT_JOB_KINDS)[number];
-
-export const PRINT_JOB_KIND_LABELS: Record<PrintJobKind, string> = {
-  KITCHEN_TICKET: 'Comanda de produção',
-  CANCEL_SLIP: 'Aviso de cancelamento',
-  DELIVERY_COPY: 'Via de entrega',
-  PRE_BILL: 'Pré-conta',
-  CASH_CLOSE: 'Fechamento de caixa',
-  COURIER_SETTLEMENT: 'Acerto do entregador',
-  TEST_PAGE: 'Página de teste',
-};
-
-/**
- * PENDING waits for the agent (retries keep it PENDING with `lastError`), LEASED is with the agent,
- * HELD is too old to print on its own (someone decides: print or discard).
- */
-export const PRINT_JOB_STATUSES = ['PENDING', 'LEASED', 'PRINTED', 'HELD', 'DISCARDED'] as const;
-export type PrintJobStatus = (typeof PRINT_JOB_STATUSES)[number];
-
-export const PRINT_JOB_STATUS_LABELS: Record<PrintJobStatus, string> = {
-  PENDING: 'Na fila',
-  LEASED: 'Imprimindo',
-  PRINTED: 'Impresso',
-  HELD: 'Retido (antigo)',
-  DISCARDED: 'Descartado',
-};
-
 const PROFILE_IDS = PRINTER_PROFILES.map((p) => p.id);
-const IPV4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
-const HOSTNAME = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
 
-/** "192.168.0.50" or "192.168.0.50:9100" (also a host name); the port defaults to 9100. */
-export function parseNetworkAddress(address: string): { host: string; port: number } | null {
-  const match = /^([^:\s]+)(?::(\d{1,5}))?$/.exec(address.trim());
-  if (!match) return null;
-  const host = match[1]!;
-  const port = match[2] ? Number(match[2]) : 9100;
-  if (port < 1 || port > 65_535) return null;
-  if (!IPV4.test(host) && (/^[\d.]+$/.test(host) || !HOSTNAME.test(host))) return null;
-  return { host, port };
-}
-
-/** "\\PC-CAIXA\Cozinha": the computer and the share name of a printer shared in Windows. */
-export const isSharedPrinterPath = (address: string): boolean =>
-  /^\\\\[^\\/:*?"<>|\s]+\\[^\\/:*?"<>|]+$/.test(address.trim());
+/** Request schemas of printing (D035–D037): agents, printers, settings and the print queue. */
 
 export const printerSchema = z
   .object({

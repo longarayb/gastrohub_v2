@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  isSharedPrinterPath,
-  parseNetworkAddress,
-  printAckSchema,
-  printerSchema,
-} from './schemas.js';
+import { isSharedPrinterPath, parseNetworkAddress } from '../domain/printing.js';
+import { printAckSchema, printerSchema } from './schemas.js';
 
 describe('printer address', () => {
   it('parses IP and port (9100 by default)', () => {

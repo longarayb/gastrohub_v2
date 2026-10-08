@@ -51,3 +51,8 @@ apps/*/public/brand/
 
 # Local design references (may contain third-party/real data; never commit)
 /docs/design/
+
+# Print agent: local data (virtual prints, credential), release outputs and the WinSW binary
+/apps/print-agent/.data/
+/apps/print-agent/release/
+/apps/print-agent/installer/vendor/
