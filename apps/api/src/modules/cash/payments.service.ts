@@ -74,6 +74,8 @@ export class PaymentsService {
           method: input.method,
           ...check.payment,
           cashSessionId: session?.id ?? null,
+          // The register's business day (matches the cash close); online: the current one.
+          businessDate: session?.businessDate ?? (await this.orders.businessDate()),
           // The PIX txid is the order public code (8 alphanumeric, within the 25 of the BR Code).
           externalRef: input.method === 'PIX' ? order.publicCode : (input.externalRef ?? null),
           cardBrand: input.cardBrand ?? null,
@@ -131,6 +133,7 @@ export class PaymentsService {
           refundedById: userId,
           refundReason: input.reason,
           refundSessionId: refundSession?.id ?? null,
+          refundBusinessDate: refundSession?.businessDate ?? (await this.orders.businessDate()),
         },
       });
       const paidCents = order.paidCents - payment.amountCents;

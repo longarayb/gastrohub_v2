@@ -223,6 +223,7 @@ model AuditLog {
   store Store @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, createdAt])
+  @@index([tenantId, action, createdAt])
   @@index([tenantId, entity, entityId])
 }
 
@@ -779,6 +780,10 @@ model Order {
   dispatchedAt         DateTime?
   deliveredAt          DateTime?
   canceledAt           DateTime?
+  /// Business day the order was concluded (DELIVERED) or canceled: reports count it here,
+  /// like the cash register (an order opened on one day and closed on the next counts on the
+  /// closing day, D038). `businessDate` stays the day of the number.
+  closedBusinessDate   String?
   canceledById         String?
   cancelReason         String?
   /// Refused/canceled digital menu order: reason shown to the customer (cancelReason is internal).
@@ -806,6 +811,7 @@ model Order {
   @@unique([tenantId, businessDate, number])
   @@unique([tenantId, idempotencyKey])
   @@unique([tenantId, source, externalId])
+  @@index([tenantId, closedBusinessDate, status])
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
   @@index([tenantId, tableSessionId])
@@ -886,29 +892,33 @@ model OrderStatusHistory {
 }
 
 model Payment {
-  id                String        @id @default(cuid())
-  tenantId          String        @default(dbgenerated("current_setting('app.tenant_id'::text)"))
-  orderId           String
-  method            PaymentMethod
-  amountCents       Int
-  receivedCents     Int?
-  changeCents       Int?
-  status            PaymentStatus @default(CONFIRMED)
+  id                 String        @id @default(cuid())
+  tenantId           String        @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  orderId            String
+  method             PaymentMethod
+  amountCents        Int
+  receivedCents      Int?
+  changeCents        Int?
+  status             PaymentStatus @default(CONFIRMED)
   /// Cash register that received it; null for online/marketplace payments (D024).
-  cashSessionId     String?
+  cashSessionId      String?
   /// PIX txid (order public code), marketplace payment id, etc.
-  externalRef       String?
+  externalRef        String?
   /// Card payments (optional, for reconciliation with the terminal): brand and
   /// authorization code / NSU. Credit or debit is the method itself.
-  cardBrand         String?
-  authorizationCode String?
-  createdById       String?
-  createdAt         DateTime      @default(now())
-  refundedAt        DateTime?
-  refundedById      String?
-  refundReason      String?
+  cardBrand          String?
+  authorizationCode  String?
+  createdById        String?
+  createdAt          DateTime      @default(now())
+  refundedAt         DateTime?
+  refundedById       String?
+  refundReason       String?
   /// Cash register the refund left: the one open when it happened (a closed one never changes).
-  refundSessionId   String?
+  refundSessionId    String?
+  /// Business day of the payment and of the refund (the register's day, or the current business
+  /// day for online payments): "recebido no dia" matches the cash close (D038).
+  businessDate       String
+  refundBusinessDate String?
 
   order         Order        @relation(fields: [orderId], references: [id])
   cashSession   CashSession? @relation("PaymentReceived", fields: [cashSessionId], references: [id], onDelete: Restrict)
@@ -917,6 +927,8 @@ model Payment {
   @@index([tenantId, orderId])
   @@index([tenantId, cashSessionId])
   @@index([tenantId, refundSessionId])
+  @@index([tenantId, businessDate])
+  @@index([tenantId, refundBusinessDate])
 }
 
 // ============================================================================
@@ -1057,6 +1069,7 @@ model ProductionTask {
   sector ProductionSector @relation(fields: [sectorId], references: [id])
 
   @@index([tenantId, sectorId, status])
+  @@index([tenantId, sentAt])
   @@index([tenantId, orderId])
   @@index([orderItemId])
 }
