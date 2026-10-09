@@ -18,7 +18,7 @@ import { BellOff, BellRing, Bike, ChevronDown, Plus, Search, Wifi, WifiOff } fro
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { DispatchDialog } from '@/components/delivery/dispatch-dialog';
-import { StatusBadge, statusLabel, useNow } from '@/components/orders/common';
+import { BalanceFlag, StatusBadge, statusLabel, useNow } from '@/components/orders/common';
 import { OrderCard } from '@/components/orders/order-card';
 import { useOrderAction } from '@/components/orders/common';
 import { OrderDetailSheet } from '@/components/orders/order-detail-sheet';
@@ -257,6 +257,10 @@ export default function OrdersPage() {
                 >
                   <span className="w-14 text-base font-extrabold">#{o.number}</span>
                   <span className="flex-1 truncate">{orderTitle(o)}</span>
+                  {/* Delivered with an open balance (delivery "a receber"). */}
+                  {o.balanceCents > 0 && (
+                    <BalanceFlag cents={o.balanceCents} className="shrink-0" />
+                  )}
                   <StatusBadge status={o.status} type={o.type} />
                 </button>
               </li>

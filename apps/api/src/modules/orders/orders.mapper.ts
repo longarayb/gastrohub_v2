@@ -6,6 +6,8 @@ import {
   type MenuItemSnapshot,
   customerRejectionMessage,
   mapLinks,
+  openBalanceCents,
+  orderDeadline,
 } from '@app/shared';
 import type {
   OrderDeliveryDto,
@@ -32,6 +34,9 @@ export const orderSummaryInclude = {
     take: 1,
     select: { dispatchedAt: true, failedAt: true, failureReason: true, failureNote: true },
   },
+  // Card of the board (D039): open balance and the delivery deadline (area time).
+  payments: { select: { amountCents: true, status: true } },
+  delivery: { select: { etaMinutes: true } },
 } satisfies Prisma.OrderInclude;
 
 export const orderDetailInclude = {
@@ -86,6 +91,15 @@ export function toOrderSummary(o: OrderSummaryRow): OrderSummaryDto {
     totalCents: o.totalCents,
     paidCents: o.paidCents,
     paymentStatus: o.paymentStatus,
+    balanceCents: openBalanceCents(o),
+    deadlineAt: orderDeadline({
+      type: o.type,
+      status: o.status,
+      createdAt: o.createdAt.toISOString(),
+      acceptedAt: iso(o.acceptedAt),
+      estimatedReadyAt: iso(o.estimatedReadyAt),
+      deliveryEtaMinutes: o.delivery?.etaMinutes ?? null,
+    }),
     expectedPaymentMethod: o.expectedPaymentMethod as PaymentMethod | null,
     notes: o.notes,
     createdAt: o.createdAt.toISOString(),

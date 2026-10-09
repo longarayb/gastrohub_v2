@@ -301,6 +301,7 @@ await step('manager revokes the tablet: it signs out right away', async () => {
   await apiCall(token, 'POST', `/kds/devices/${bar.id}/revoke`);
   page = tablet;
   await tablet.waitForURL('**/kds/vincular', { timeout: 15_000 });
+  await tablet.getByText('Dispositivo desvinculado').waitFor();
 });
 
 await step('TV layout (1920×1080) without horizontal scroll', async () => {
@@ -323,13 +324,16 @@ await step('TV layout (1920×1080) without horizontal scroll', async () => {
 
 await browser.close();
 console.log(results.join('\n'));
-// Expected: 400 from the wrong pairing code, 401 when the revoked tablet is refused and the
-// user-session check on login/KDS pages without a refresh cookie.
+// Expected: 400 from the wrong pairing code, 401 when the revoked tablet is refused, the
+// user-session check on login/KDS pages without a refresh cookie and, on the tablet, a 403
+// from a KDS request that raced the revocation (the screen treats it as "desvinculado").
 const unexpected = errors.filter(
   (e) =>
     !/HTTP 400 POST .*kds-device\/pair/.test(e) &&
     !/HTTP 401 /.test(e) &&
-    !/status of 40[01]/.test(e),
+    !/status of 40[01]/.test(e) &&
+    !/^tablet HTTP 403 GET .*\/api\/kds\//.test(e) &&
+    !/^tablet console: .*status of 403/.test(e),
 );
 console.log(`\nErros HTTP/console: ${errors.length} (inesperados: ${unexpected.length})`);
 for (const e of unexpected.slice(0, 20)) console.log('  ' + e);

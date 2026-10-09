@@ -33,6 +33,9 @@ interface KdsSessionValue {
 
 const KdsSessionContext = createContext<KdsSessionValue | null>(null);
 
+/** sessionStorage flag: the pairing page shows "Dispositivo desvinculado" once. */
+export const KDS_REVOKED_KEY = 'kds:revoked';
+
 /**
  * Who is using the kitchen screen (D028): a paired device (credential in an httpOnly cookie,
  * exchanged for short access tokens) or a signed-in user with `kds:operate`. The device token

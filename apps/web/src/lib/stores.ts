@@ -1,4 +1,4 @@
-import { type BusinessHour, currentBusinessDay } from '@app/shared';
+import { type BusinessHour, currentBusinessDay, toBusinessDate } from '@app/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { apiGet } from './api';
@@ -67,4 +67,14 @@ export function useBusinessToday(): string | null {
   }, []);
   if (!hours || !store) return null;
   return currentBusinessDay(hours, now, store.timezone).date;
+}
+
+/**
+ * A date picker value that starts on the current BUSINESS day (after closing, or after
+ * midnight in a night shift, the calendar date is another day); the user may pick any date.
+ */
+export function useBusinessDateState(): [string, (date: string) => void] {
+  const today = useBusinessToday();
+  const [picked, setPicked] = useState<string | null>(null);
+  return [picked ?? today ?? toBusinessDate(), setPicked];
 }

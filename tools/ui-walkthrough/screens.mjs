@@ -34,7 +34,7 @@ const SCREENS = [
   { name: 'entregadores', path: '/entregadores', user: 'dono' },
   { name: 'entregadores-relatorio', path: '/entregadores/relatorio', user: 'dono' },
   { name: 'areas-entrega', path: '/areas-entrega', user: 'dono' },
-  { name: 'cupons', path: '/cupons', user: 'dono' },
+  { name: 'cupons', path: '/cupons', user: 'dono', mobile: true },
   { name: 'relatorios-vendas', path: '/relatorios/vendas', user: 'dono' },
   { name: 'relatorios-perdas', path: '/relatorios/perdas', user: 'dono' },
   { name: 'relatorios-tempos', path: '/relatorios/tempos', user: 'dono' },
@@ -46,9 +46,9 @@ const SCREENS = [
   { name: 'config-cardapio-digital', path: '/configuracoes/cardapio-digital', user: 'dono' },
   { name: 'config-impressao', path: '/configuracoes/impressao', user: 'dono' },
   { name: 'config-horarios', path: '/configuracoes/horarios', user: 'dono' },
-  { name: 'config-usuarios', path: '/configuracoes/usuarios', user: 'dono' },
+  { name: 'config-usuarios', path: '/configuracoes/usuarios', user: 'dono', mobile: true },
   { name: 'conta-senha', path: '/conta/senha', user: 'dono' },
-  { name: 'referencia-visual', path: '/referencia-visual', user: 'dono', full: true },
+  { name: 'referencia-visual', path: '/referencia-visual', user: 'dono', full: true, mobile: true },
 ].filter((s) => !ONLY || ONLY.has(s.name));
 
 const THEMES = [

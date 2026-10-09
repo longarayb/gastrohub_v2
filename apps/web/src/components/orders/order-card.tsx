@@ -5,17 +5,26 @@ import {
   ORDER_TYPE_LABELS,
   type OrderSummaryDto,
   PAYMENT_METHOD_LABELS,
+  deadlineState,
   formatBRL,
   primaryNextStatus,
   requiresPaymentToClose,
 } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import { cn } from '@app/ui/lib/utils';
-import { Bike, Clock, ShoppingBag, UtensilsCrossed, Wallet } from 'lucide-react';
+import {
+  AlarmClock,
+  AlarmClockOff,
+  Bike,
+  Clock,
+  ShoppingBag,
+  UtensilsCrossed,
+  Wallet,
+} from 'lucide-react';
 import { DeliveryFailureBadge } from '@/components/delivery/failure';
 import { PixReportedBadge } from '@/components/digital-menu/order-badges';
 import { STATUS_STYLES, orderTitle } from '@/lib/orders';
-import { CardFlag, elapsedLabel } from './common';
+import { BalanceFlag, CardFlag, elapsedLabel } from './common';
 import { statusActionLabel } from './order-detail-sheet';
 
 export const ORDER_TYPE_ICONS = {
@@ -53,6 +62,7 @@ export function OrderCard({
     next === 'DELIVERED' &&
     requiresPaymentToClose(order.type) &&
     order.totalCents > order.paidCents;
+  const deadline = deadlineState(order.deadlineAt, now);
 
   return (
     <article
@@ -110,6 +120,16 @@ export function OrderCard({
             {PAYMENT_METHOD_LABELS[order.expectedPaymentMethod]}
           </p>
         )}
+        {deadline && (
+          <CardFlag
+            tone={deadline.level === 'late' ? 'critical' : 'attention'}
+            icon={deadline.level === 'late' ? AlarmClockOff : AlarmClock}
+          >
+            {deadline.level === 'late'
+              ? `Atrasado ${deadline.minutes} min`
+              : `Prazo em ${deadline.minutes} min`}
+          </CardFlag>
+        )}
         {order.deliveryFailure && <DeliveryFailureBadge failure={order.deliveryFailure} />}
         {order.pixReportedAt && order.paymentStatus !== 'PAID' && <PixReportedBadge />}
         {order.draftItemCount > 0 && (
@@ -117,6 +137,7 @@ export function OrderCard({
             {order.draftItemCount} não {order.draftItemCount === 1 ? 'enviado' : 'enviados'}
           </CardFlag>
         )}
+        {order.balanceCents > 0 && <BalanceFlag cents={order.balanceCents} />}
       </button>
       {canAdvance && next && (
         <div className="border-t p-2">

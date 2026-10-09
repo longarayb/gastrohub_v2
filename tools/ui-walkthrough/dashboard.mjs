@@ -57,11 +57,14 @@ const context = await browser.newContext({
   locale: 'pt-BR',
   acceptDownloads: true,
 });
-// Printing: the browser dialog is replaced by the afterprint event; counts the prints.
+// Printing: the browser dialog is replaced by the afterprint event; counts the prints and
+// keeps what the A4 area had at print time (it is removed right after "afterprint").
 await context.addInitScript(() => {
   window.__prints = 0;
+  window.__printedA4 = '';
   window.print = () => {
     window.__prints += 1;
+    window.__printedA4 += document.querySelector('.print-a4')?.textContent ?? '';
     setTimeout(() => window.dispatchEvent(new Event('afterprint')), 20);
   };
 });
@@ -229,7 +232,9 @@ await step('sales report: 90 days, ABC curve, heatmap, CSV and A4 print', async 
   if (!/;[ABC]\r\n/.test(csv)) throw new Error('csv ABC column');
   await page.getByRole('button', { name: 'Imprimir' }).click();
   await page.waitForFunction(() => window.__prints > 0);
-  await page.locator('.print-a4').getByText('Relatório de vendas').waitFor({ state: 'attached' });
+  if (!(await page.evaluate(() => window.__printedA4)).includes('Relatório de vendas')) {
+    throw new Error('A4 printout without the title');
+  }
 });
 
 await step('loss prevention: by user, reasons, "after production" filter', async () => {

@@ -328,7 +328,8 @@ await step('agent off: an old job is held; the alert lets someone print it as la
     .filter({ has: page.getByText('Caixa', { exact: true }) });
   await row.getByRole('button', { name: 'Imprimir teste' }).click();
   await toast('Página de teste enviada para Caixa');
-  // The PC stayed off for 45 minutes (the job ages in the database).
+  // The PC stayed off for 45 minutes (the job ages in the database). Relative to its own
+  // creation time (the API clock), not the database clock: also right with a simulated clock.
   execFileSync('docker', [
     'exec',
     'app-postgres-1',
@@ -338,7 +339,7 @@ await step('agent off: an old job is held; the alert lets someone print it as la
     '-d',
     'app_db',
     '-c',
-    `UPDATE "PrintJob" SET "createdAt" = now() - interval '45 minutes' WHERE status = 'PENDING' AND kind = 'TEST_PAGE'`,
+    `UPDATE "PrintJob" SET "createdAt" = "createdAt" - interval '45 minutes' WHERE status = 'PENDING' AND kind = 'TEST_PAGE'`,
   ]);
   const before = printed();
   startAgent();

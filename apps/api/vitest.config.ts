@@ -25,7 +25,7 @@ export default defineConfig({
         test: {
           name: 'unit',
           globals: true,
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.ts', 'prisma/**/*.test.ts'],
         },
       },
       {

@@ -2,14 +2,14 @@
 
 Especificação visual validada pelo usuário em 2026-10-08, a partir de uma referência que não é versionada (contém dados de terceiros). **Fonte da verdade** para o redesign do painel (`apps/web`).
 
-- **Agora (`feat/dashboard`):** os componentes do dashboard e dos relatórios seguem esta estrutura e usam **só tokens do tema**. Os tokens novos ficam em `packages/ui/src/styles/globals.css`.
-- **Depois do MVP (etapa de redesign):** o tema completo (fundo, cards, barra lateral, tipografia de todo o painel) é aplicado ao resto das telas, trocando os valores dos tokens. Nenhuma tela deve usar cor, raio ou fonte soltos (regra já vigente; ver CLAUDE.md, "Tema").
+- **Aplicado em todo o painel na `feat/redesign` (D039).** Os tokens ficam em `packages/ui/src/styles/globals.css` (claro em `:root`, escuro em `.dark`); a cor principal vem do `brand.ts`. Nenhuma tela usa cor, raio ou fonte soltos (ver CLAUDE.md, "Tema").
+- **Contraste conferido por teste:** `packages/ui/src/styles/contrast.test.ts` reprova o build se algum par de texto ficar abaixo de 4,5 : 1 ou um elemento (borda de campo, foco, traço de gráfico) abaixo de 3 : 1, nos dois temas. Conferência visual em `/referencia-visual` (desenvolvimento).
 
 O cardápio digital (`apps/menu`) não segue este documento: usa a marca do restaurante (D032).
 
 ## Tema
 
-O **escuro é o padrão** do painel; o claro é a versão equivalente (alternável pelo usuário, como hoje).
+O **escuro é o padrão** do painel; o claro é a versão equivalente. A troca é por aparelho, no botão "Tema" do cabeçalho (Escuro, Claro ou Sistema, que acompanha o sistema operacional ao vivo).
 
 | Token (papel) | Escuro | Claro |
 |---|---|---|
@@ -41,7 +41,7 @@ O **escuro é o padrão** do painel; o claro é a versão equivalente (alternáv
 
 ### Contraste (WCAG AA)
 
-Medido com a fórmula do WCAG 2.x:
+Medido com a fórmula do WCAG 2.x (a lista completa de pares está no teste de contraste):
 
 | Combinação | Escuro | Claro |
 |---|---|---|
@@ -58,7 +58,7 @@ A série comparativa é de propósito discreta e fica abaixo de 3 : 1. Para cump
 
 ## Tipografia
 
-- **Nunito Sans** (Google Fonts, via `next/font`), pesos 400 a 800.
+- **Nunito Sans**, peso variável, **embutida no build** (`next/font/local`, arquivo e licença OFL em `packages/ui/assets/fonts`): nada é baixado do Google, nem no build nem no uso.
 - **Algarismos tabulares** (`font-variant-numeric: tabular-nums`) em todos os números.
 - **Escala:**
 
@@ -70,7 +70,7 @@ A série comparativa é de propósito discreta e fica abaixo de 3 : 1. Para cump
 | Rótulo do KPI | 13 px, maiúsculas, espaçamento entre letras 0,1em, cor apagada | 700 |
 | Linha de apoio | 14 px | 400 |
 
-- Nesta etapa a fonte vale para os componentes do dashboard (`--font-display`). No redesign, passa a ser a fonte de todo o painel.
+- É a fonte de todo o painel (`--font-app`).
 
 ## Estrutura
 
@@ -130,8 +130,30 @@ A série comparativa é de propósito discreta e fica abaixo de 3 : 1. Para cump
 4. Vendas por canal e mais vendidos, lado a lado.
 5. Pedidos por hora.
 
+## Componentes base (`@app/ui`)
+
+Todos com os tokens do tema; a página `/referencia-visual` mostra cada um, com os estados.
+
+| Componente | Regras |
+|---|---|
+| Botão (`button`) | 44 px (padrão); `sm` e `icon-sm` medem 36 px com área de toque estendida a 44 px; `lg` 48, `xl` 56; raio 12; peso 600 |
+| Campos (`input`, `textarea`, `select`, `checkbox`) | 44 px, fundo do card, borda `--input` (3 : 1); erro com `aria-invalid` e mensagem em texto |
+| Foco | contorno global de 3 px em `--ring`, com afastamento (`:focus-visible` em `globals.css`); não usar `outline-none` nem anéis próprios |
+| Abas (`Tabs`) e controle segmentado (`Segmented`) | 44 px; aba ativa como card com texto em negrito; segmentado com a escolhida na cor principal |
+| Tabela (`Table`) | cabeçalho em maiúsculas apagadas; `stack` vira cartões abaixo de 768 px, com o nome da coluna em cada célula (`TableCell label`) |
+| Badge de status (`OrderStatusBadge`) | ícone + texto + cor do status; nunca só a cor |
+| Avisos na página (`Notice`) | informação, atenção, erro e sucesso: texto em contraste total, o tom na faixa de 4 px e no ícone |
+| Avisos flutuantes (`toast`) | faixa de 4 px na cor do tipo; texto do tema |
+| Diálogo e painel lateral | fundo `--popover`, raio 18 (diálogo), botão de fechar de 44 px |
+| Menus e seletores | itens de 36 px no mouse e 44 px no toque (`pointer: coarse`) |
+| Estados | `EmptyState` (ícone, título, ajuda e ação), `Skeleton`/`ListSkeleton` no trilho, `LoadingArea` |
+| Cabeçalho de página (`PageHeader`) | título de 34 px (30 px no celular), subtítulo apagado, ações à direita |
+| Atalho (`Kbd`) | tecla com borda inferior mais grossa |
+
 ## Acessibilidade
 
-- Contraste mínimo **WCAG AA** em todos os textos, inclusive os apagados (tabela acima).
+- Contraste mínimo **WCAG AA** em todos os textos, inclusive os apagados, nos dois temas (teste de contraste).
+- **Foco visível** em tudo o que recebe o teclado, inclusive no alto contraste do Windows (contorno, não sombra).
+- Com "reduzir movimento" ligado no sistema, as animações são cortadas.
 - **Áreas de toque de pelo menos 44 px.**
 - Gráficos em SVG com título e uma tabela equivalente (leitores de tela e CSV); cor nunca é a única forma de informação (setas, rótulos e valores acompanham).

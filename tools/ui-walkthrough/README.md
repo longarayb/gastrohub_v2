@@ -2,7 +2,11 @@
 
 Roteiros que percorrem as telas do painel como um usuário, contra o **build de produção** e o seed de demonstração. Não fazem parte do workspace pnpm nem do `pnpm check`.
 
-Usam o Microsoft Edge instalado (`channel: 'msedge'`), headless, um navegador só e sem paralelismo (máquinas com pouca memória).
+Usam o Microsoft Edge instalado no Windows e o Chromium do Playwright no Linux/WSL (`browser.mjs`), headless, um navegador só e sem paralelismo (máquinas com pouca memória).
+
+Passam a qualquer hora: o seed deixa a unidade aberta e no mesmo dia de negócio por 3 horas. Para simular um horário (Linux/WSL), use `fake-clock.sh` (docs/SETUP.md, "Relógio simulado").
+
+**Capturas do redesign:** `SHOTS=<pasta> node screens.mjs` captura as telas principais nos dois temas, no computador e no celular (avisa rolagem lateral), em `docs/screenshots/redesign/<pasta>/` (fora do git). Com `SHOTS_DIR=../../docs/screenshots/final ONLY=painel,pedidos,...` grava o conjunto versionado.
 
 ```powershell
 cd tools/ui-walkthrough

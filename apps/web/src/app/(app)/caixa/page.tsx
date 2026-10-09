@@ -16,7 +16,6 @@ import {
   formatDateTime,
   formatTime,
   isFinalStatus,
-  toBusinessDate,
 } from '@app/shared';
 import { Badge } from '@app/ui/components/badge';
 import { Button } from '@app/ui/components/button';
@@ -77,7 +76,7 @@ import {
 import { useHotkeys } from '@/lib/hotkeys';
 import { orderTitle, useOrder, useOrderBoard } from '@/lib/orders';
 import { hasCashPrinter, printCashSession, usePrintStatus } from '@/lib/printing';
-import { useCurrentStore } from '@/lib/stores';
+import { useBusinessDateState, useCurrentStore } from '@/lib/stores';
 
 const signed = (cents: number) => (cents > 0 ? `+${formatBRL(cents)}` : formatBRL(cents));
 const differenceClass = (cents: number) =>
@@ -629,7 +628,7 @@ function SessionsCard({
 }) {
   const { can, session: auth } = useAuth();
   const refresh = useRefreshCash();
-  const [date, setDate] = useState(() => toBusinessDate());
+  const [date, setDate] = useBusinessDateState();
   const { data: sessions, isLoading } = useCashSessions(date);
   const [reopening, setReopening] = useState<CashSessionDto | null>(null);
   const [closingOther, setClosingOther] = useState<string | null>(null);

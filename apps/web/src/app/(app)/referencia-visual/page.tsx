@@ -14,17 +14,62 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@app/ui/components/dialog';
+import { ConfirmDialog } from '@app/ui/components/confirm-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@app/ui/components/dropdown-menu';
 import { Input } from '@app/ui/components/input';
 import { Label } from '@app/ui/components/label';
-import { Skeleton, Switch, Tabs, TabsList, TabsTrigger } from '@app/ui/components/misc';
+import {
+  Skeleton,
+  Switch,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@app/ui/components/misc';
+import { Notice } from '@app/ui/components/notice';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/ui/components/popover';
+import { Segmented } from '@app/ui/components/segmented';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@app/ui/components/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@app/ui/components/sheet';
 import { toast } from '@app/ui/components/sonner';
+import { Kbd, ListSkeleton, LoadingArea } from '@app/ui/components/states';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@app/ui/components/table';
 import { Textarea } from '@app/ui/components/textarea';
 import { cn } from '@app/ui/lib/utils';
-import { Inbox, Plus, Search, Smartphone } from 'lucide-react';
+import { AlarmClock, AlarmClockOff, Inbox, Info, Plus, Search, Smartphone } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { notFound } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { CardFlag, StatusBadge } from '@/components/orders/common';
+import { BalanceFlag, CardFlag, StatusBadge } from '@/components/orders/common';
 import { OrderCard } from '@/components/orders/order-card';
 import { EmptyState, Page } from '@/components/page';
 
@@ -163,6 +208,9 @@ const SAMPLE: OrderSummaryDto = {
   totalCents: 8790,
   paidCents: 0,
   paymentStatus: 'UNPAID',
+  balanceCents: 8790,
+  // Area time of 30 min from acceptance: 2 minutes late.
+  deadlineAt: minutesAgo(2),
   expectedPaymentMethod: 'PIX',
   notes: null,
   createdAt: minutesAgo(34),
@@ -186,7 +234,29 @@ const SAMPLE_TABLE: OrderSummaryDto = {
   pixReportedAt: null,
   draftItemCount: 2,
   expectedPaymentMethod: null,
+  deadlineAt: null,
   createdAt: minutesAgo(3),
+};
+const SAMPLE_TAKEOUT: OrderSummaryDto = {
+  ...SAMPLE,
+  id: 'ref-3',
+  number: 23,
+  type: 'TAKEOUT',
+  source: 'POS',
+  status: 'PREPARING',
+  customerName: 'Balcão',
+  neighborhood: null,
+  courierName: null,
+  deliveryFailure: null,
+  pixReportedAt: null,
+  totalCents: 4250,
+  paidCents: 4250,
+  paymentStatus: 'PAID',
+  balanceCents: 0,
+  expectedPaymentMethod: null,
+  // Ready estimate in 4 minutes: attention.
+  deadlineAt: new Date(Date.now() + 4 * 60_000).toISOString(),
+  createdAt: minutesAgo(16),
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -205,6 +275,8 @@ export default function VisualReferencePage() {
   const { theme = 'dark', setTheme } = useTheme();
   const [phone, setPhone] = useState(false);
   const [now] = useState(() => new Date());
+  const [period, setPeriod] = useState<'today' | '7d' | '30d'>('today');
+  const [confirming, setConfirming] = useState(false);
 
   return (
     <Page
@@ -330,14 +402,145 @@ export default function VisualReferencePage() {
             <Badge variant="outline">Contorno</Badge>
           </div>
           <div className="grid gap-2 md:max-w-sm">
+            <CardFlag tone="critical" icon={AlarmClockOff}>
+              Atrasado 6 min
+            </CardFlag>
+            <CardFlag tone="attention" icon={AlarmClock}>
+              Prazo em 4 min
+            </CardFlag>
             <CardFlag tone="critical">Não entregue · Cliente ausente · 19:42</CardFlag>
             <CardFlag tone="attention">2 não enviados</CardFlag>
+            <BalanceFlag cents={8790} />
+          </div>
+        </Section>
+
+        <Section title="Avisos na página">
+          <Notice tone="info" title="Informação">
+            O cardápio digital é atualizado em até 1 minuto.
+          </Notice>
+          <Notice tone="attention" title="Atenção">
+            O texto do aviso de privacidade é um modelo: revise com apoio jurídico.
+          </Notice>
+          <Notice tone="critical" title="Erro">
+            Não foi possível falar com a impressora da cozinha.
+          </Notice>
+          <Notice tone="success">Caixa fechado sem diferença.</Notice>
+        </Section>
+
+        <Section title="Controle segmentado e atalhos">
+          <Segmented
+            label="Período"
+            value={period}
+            onChange={setPeriod}
+            options={[
+              { value: 'today', label: 'Hoje' },
+              { value: '7d', label: '7 dias' },
+              { value: '30d', label: '30 dias' },
+            ]}
+          />
+          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            Novo pedido <Kbd>F2</Kbd> · Receber <Kbd>F8</Kbd> · Buscar <Kbd>Ctrl</Kbd>+<Kbd>K</Kbd>
+          </p>
+        </Section>
+
+        <Section title="Tabela (vira cartões abaixo de 768 px)">
+          <Table stack>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cupom</TableHead>
+                <TableHead>Desconto</TableHead>
+                <TableHead className="text-right">Usos</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[
+                ['BEMVINDO', '10%', '42', 'Ativo'],
+                ['FRETEGRATIS', 'R$ 8,00', '17', 'Pausado'],
+              ].map(([code, value, uses, status]) => (
+                <TableRow key={code}>
+                  <TableCell label="Cupom" className="font-bold">
+                    {code}
+                  </TableCell>
+                  <TableCell label="Desconto">{value}</TableCell>
+                  <TableCell label="Usos" className="text-right">
+                    {uses}
+                  </TableCell>
+                  <TableCell label="Status">
+                    <Badge variant={status === 'Ativo' ? 'success' : 'secondary'}>{status}</Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Section>
+
+        <Section title="Seletores, menus e painéis">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select defaultValue="pix">
+              <SelectTrigger className="w-48" aria-label="Forma de pagamento">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pix">PIX</SelectItem>
+                <SelectItem value="cash">Dinheiro</SelectItem>
+                <SelectItem value="card">Cartão</SelectItem>
+              </SelectContent>
+            </Select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">Menu de ações</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Pedido #42</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Imprimir 2ª via</DropdownMenuItem>
+                <DropdownMenuItem variant="destructive">Cancelar pedido</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline">Ajuda (popover)</Button>
+              </PopoverTrigger>
+              <PopoverContent>Faturamento: pedidos concluídos no dia de negócio.</PopoverContent>
+            </Popover>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Dica">
+                  <Info />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Dica curta</TooltipContent>
+            </Tooltip>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline">Painel lateral</Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Pedido #42</SheetTitle>
+                  <SheetDescription>Detalhes, pagamentos e histórico.</SheetDescription>
+                </SheetHeader>
+              </SheetContent>
+            </Sheet>
+            <Button variant="outline" onClick={() => setConfirming(true)}>
+              Confirmação
+            </Button>
+            <ConfirmDialog
+              open={confirming}
+              onOpenChange={setConfirming}
+              title="Excluir o cupom BEMVINDO?"
+              description="Ele deixa de valer nos próximos pedidos."
+              confirmLabel="Excluir"
+              destructive
+              onConfirm={() => setConfirming(false)}
+            />
           </div>
         </Section>
 
         <Section title="Cartões de pedido (kanban)">
           <div className="flex flex-wrap gap-4 rounded-card bg-track p-3">
-            {[SAMPLE_TABLE, SAMPLE].map((o, i) => (
+            {[SAMPLE_TABLE, SAMPLE_TAKEOUT, SAMPLE].map((o, i) => (
               <div key={o.id} className="w-kanban-column max-w-full">
                 <OrderCard
                   order={o}
@@ -394,6 +597,8 @@ export default function VisualReferencePage() {
             <Skeleton className="h-6 w-1/3" />
             <Skeleton className="h-24" />
           </div>
+          <ListSkeleton rows={2} />
+          <LoadingArea label="Carregando pedidos" />
         </Section>
 
         <Card>

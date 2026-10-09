@@ -800,7 +800,7 @@ function EditorForm({
             <h2 className="text-sm font-semibold">Pré-visualização</h2>
             <Badge variant="secondary">como o cliente vê</Badge>
           </div>
-          <div className={cn('space-y-4 rounded-xl border bg-background p-4')}>
+          <div className={cn('space-y-4 rounded-card border bg-background p-4')}>
             <MenuProductCard product={preview.product} />
             <MenuProductDetails product={preview.product} category={preview.category} />
           </div>

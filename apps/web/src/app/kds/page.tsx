@@ -30,7 +30,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ExpeditionBoard } from '@/components/kds/expedition';
 import { TicketCard } from '@/components/kds/ticket-card';
 import { FullPageSpinner } from '@/components/page';
-import { errorMessage } from '@/lib/api';
+import { ApiError, errorMessage } from '@/lib/api';
 import {
   dispatchOrder,
   kdsKeys,
@@ -46,7 +46,7 @@ import {
   useKdsSectors,
 } from '@/lib/kds';
 import { enterFullscreen, toggleFullscreen, useKdsSound, useWakeLock } from '@/lib/kds-screen';
-import { useKdsRealtime, useKdsSession } from '@/lib/kds-session';
+import { KDS_REVOKED_KEY, useKdsRealtime, useKdsSession } from '@/lib/kds-session';
 
 const VIEW_KEY = 'kds-view';
 const EXPEDITION = 'expedition';
@@ -195,14 +195,32 @@ export default function KdsPage() {
   const board = useKdsBoard(sectorIds, ready && !expedition);
   const expeditionData = useKdsExpedition(ready && expedition);
 
+  // Revoked by the manager: the realtime event, or a request answered 403 before it arrives
+  // (the access token is still valid, the device is not). Either way, once, without errors.
+  const revokedOnce = useRef(false);
+  const onRevoked = useCallback(() => {
+    if (revokedOnce.current) return;
+    revokedOnce.current = true;
+    try {
+      sessionStorage.setItem(KDS_REVOKED_KEY, '1');
+    } catch {
+      // Storage blocked: the pairing page just skips the notice.
+    }
+    void signOut().then(() => router.replace('/kds/vincular'));
+  }, [signOut, router]);
+
   const realtime = useKdsRealtime({
     enabled: ready,
     isDevice: mode.kind === 'device',
-    onRevoked: () => {
-      toast.error('Esta tela foi desvinculada pelo gerente');
-      void signOut().then(() => router.replace('/kds/vincular'));
-    },
+    onRevoked,
   });
+
+  const forbidden = [sectors.error, board.error, expeditionData.error].some(
+    (e) => e instanceof ApiError && e.status === 403,
+  );
+  useEffect(() => {
+    if (forbidden && mode.kind === 'device') onRevoked();
+  }, [forbidden, mode.kind, onRevoked]);
 
   // Timers follow the server clock (tablets often have a wrong time).
   const [offset, setOffset] = useState(0);

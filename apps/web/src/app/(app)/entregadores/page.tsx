@@ -24,8 +24,9 @@ import { useAuth } from '@/lib/auth';
 import { deliveryKeys, returnRun, useCourierDetails } from '@/lib/delivery';
 
 const STATUS_BADGE = {
-  AVAILABLE: 'bg-success/15 text-success',
-  ON_ROUTE: 'bg-status-dispatched/15 text-status-dispatched',
+  // Solid badges: the text keeps 4.5:1 in both themes (contrast test of @app/ui).
+  AVAILABLE: 'bg-success text-success-foreground',
+  ON_ROUTE: 'bg-info text-info-foreground',
   INACTIVE: 'bg-muted text-muted-foreground',
 } as const;
 
@@ -51,7 +52,7 @@ function CourierCard({
   return (
     <article
       aria-label={`Entregador ${courier.name}`}
-      className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs"
+      className="flex flex-col gap-3 rounded-card border bg-card p-4"
     >
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">

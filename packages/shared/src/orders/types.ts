@@ -41,6 +41,10 @@ export interface OrderSummaryDto {
   totalCents: number;
   paidCents: number;
   paymentStatus: OrderPaymentStatus;
+  /** "A receber" on the card (`openBalanceCents`: a refund after delivery is not a debt). */
+  balanceCents: number;
+  /** Takeout/delivery deadline from the existing estimate (`orderDeadline`), else null. */
+  deadlineAt: string | null;
   expectedPaymentMethod: PaymentMethod | null;
   notes: string | null;
   createdAt: string;
