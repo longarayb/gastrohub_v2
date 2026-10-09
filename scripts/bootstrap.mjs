@@ -12,6 +12,6 @@ log('Compilando pacotes compartilhados...');
 run('pnpm', ['turbo', 'run', 'build', '--filter=./packages/*']);
 
 log('Populando dados de demonstração (seed)...');
-run('pnpm', ['--filter', '@app/api', 'db:seed']);
+run('pnpm', ['db:seed']);
 
 log('Pronto! Rode `pnpm dev` e acesse http://localhost:3000');
