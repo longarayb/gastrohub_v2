@@ -56,7 +56,7 @@ export class TablesService {
                     paidCents: true,
                     paymentStatus: true,
                   },
-                  orderBy: { createdAt: 'asc' },
+                  orderBy: [{ businessDate: 'asc' }, { number: 'asc' }],
                 },
               },
             },

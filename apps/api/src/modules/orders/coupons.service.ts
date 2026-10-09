@@ -28,7 +28,9 @@ export class CouponsService {
   constructor(@InjectDb() private readonly db: Db) {}
 
   async list(): Promise<CouponDto[]> {
-    const coupons = await this.db.coupon.findMany({ orderBy: { createdAt: 'desc' } });
+    const coupons = await this.db.coupon.findMany({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
     return coupons.map(toDto);
   }
 

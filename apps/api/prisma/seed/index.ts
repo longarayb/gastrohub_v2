@@ -13,6 +13,7 @@ import { PrismaClient } from '../../src/generated/prisma/client.js';
 import { seedMenu } from './menu.js';
 import { seedDelivery } from './delivery.js';
 import { seedHistory } from './history.js';
+import { DEMO_HOURS, demoHoursAround } from './hours.js';
 import { seedDigitalMenu } from './digital-menu.js';
 import { seedOrders } from './orders.js';
 
@@ -109,20 +110,6 @@ async function wipeDemo(prisma: PrismaClient): Promise<void> {
   await prisma.organization.delete({ where: { id: store.organizationId } });
 }
 
-// Fri/Sat night shifts cross midnight (they belong to the day they start).
-const HOURS = [
-  ...[2, 3, 4].flatMap((weekday) => [
-    { weekday, opensAt: '11:00', closesAt: '15:00' },
-    { weekday, opensAt: '18:00', closesAt: '23:30' },
-  ]),
-  ...[5, 6].flatMap((weekday) => [
-    { weekday, opensAt: '11:00', closesAt: '15:00' },
-    { weekday, opensAt: '18:00', closesAt: '02:00' },
-  ]),
-  { weekday: 0, opensAt: '11:00', closesAt: '16:00' },
-  { weekday: 1, opensAt: '11:00', closesAt: '15:00' },
-];
-
 async function main(): Promise<void> {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL não definido');
@@ -161,7 +148,8 @@ async function main(): Promise<void> {
         pixKey: 'pix@demo.local',
         pixMerchantName: `${BRAND.name} Demo`.slice(0, 25),
         pixMerchantCity: 'São Paulo',
-        businessHours: { createMany: { data: HOURS } },
+        // Open now and for the next hours, in the same business day, at any time of day.
+        businessHours: { createMany: { data: demoHoursAround(DEMO_HOURS, new Date()) } },
       },
     });
 
@@ -234,8 +222,29 @@ async function main(): Promise<void> {
     console.log(
       `✔ Cozinha: ${orders.kitchenTasks} tarefas de produção · tela "TV da cozinha" aguardando vínculo (Setores)\n`,
     );
+    await refreshDigitalMenu(store.slug);
   } finally {
     await prisma.$disconnect();
+  }
+}
+
+/**
+ * The seed writes straight to the database, so the digital menu (if running) would keep its
+ * cached pages: ask it to refresh, like the API does after a change. Menu not running: fine.
+ */
+async function refreshDigitalMenu(slug: string): Promise<void> {
+  const url = process.env.MENU_INTERNAL_URL ?? 'http://localhost:3001';
+  const secret = process.env.MENU_REVALIDATE_SECRET;
+  if (!secret) return;
+  try {
+    await fetch(`${url}/api/revalidate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-revalidate-secret': secret },
+      body: JSON.stringify({ slug }),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch {
+    // The menu app is not running: it reads fresh data when it starts.
   }
 }
 

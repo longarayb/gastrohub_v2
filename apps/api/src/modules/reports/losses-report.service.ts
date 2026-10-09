@@ -171,7 +171,7 @@ export class LossesReportService {
             // Discounts and fee removals happen before the order closes (up to a few days).
             createdAt: { gt: new Date(window.gt.getTime() - 30 * 86_400_000), lte: window.lte },
           },
-          orderBy: { createdAt: 'asc' },
+          orderBy: { seq: 'asc' },
           select: { action: true, entityId: true, userId: true },
         }),
         this.db.printJob.findMany({
@@ -342,7 +342,13 @@ export class LossesReportService {
     const nameOf = await this.names(events.map((e) => e.userId));
     const full: LossEvent[] = events
       .map((e) => ({ ...e, userName: nameOf(e.userId) }))
-      .sort((a, b) => b.at.localeCompare(a.at));
+      // Stable for events at the same instant (they come from several tables).
+      .sort(
+        (a, b) =>
+          b.at.localeCompare(a.at) ||
+          a.kind.localeCompare(b.kind) ||
+          a.description.localeCompare(b.description),
+      );
 
     const users = new Map<string, LossUserRow>();
     const reasons = new Map<

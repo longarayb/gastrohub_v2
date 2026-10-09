@@ -86,7 +86,9 @@ export class KdsDevicesService {
   // Management (store:manage)
 
   async list(): Promise<KdsDeviceDto[]> {
-    const devices = await this.db.kdsDevice.findMany({ orderBy: { createdAt: 'asc' } });
+    const devices = await this.db.kdsDevice.findMany({
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
     return devices.map(toDto);
   }
 

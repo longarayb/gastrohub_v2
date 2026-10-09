@@ -39,7 +39,7 @@ export function DiscountInput({
             type="button"
             aria-pressed={value.type === type}
             className={cn(
-              'rounded-sm px-2.5 text-sm font-medium',
+              'min-w-11 rounded-md px-2.5 text-sm font-bold',
               value.type === type ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
             )}
             onClick={() => type !== value.type && onChange({ type, value: 0 })}

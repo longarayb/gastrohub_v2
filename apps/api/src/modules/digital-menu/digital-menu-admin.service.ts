@@ -117,7 +117,9 @@ export class DigitalMenuAdminService {
   }
 
   async blockedPhones(): Promise<BlockedPhoneDto[]> {
-    const rows = await this.db.blockedPhone.findMany({ orderBy: { createdAt: 'desc' } });
+    const rows = await this.db.blockedPhone.findMany({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
     const ids = [...new Set(rows.map((r) => r.createdById).filter(Boolean))] as string[];
     const users = ids.length
       ? await this.prisma.user.findMany({

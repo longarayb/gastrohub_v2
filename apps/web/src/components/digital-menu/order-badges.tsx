@@ -19,23 +19,17 @@ import {
 import { Input } from '@app/ui/components/input';
 import { Label } from '@app/ui/components/label';
 import { Textarea } from '@app/ui/components/textarea';
-import { cn } from '@app/ui/lib/utils';
 import { QrCode as QrIcon } from 'lucide-react';
 import { useId, useState } from 'react';
 import { Field } from '@/components/form';
+import { CardFlag } from '@/components/orders/common';
 
 /** The customer said they paid by PIX (digital menu): check it, do not charge again. */
 export function PixReportedBadge({ className }: { className?: string }) {
   return (
-    <p
-      className={cn(
-        'flex items-center gap-1.5 rounded-md bg-warning/20 px-2 py-1 text-xs font-medium text-warning-foreground',
-        className,
-      )}
-    >
-      <QrIcon className="size-3.5 shrink-0" aria-hidden />
+    <CardFlag tone="attention" icon={QrIcon} className={className}>
       PIX informado pelo cliente · conferir
-    </p>
+    </CardFlag>
   );
 }
 

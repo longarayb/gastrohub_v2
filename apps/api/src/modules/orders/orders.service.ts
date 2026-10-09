@@ -358,7 +358,7 @@ export class OrdersService {
     const orders = await this.db.order.findMany({
       where,
       include: orderSummaryInclude,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ businessDate: 'desc' }, { number: 'desc' }],
       take: 300,
     });
     if (query.receivable && orders.length) {

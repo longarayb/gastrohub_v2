@@ -202,7 +202,7 @@ export class CouriersService {
     if (!courier) throw new NotFoundError('Entregador');
     const entries = await this.db.courierLedgerEntry.findMany({
       where: { courierId },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      orderBy: { seq: 'asc' },
     });
     const names = await this.userNames(entries.map((e) => e.createdById));
     let balance = 0;

@@ -265,7 +265,7 @@ export default function UsersPage() {
         {isLoading ? (
           <Skeleton className="h-60" />
         ) : (
-          <Table>
+          <Table stack>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
@@ -278,17 +278,20 @@ export default function UsersPage() {
             <TableBody>
               {users?.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell>
+                  <TableCell label="Nome">
                     <p className="font-medium">{user.name}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </TableCell>
-                  <TableCell>
+                  <TableCell label="Papel">
                     <Badge variant="secondary">{ROLE_LABELS[user.role]}</Badge>
                   </TableCell>
-                  <TableCell className="hidden text-muted-foreground md:table-cell">
+                  <TableCell
+                    label="Último acesso"
+                    className="hidden text-muted-foreground md:table-cell"
+                  >
                     {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Nunca'}
                   </TableCell>
-                  <TableCell>
+                  <TableCell label="Status">
                     <Badge variant={user.isActive ? 'success' : 'outline'}>
                       {user.isActive ? 'Ativo' : 'Inativo'}
                     </Badge>

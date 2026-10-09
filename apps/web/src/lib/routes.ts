@@ -6,6 +6,8 @@ const EXTRA_RULES: { prefix: string; permissions: Permission[] }[] = [
   { prefix: '/cardapio/produtos', permissions: [Permission.MENU_MANAGE] },
   { prefix: '/pedidos/novo', permissions: [Permission.ORDERS_CREATE] },
   { prefix: '/entregadores/relatorio', permissions: [Permission.REPORTS_READ] },
+  // Visual reference of the theme (development only, NEXT_PUBLIC_UI_REFERENCE=1).
+  { prefix: '/referencia-visual', permissions: [Permission.STORE_MANAGE] },
 ];
 
 /** Permissions required by each protected route prefix (any of them grants access). */

@@ -271,7 +271,8 @@ await step('cancel order requires a reason', async () => {
   await sheet().getByText('Cancelado: Cliente não veio buscar').waitFor();
   await closeSheet();
   await page.getByRole('button', { name: /^Finalizados/ }).click();
-  await page.getByRole('button', { name: new RegExp(`#${createdNumber}`) }).waitFor();
+  // Yesterday's finished orders (seed history) are also listed and may repeat the number.
+  await page.getByRole('button', { name: new RegExp(`^#${createdNumber} .*Cancelado`) }).waitFor();
   await shot('06-finished');
 });
 
@@ -352,7 +353,10 @@ await step('waiter: open a new tab on an occupied table', async () => {
   await page.getByRole('button', { name: 'Abrir conta e enviar' }).click();
   await toast(/Pedido #\d+ criado/);
   await page.waitForURL('**/mesas');
-  await page.getByRole('button', { name: /^2\s/ }).getByText('3 conta(s)').waitFor();
+  await page
+    .getByRole('button', { name: /^2\s/ })
+    .getByText(/3 contas/)
+    .waitFor();
 });
 
 await step('waiter has no access to discounts', async () => {

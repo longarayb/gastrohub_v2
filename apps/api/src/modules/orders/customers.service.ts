@@ -11,7 +11,7 @@ import { type Db, InjectDb } from '../../core/tenancy/db.provider.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
 const customerInclude = {
-  addresses: { orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }] },
+  addresses: { orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }] },
   orders: { select: { createdAt: true }, orderBy: { createdAt: 'desc' }, take: 1 },
   _count: { select: { orders: true } },
 } satisfies Prisma.CustomerInclude;

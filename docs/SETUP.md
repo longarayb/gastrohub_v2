@@ -291,7 +291,21 @@ pnpm test:e2e       # e2e da API (banco app_db_test; requer Docker)
 
 Roteiros visuais com Playwright (opcional): veja [tools/ui-walkthrough/README.md](../tools/ui-walkthrough/README.md).
 
+### Relógio simulado (roteiros em qualquer horário)
+
+O seed deixa a unidade demo aberta e no mesmo dia de negócio por pelo menos 3 horas a partir do momento em que roda (D039), então os roteiros passam a qualquer hora. Para testar um horário específico (por exemplo, depois do fechamento das 23:30), no Linux/WSL use `tools/ui-walkthrough/fake-clock.sh` (baixa a `libfaketime` do Ubuntu na primeira vez, sem `sudo`):
+
+```bash
+tools/ui-walkthrough/fake-clock.sh "2026-10-13 23:40" pnpm start:lite --menu   # num terminal (uma terça)
+tools/ui-walkthrough/fake-clock.sh same pnpm --filter @app/api db:seed          # no outro
+cd tools/ui-walkthrough && ./fake-clock.sh same node pos.mjs
+```
+
+O primeiro comando fixa o deslocamento; `same` reaproveita-o, para a API, o seed e o roteiro concordarem. Escolha um momento **no futuro**: o cache do cardápio digital (Next) mistura o relógio simulado com o monotônico, que continua real, e só um relógio à frente do real mantém as atualizações do cache funcionando. O seed vai com `--filter` porque o Turborepo descarta variáveis de ambiente desconhecidas; o navegador recebe o mesmo deslocamento pelo `browser.mjs`. O Postgres continua no relógio real (`now()` no SQL não é simulado). Pare os servidores antes de voltar ao relógio real: o cache do cardápio guarda horários do relógio simulado.
+
 ## Problemas comuns
+
+- **e2e com erro de ordem só no WSL** (um registro criado depois aparece antes, por exemplo "expected [2, 1] to deeply equal [1, 2]" ou o histórico terminando no status errado): o relógio do WSL adianta e é puxado de volta em saltos de 1 a 3 s (medido no Surface em 2026-10-09: 3,4 s em 60 s). Registros feitos durante o salto ficam com hora anterior aos de antes. Não é defeito do código; rode o e2e de novo. Para conferir: `python3 -c "import time;w,m=time.time(),time.monotonic();time.sleep(60);print((time.time()-w)-(time.monotonic()-m))"` (bem diferente de zero = relógio saltando). `wsl --shutdown` no PowerShell costuma normalizar.
 
 | Sintoma | Solução |
 |---|---|

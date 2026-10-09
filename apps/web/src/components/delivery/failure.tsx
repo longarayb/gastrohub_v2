@@ -16,11 +16,9 @@ import {
   DialogTitle,
 } from '@app/ui/components/dialog';
 import { Textarea } from '@app/ui/components/textarea';
-import { cn } from '@app/ui/lib/utils';
-import { CircleAlert } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { Field } from '@/components/form';
-import { formatClock } from '@/components/orders/common';
+import { CardFlag, formatClock } from '@/components/orders/common';
 
 /** "Não entregue · Cliente ausente" on the board, the expedition and the order detail. */
 export function DeliveryFailureBadge({
@@ -31,19 +29,10 @@ export function DeliveryFailureBadge({
   className?: string;
 }) {
   return (
-    <p
-      className={cn(
-        'flex items-start gap-1.5 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive',
-        className,
-      )}
-      title={failure.note ?? undefined}
-    >
-      <CircleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
-      <span>
-        Não entregue · {DELIVERY_FAILURE_LABELS[failure.reason]}
-        {failure.note ? ` (${failure.note})` : ''} · {formatClock(failure.at)}
-      </span>
-    </p>
+    <CardFlag tone="critical" className={className} title={failure.note ?? undefined}>
+      Não entregue · {DELIVERY_FAILURE_LABELS[failure.reason]}
+      {failure.note ? ` (${failure.note})` : ''} · {formatClock(failure.at)}
+    </CardFlag>
   );
 }
 

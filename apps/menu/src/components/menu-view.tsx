@@ -46,10 +46,8 @@ function ProductRow({ product, onOpen }: { product: CatalogProduct; onOpen: () =
         type="button"
         onClick={onOpen}
         aria-label={product.name}
-        className={cn(
-          'flex w-full gap-3 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          !available && 'opacity-60',
-        )}
+        // Unavailable: only the photo fades; dimmed text would fail 4.5:1 (axe).
+        className="flex w-full gap-3 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="min-w-0 flex-1 space-y-1">
           <span className="block font-medium">{product.name}</span>
@@ -76,7 +74,12 @@ function ProductRow({ product, onOpen }: { product: CatalogProduct; onOpen: () =
           </span>
         </span>
         {product.thumbUrl && (
-          <span className="relative size-24 shrink-0 overflow-hidden rounded-lg bg-muted">
+          <span
+            className={cn(
+              'relative size-24 shrink-0 overflow-hidden rounded-lg bg-muted',
+              !available && 'opacity-50 grayscale',
+            )}
+          >
             <Image
               src={product.thumbUrl}
               alt=""

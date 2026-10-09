@@ -258,8 +258,8 @@ export default function CouponsPage() {
       ) : !coupons?.length ? (
         <EmptyState icon={TicketPercent} title="Nenhum cupom cadastrado" />
       ) : (
-        <div className="rounded-xl border bg-card">
-          <Table>
+        <div className="overflow-hidden rounded-card border bg-card max-md:border-0 max-md:bg-transparent">
+          <Table stack>
             <TableHeader>
               <TableRow>
                 <TableHead>Código</TableHead>
@@ -273,9 +273,13 @@ export default function CouponsPage() {
             <TableBody>
               {coupons.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.code}</TableCell>
-                  <TableCell className="tabular">{couponValueLabel(c)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
+                  <TableCell label="Código" className="font-medium">
+                    {c.code}
+                  </TableCell>
+                  <TableCell label="Desconto" className="tabular">
+                    {couponValueLabel(c)}
+                  </TableCell>
+                  <TableCell label="Regras" className="text-xs text-muted-foreground">
                     {[
                       c.minOrderCents ? `mín. ${formatBRL(c.minOrderCents)}` : null,
                       c.maxDiscountCents ? `máx. ${formatBRL(c.maxDiscountCents)}` : null,
@@ -284,11 +288,11 @@ export default function CouponsPage() {
                       .filter(Boolean)
                       .join(' · ') || '—'}
                   </TableCell>
-                  <TableCell className="tabular">
+                  <TableCell label="Usos" className="tabular">
                     {c.usedCount}
                     {c.usageLimit ? ` / ${c.usageLimit}` : ''}
                   </TableCell>
-                  <TableCell>
+                  <TableCell label="Status">
                     <Badge variant={c.isActive ? 'success' : 'secondary'}>
                       {c.isActive ? 'Ativo' : 'Inativo'}
                     </Badge>

@@ -56,3 +56,6 @@ apps/*/public/brand/
 /apps/print-agent/.data/
 /apps/print-agent/release/
 /apps/print-agent/installer/vendor/
+
+# Redesign screenshots per phase (tools/ui-walkthrough/screens.mjs); only docs/screenshots/final/ is versioned
+/docs/screenshots/redesign/

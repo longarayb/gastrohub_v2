@@ -101,8 +101,12 @@ await step('cashier: register page in blind mode with movements', async () => {
   await shot('01-register');
 });
 
-await step('withdrawal with F9 needs a reason', async () => {
+await step('withdrawal has no key (only the button) and needs a reason', async () => {
+  // Sensitive action: F9 must not open it (docs/DESIGN.md, keyboard map).
   await page.keyboard.press('F9');
+  await page.waitForTimeout(500);
+  if (await page.getByRole('dialog', { name: /Sangria/ }).count()) throw new Error('F9 opened it');
+  await page.getByRole('button', { name: /^Sangria/ }).click();
   const d = dialog('Sangria');
   await d.getByLabel('Valor').fill('1500');
   await d.getByRole('button', { name: 'Registrar' }).click();
@@ -224,11 +228,12 @@ await step('tables: transfer a tab, change, merge and split tables', async () =>
   await s.getByRole('button', { name: 'Separar' }).click();
   await toast('Mesas separadas');
   await closeDialog();
+  // Both tables stay occupied, each with its tabs ("1 conta", "2 contas").
   await table('7')
-    .getByText(/conta\(s\)/)
+    .getByText(/\d+ contas?/)
     .waitFor();
   await table('6')
-    .getByText(/conta\(s\)/)
+    .getByText(/\d+ contas?/)
     .waitFor();
 });
 

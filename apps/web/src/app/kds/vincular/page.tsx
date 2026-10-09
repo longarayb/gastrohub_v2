@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { errorMessage } from '@/lib/api';
-import { useKdsSession } from '@/lib/kds-session';
+import { KDS_REVOKED_KEY, useKdsSession } from '@/lib/kds-session';
 
 function PairForm() {
   const params = useSearchParams();
@@ -19,10 +19,23 @@ function PairForm() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Set by the kitchen screen when the manager revoked this device (read once).
+  const [revoked, setRevoked] = useState(false);
 
   useEffect(() => {
     if (mode.kind === 'device') router.replace('/kds');
   }, [mode.kind, router]);
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(KDS_REVOKED_KEY)) {
+        sessionStorage.removeItem(KDS_REVOKED_KEY);
+        setRevoked(true);
+      }
+    } catch {
+      // Storage blocked: the notice is a courtesy, pairing works the same.
+    }
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,6 +56,14 @@ function PairForm() {
 
   return (
     <form onSubmit={submit} className="w-full max-w-md space-y-6 rounded-2xl border bg-card p-8">
+      {revoked && (
+        <div role="status" className="rounded-lg border-l-4 border-signal-attention bg-muted p-4">
+          <p className="font-bold">Dispositivo desvinculado</p>
+          <p className="text-sm text-muted-foreground">
+            O gerente desvinculou esta tela. Para usá-la de novo, peça um novo código.
+          </p>
+        </div>
+      )}
       <div className="space-y-2 text-center">
         <MonitorSmartphone className="mx-auto size-12 text-primary" />
         <h1 className="text-2xl font-bold">Vincular esta tela</h1>

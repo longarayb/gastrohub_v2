@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@app/ui/components/select';
 import { toast } from '@app/ui/components/sonner';
+import { Notice } from '@app/ui/components/notice';
 import { cn } from '@app/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { MapPinned, Pause, Pencil, Play, Plus, Trash2 } from 'lucide-react';
@@ -52,7 +53,7 @@ function AreaCard({
     <article
       aria-label={`Área ${area.name}`}
       className={cn(
-        'flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs',
+        'flex flex-col gap-3 rounded-card border bg-card p-4',
         area.paused && 'border-destructive/50',
       )}
     >
@@ -68,10 +69,10 @@ function AreaCard({
         {area.paused && <Badge variant="destructive">Suspensa</Badge>}
       </header>
       {area.paused && (
-        <p className="rounded-md bg-destructive/10 px-2 py-1 text-xs text-destructive">
+        <Notice tone="critical" className="p-2">
           {area.pausedReason}
           {area.pausedUntil ? ` · volta às ${formatClock(area.pausedUntil)}` : ''}
-        </p>
+        </Notice>
       )}
       {area.kind === 'NEIGHBORHOOD' && (
         <ul className="flex flex-wrap gap-1" aria-label="Bairros">
@@ -180,7 +181,7 @@ function UnmatchedCard({ areas }: { areas: DeliveryAreaDto[] }) {
                   value={target[key] ?? ''}
                   onValueChange={(v) => setTarget((t) => ({ ...t, [key]: v }))}
                 >
-                  <SelectTrigger className="h-8 w-44" aria-label={`Área para ${u.neighborhood}`}>
+                  <SelectTrigger className="w-44" aria-label={`Área para ${u.neighborhood}`}>
                     <SelectValue placeholder="Escolha a área" />
                   </SelectTrigger>
                   <SelectContent>

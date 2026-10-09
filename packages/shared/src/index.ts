@@ -11,6 +11,7 @@ export * from './domain/menu-availability.js';
 export * from './domain/menu-modifiers.js';
 export * from './domain/menu-pricing.js';
 export * from './domain/order-status.js';
+export * from './domain/order-board.js';
 export * from './domain/order-totals.js';
 export * from './domain/payments.js';
 export * from './domain/pix.js';

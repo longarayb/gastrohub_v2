@@ -42,10 +42,13 @@ export const BRAND: Brand = {
   headline: 'Pedidos, salão, cozinha e delivery em um só lugar.',
   logo: { src: '/brand/logo.svg' },
   favicon: '/brand/favicon.svg',
+  // Blue of docs/DESIGN.md (accent-blue); orange is reserved for "attention" signals.
+  // Dark: bright blue with dark text (6.3:1); light: deeper blue with white text (5.4:1).
+  // Both pass 4.5:1 as text on the page background and on the kanban track too.
   colors: {
-    light: { primary: 'oklch(0.64 0.19 42)', primaryForeground: 'oklch(0.99 0 0)' },
-    dark: { primary: 'oklch(0.7 0.18 45)', primaryForeground: 'oklch(0.16 0.01 60)' },
-    primaryHex: '#ea580c',
+    light: { primary: '#2a66cc', primaryForeground: '#ffffff' },
+    dark: { primary: '#5694f7', primaryForeground: '#0b111c' },
+    primaryHex: '#2a66cc',
   },
 };
 

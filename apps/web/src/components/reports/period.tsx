@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReportKind, currentBusinessDay } from '@app/shared';
+import type { ReportKind } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import {
   DropdownMenu,
@@ -11,24 +11,13 @@ import {
 import { Input } from '@app/ui/components/input';
 import { toast } from '@app/ui/components/sonner';
 import { Download, Printer } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { errorMessage } from '@/lib/api';
 import { PERIODS, type PeriodId, downloadCsv, periodRange } from '@/lib/reports';
-import { useBusinessHours, useCurrentStore } from '@/lib/stores';
+import { useBusinessToday } from '@/lib/stores';
 import { Segmented } from './report-header';
 
-/** Current business day of the store (night shifts belong to the day they started). */
-export function useBusinessToday(): string | null {
-  const { data: hours } = useBusinessHours();
-  const { data: store } = useCurrentStore();
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(timer);
-  }, []);
-  if (!hours || !store) return null;
-  return currentBusinessDay(hours, now, store.timezone).date;
-}
+export { useBusinessToday };
 
 export interface PeriodState {
   id: PeriodId;

@@ -19,6 +19,7 @@ import {
 } from '@app/ui/components/card';
 import { Input } from '@app/ui/components/input';
 import { Skeleton, Switch } from '@app/ui/components/misc';
+import { Notice } from '@app/ui/components/notice';
 import { toast } from '@app/ui/components/sonner';
 import { Textarea } from '@app/ui/components/textarea';
 import { useQueryClient } from '@tanstack/react-query';
@@ -330,13 +331,10 @@ function SettingsForm({ settings }: { settings: DigitalMenuSettingsDto }) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="flex items-start gap-2 rounded-md bg-warning/20 p-3 text-sm text-warning-foreground">
-            <Scale className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>
-              O texto abaixo é um <strong>modelo</strong>. Como controlador dos dados dos clientes,
-              o restaurante deve revisá-lo e adaptá-lo, de preferência com apoio jurídico.
-            </span>
-          </p>
+          <Notice tone="attention" icon={Scale} role="note">
+            O texto abaixo é um <strong>modelo</strong>. Como controlador dos dados dos clientes, o
+            restaurante deve revisá-lo e adaptá-lo, de preferência com apoio jurídico.
+          </Notice>
           <Controller
             control={form.control}
             name="privacyNotice"

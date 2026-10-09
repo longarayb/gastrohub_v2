@@ -1,6 +1,6 @@
 'use client';
 
-import { type DeliveryReportRowDto, formatBRL, toBusinessDate } from '@app/shared';
+import { type DeliveryReportRowDto, formatBRL } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@app/ui/components/card';
 import { Input } from '@app/ui/components/input';
@@ -15,9 +15,9 @@ import {
 } from '@app/ui/components/table';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
 import { BalanceText } from '@/components/delivery/courier-dialogs';
 import { Page } from '@/components/page';
+import { useBusinessDateState } from '@/lib/stores';
 import { useDeliveryReport } from '@/lib/delivery';
 
 const minutes = (m: number | null) => (m == null ? '—' : `${m} min`);
@@ -32,7 +32,7 @@ function TimesTable({ title, rows }: { title: string; rows: DeliveryReportRowDto
         {rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhuma entrega no período.</p>
         ) : (
-          <Table>
+          <Table stack>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
@@ -46,14 +46,24 @@ function TimesTable({ title, rows }: { title: string; rows: DeliveryReportRowDto
             <TableBody>
               {rows.map((r) => (
                 <TableRow key={r.key}>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell className="tabular text-right">{r.deliveries}</TableCell>
-                  <TableCell className="tabular text-right">{r.failures}</TableCell>
-                  <TableCell className="tabular text-right">
+                  <TableCell label="Nome" className="font-medium">
+                    {r.name}
+                  </TableCell>
+                  <TableCell label="Entregas" className="tabular text-right">
+                    {r.deliveries}
+                  </TableCell>
+                  <TableCell label="Não entregues" className="tabular text-right">
+                    {r.failures}
+                  </TableCell>
+                  <TableCell label="Saída → entrega" className="tabular text-right">
                     {minutes(r.avgDeliveryMinutes)}
                   </TableCell>
-                  <TableCell className="tabular text-right">{minutes(r.avgTotalMinutes)}</TableCell>
-                  <TableCell className="tabular text-right">{r.late}</TableCell>
+                  <TableCell label="Pedido → entrega" className="tabular text-right">
+                    {minutes(r.avgTotalMinutes)}
+                  </TableCell>
+                  <TableCell label="Atrasadas" className="tabular text-right">
+                    {r.late}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -66,8 +76,8 @@ function TimesTable({ title, rows }: { title: string; rows: DeliveryReportRowDto
 
 /** Delivery report: fees apart from sales, times per area and courier, who owes whom. */
 export default function DeliveryReportPage() {
-  const [from, setFrom] = useState(() => toBusinessDate());
-  const [to, setTo] = useState(() => toBusinessDate());
+  const [from, setFrom] = useBusinessDateState();
+  const [to, setTo] = useBusinessDateState();
   const { data, isLoading, error } = useDeliveryReport(from, to);
 
   return (

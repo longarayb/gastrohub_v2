@@ -9,6 +9,7 @@
  * the same pure functions the API uses (priceMenuItem, calculateOrderTotals, routeItem) and
  * inserted with createMany in batches. Only past business days; today stays with the live demo.
  */
+import { DEMO_HOURS } from './hours.js';
 import {
   type BusinessHour,
   type MenuItemPricing,
@@ -286,7 +287,9 @@ export async function seedHistory(
   for (let offset = days; offset >= 1; offset--) {
     const date = addDaysToDate(today, -offset);
     const weekday = weekdayOfDate(date);
-    const shifts = hours.filter((h) => h.weekday === weekday);
+    // The weekly hours, not the ones adjusted to the current moment: the history stays the
+    // same at any time of day (deterministic).
+    const shifts = DEMO_HOURS.filter((h) => h.weekday === weekday);
     if (!shifts.length) continue;
     // Slight growth over the period and daily noise.
     const trend = 0.9 + 0.2 * ((days - offset) / days);

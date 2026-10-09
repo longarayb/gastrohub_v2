@@ -26,6 +26,7 @@ import { Input } from '@app/ui/components/input';
 import { PriceLabel } from '@app/ui/components/menu-preview';
 import { Label } from '@app/ui/components/label';
 import { Separator, Skeleton, Tabs, TabsList, TabsTrigger } from '@app/ui/components/misc';
+import { ShortcutBar } from '@app/ui/components/states';
 import {
   Select,
   SelectContent,
@@ -62,6 +63,7 @@ import { DiscountInput } from '@/components/orders/order-discount-dialog';
 import { Page } from '@/components/page';
 import { ApiError, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useHotkeys } from '@/lib/hotkeys';
 import { useCatalog } from '@/lib/menu';
 import {
   addOrderItems,
@@ -83,28 +85,88 @@ function issuesToErrors(issues: { path: PropertyKey[]; message: string }[]) {
   return errors;
 }
 
+/**
+ * Catalog of the composer. Keyboard: the search has the focus; ↑/↓ move through the products
+ * shown (available ones), Enter opens the highlighted one (or the only result), Esc clears.
+ */
 function CatalogPicker({
   categories,
   onPick,
+  searchRef,
+  autoFocus,
 }: {
   categories: CatalogCategory[];
   onPick: (target: BuilderTarget) => void;
+  searchRef: React.RefObject<HTMLInputElement | null>;
+  /** Only when the screen opens: a catalog reloaded by a type change keeps the focus where it is. */
+  autoFocus: boolean;
 }) {
   const [categoryId, setCategoryId] = useState<string>('ALL');
   const [q, setQ] = useState('');
+  const [active, setActive] = useState(-1);
   const term = normalizeSearch(q.trim());
-  const visible = categories.filter((c) => categoryId === 'ALL' || c.id === categoryId);
+  const visible = categories
+    .filter((c) => categoryId === 'ALL' || c.id === categoryId)
+    .map((category) => ({
+      category,
+      products: category.products.filter((p) => !term || normalizeSearch(p.name).includes(term)),
+    }))
+    .filter((c) => c.products.length);
+  // What ↑/↓ walk through, in screen order.
+  const choices = visible.flatMap(({ category, products }) =>
+    products.filter((p) => p.availability.available).map((product) => ({ category, product })),
+  );
+  const activeChoice = choices[active] ?? null;
+  const targetOf = ({ category, product }: (typeof choices)[number]): BuilderTarget =>
+    category.kind === 'PIZZA'
+      ? { kind: 'pizza', category }
+      : { kind: 'product', product, category };
+
+  // A new search or category starts from the first result.
+  useEffect(() => setActive(term ? 0 : -1), [term, categoryId]);
+  useEffect(() => {
+    if (activeChoice) {
+      document.getElementById(`produto-${activeChoice.product.id}`)?.scrollIntoView({
+        block: 'nearest',
+      });
+    }
+  }, [activeChoice]);
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!choices.length) return;
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      setActive((i) => (i < 0 ? 0 : (i + step + choices.length) % choices.length));
+    } else if (e.key === 'Enter') {
+      const choice = activeChoice ?? (choices.length === 1 ? choices[0] : null);
+      if (choice) {
+        e.preventDefault();
+        onPick(targetOf(choice));
+      }
+    } else if (e.key === 'Escape' && q) {
+      e.preventDefault();
+      setQ('');
+    }
+  }
 
   return (
     <div className="space-y-3">
       <div className="relative">
-        <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Search
+          className="absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground"
+          aria-hidden
+        />
         <Input
-          className="pl-8"
+          ref={searchRef}
+          autoFocus={autoFocus}
+          className="pl-10"
           placeholder="Buscar produto"
           aria-label="Buscar produto"
+          aria-activedescendant={activeChoice ? `produto-${activeChoice.product.id}` : undefined}
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          onKeyDown={onKeyDown}
         />
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Categorias">
@@ -116,64 +178,58 @@ function CatalogPicker({
             aria-selected={categoryId === c.id}
             onClick={() => setCategoryId(c.id)}
             className={cn(
-              'shrink-0 rounded-full border px-3 py-1 text-sm whitespace-nowrap',
+              'h-11 shrink-0 rounded-full border px-4 text-sm font-semibold whitespace-nowrap transition-colors',
               categoryId === c.id
                 ? 'border-primary bg-primary text-primary-foreground'
-                : 'hover:bg-accent',
+                : 'bg-card hover:bg-accent',
             )}
           >
             {c.name}
           </button>
         ))}
       </div>
-      <div className="space-y-4">
-        {visible.map((category) => {
-          const products = category.products.filter(
-            (p) => !term || normalizeSearch(p.name).includes(term),
-          );
-          if (!products.length) return null;
-          return (
-            <section key={category.id} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold">{category.name}</h3>
-                {category.kind === 'PIZZA' && (
-                  <Button size="sm" onClick={() => onPick({ kind: 'pizza', category })}>
-                    <Pizza /> Montar pizza
-                  </Button>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
-                {products.map((p) => {
-                  const available = p.availability.available;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      disabled={!available}
-                      onClick={() =>
-                        onPick(
-                          category.kind === 'PIZZA'
-                            ? { kind: 'pizza', category }
-                            : { kind: 'product', product: p, category },
-                        )
-                      }
-                      className="flex min-h-20 flex-col justify-between gap-1 rounded-lg border bg-card p-3 text-left text-sm transition-colors hover:bg-accent disabled:opacity-50"
-                    >
-                      <span className="line-clamp-2 font-medium">{p.name}</span>
-                      {available ? (
-                        <PriceLabel price={p.price} className="text-xs" />
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          {p.availability.reasons[0]?.message ?? 'Indisponível'}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
+      <div className="space-y-5">
+        {visible.map(({ category, products }) => (
+          <section key={category.id} className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold">{category.name}</h3>
+              {category.kind === 'PIZZA' && (
+                <Button size="sm" onClick={() => onPick({ kind: 'pizza', category })}>
+                  <Pizza /> Montar pizza
+                </Button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {products.map((p) => {
+                const available = p.availability.available;
+                const highlighted = activeChoice?.product.id === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    id={`produto-${p.id}`}
+                    type="button"
+                    disabled={!available}
+                    aria-current={highlighted || undefined}
+                    onClick={() => onPick(targetOf({ category, product: p }))}
+                    className={cn(
+                      'flex min-h-20 flex-col justify-between gap-1 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent disabled:opacity-50',
+                      highlighted && 'border-primary bg-accent outline-3 outline-ring',
+                    )}
+                  >
+                    <span className="line-clamp-2 text-sm font-semibold">{p.name}</span>
+                    {available ? (
+                      <PriceLabel price={p.price} className="text-sm" />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        {p.availability.reasons[0]?.message ?? 'Indisponível'}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   );
@@ -220,6 +276,20 @@ function Composer() {
   // One key per order being typed: a double click or a retry never creates two orders.
   const idempotencyKey = useRef(newKey());
   const ids = { tab: useId(), notes: useId(), coupon: useId(), discount: useId() };
+  const searchRef = useRef<HTMLInputElement>(null);
+  const detailsRef = useRef<HTMLDivElement>(null);
+  const typeRef = useRef<HTMLDivElement>(null);
+  const typeChanged = useRef(false);
+  const summaryRef = useRef<HTMLElement>(null);
+
+  // After an item is added (or the dialog closed), back to the search for the next one.
+  const builderOpen = !!builder;
+  useEffect(() => {
+    if (!builderOpen) {
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    }
+  }, [builderOpen]);
 
   const order = existing.data;
   const effectiveType: OrderType = order ? order.type : type;
@@ -320,6 +390,9 @@ function Composer() {
   }
 
   async function submit() {
+    // After a success the screen stays busy until the next one opens: a slow navigation must
+    // not let another F9 (or click) send the same cart again with a new idempotency key.
+    let leaving = false;
     setErrors({});
     if (order) {
       if (!cart.length) return toast.error('Adicione pelo menos um item');
@@ -335,10 +408,11 @@ function Composer() {
           sendNow ? 'Itens enviados para a produção' : 'Itens lançados na conta',
         );
         router.push(back as never);
+        leaving = true;
       } catch {
         // Toast already shown; on 409 the order reloads with the new version.
       } finally {
-        setBusy(false);
+        if (!leaving) setBusy(false);
       }
       return;
     }
@@ -372,15 +446,57 @@ function Composer() {
       await invalidate();
       toast.success(`Pedido #${created.number} criado`);
       router.push(back as never);
+      leaving = true;
     } catch (error) {
       if (error instanceof ApiError && Object.keys(error.fieldErrors).length) {
         setErrors(error.fieldErrors);
       }
       toast.error(errorMessage(error));
     } finally {
-      setBusy(false);
+      if (!leaving) setBusy(false);
     }
   }
+
+  // Keyboard (shown on screen). Function keys work while typing; off while a dialog is open.
+  useHotkeys(
+    {
+      F2: () => {
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      },
+      // The order type first (← → change it), then Tab goes to customer or table.
+      F6: () =>
+        (
+          typeRef.current?.querySelector<HTMLElement>('[role="tab"][data-state="active"]') ??
+          detailsRef.current?.querySelector<HTMLElement>('input, button[role="combobox"]')
+        )?.focus(),
+      F7: () => document.getElementById(ids.notes)?.focus(),
+      F9: () => {
+        if (!busy) void submit();
+      },
+    },
+    !builderOpen,
+  );
+  const submitLabel = order
+    ? sendNow
+      ? 'Enviar itens'
+      : 'Lançar na conta'
+    : type === 'DINE_IN'
+      ? cart.length
+        ? 'Abrir conta e enviar'
+        : 'Abrir conta'
+      : 'Criar pedido';
+  const shortcuts: [string, string][] = [
+    ['F2', 'Buscar'],
+    ['↑↓', 'Escolher'],
+    ['Enter', 'Abrir produto'],
+    ...(order
+      ? []
+      : ([['F6', `Tipo e ${type === 'DINE_IN' ? 'mesa' : 'cliente'}`]] as [string, string][])),
+    ...(order ? [] : ([['F7', 'Observação']] as [string, string][])),
+    ['?', 'Atalhos'],
+    ['F9', submitLabel],
+  ];
 
   if (existingId && existing.isLoading) return <Skeleton className="m-6 h-96" />;
 
@@ -397,18 +513,35 @@ function Composer() {
         </Button>
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)]">
+      <ShortcutBar items={shortcuts} />
+      <div className="grid gap-6 pb-24 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] lg:pb-0">
         <div className="min-w-0">
           {!index ? (
             <Skeleton className="h-96" />
           ) : (
-            <CatalogPicker categories={index.catalog.categories} onPick={setBuilder} />
+            <CatalogPicker
+              categories={index.catalog.categories}
+              onPick={setBuilder}
+              searchRef={searchRef}
+              autoFocus={!typeChanged.current}
+            />
           )}
         </div>
 
-        <aside className="space-y-5 rounded-xl border bg-card p-4 lg:sticky lg:top-4 lg:self-start">
+        <aside
+          ref={summaryRef}
+          aria-label="Resumo do pedido"
+          className="scroll-mt-20 space-y-5 rounded-card border bg-card p-4 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto"
+        >
           {!order && (
-            <Tabs value={type} onValueChange={(v) => setType(v as OrderType)}>
+            <Tabs
+              ref={typeRef}
+              value={type}
+              onValueChange={(v) => {
+                typeChanged.current = true;
+                setType(v as OrderType);
+              }}
+            >
               <TabsList className="w-full">
                 {(['TAKEOUT', 'DELIVERY', 'DINE_IN'] as const).map((t) => (
                   <TabsTrigger key={t} value={t}>
@@ -419,48 +552,50 @@ function Composer() {
             </Tabs>
           )}
 
-          {!order && type === 'DINE_IN' && (
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Mesa" error={errors.tableId}>
-                <Select value={tableId} onValueChange={setTableId}>
-                  <SelectTrigger aria-label="Mesa" className="w-full">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeTables.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.name}
-                        {t.session ? ` · ${t.session.tabs.length} conta(s)` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Conta / cliente" htmlFor={ids.tab} error={errors.tabLabel}>
-                <Input
-                  id={ids.tab}
-                  placeholder="Ex.: João"
-                  maxLength={60}
-                  value={tabLabel}
-                  onChange={(e) => setTabLabel(e.target.value)}
-                />
-              </Field>
-              {selectedTable?.session && (
-                <p className="col-span-2 text-xs text-muted-foreground">
-                  Mesa ocupada: será aberta uma nova conta na mesma mesa.
-                </p>
-              )}
-            </div>
-          )}
+          <div ref={detailsRef} className="space-y-5 empty:hidden">
+            {!order && type === 'DINE_IN' && (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Mesa" error={errors.tableId}>
+                  <Select value={tableId} onValueChange={setTableId}>
+                    <SelectTrigger aria-label="Mesa" className="w-full">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeTables.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                          {t.session ? ` · ${t.session.tabs.length} conta(s)` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Conta / cliente" htmlFor={ids.tab} error={errors.tabLabel}>
+                  <Input
+                    id={ids.tab}
+                    placeholder="Ex.: João"
+                    maxLength={60}
+                    value={tabLabel}
+                    onChange={(e) => setTabLabel(e.target.value)}
+                  />
+                </Field>
+                {selectedTable?.session && (
+                  <p className="col-span-2 text-xs text-muted-foreground">
+                    Mesa ocupada: será aberta uma nova conta na mesma mesa.
+                  </p>
+                )}
+              </div>
+            )}
 
-          {!order && type !== 'DINE_IN' && (
-            <CustomerSection
-              value={customer}
-              onChange={setCustomer}
-              withAddress={type === 'DELIVERY'}
-              errors={errors}
-            />
-          )}
+            {!order && type !== 'DINE_IN' && (
+              <CustomerSection
+                value={customer}
+                onChange={setCustomer}
+                withAddress={type === 'DELIVERY'}
+                errors={errors}
+              />
+            )}
+          </div>
 
           <Separator />
 
@@ -477,10 +612,10 @@ function Composer() {
             ) : (
               <ul className="divide-y">
                 {cart.map((line) => (
-                  <li key={line.key} className="flex gap-2 py-2">
-                    <span className="tabular w-6 text-sm font-medium">{line.input.quantity}×</span>
+                  <li key={line.key} className="flex items-start gap-2 py-2">
+                    <span className="w-7 text-base font-extrabold">{line.input.quantity}×</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{line.pricing.snapshot.name}</p>
+                      <p className="text-base font-semibold">{line.pricing.snapshot.name}</p>
                       <ItemDescription item={{ snapshot: line.pricing.snapshot, notes: null }} />
                       {line.input.discount && (
                         <p className="text-xs text-muted-foreground">
@@ -488,7 +623,7 @@ function Composer() {
                         </p>
                       )}
                     </div>
-                    <span className="tabular text-sm">
+                    <span className="text-base font-bold">
                       {formatBRL(line.pricing.totalChargedCents)}
                     </span>
                     <Button
@@ -668,24 +803,32 @@ function Composer() {
                 <dd className="tabular">{formatBRL(totals.deliveryFeeCents)}</dd>
               </div>
             )}
-            <div className="flex justify-between text-base font-semibold">
-              <dt>{order ? 'Total destes itens' : 'Total'}</dt>
-              <dd className="tabular">{formatBRL(totals.totalCents)}</dd>
+            <div className="flex items-baseline justify-between gap-2 pt-2">
+              <dt className="text-base font-bold">{order ? 'Total destes itens' : 'Total'}</dt>
+              <dd className="text-kpi font-extrabold">{formatBRL(totals.totalCents)}</dd>
             </div>
           </dl>
 
-          <Button className="w-full" size="lg" loading={busy} onClick={() => void submit()}>
-            {order
-              ? sendNow
-                ? 'Enviar itens'
-                : 'Lançar na conta'
-              : type === 'DINE_IN'
-                ? cart.length
-                  ? 'Abrir conta e enviar'
-                  : 'Abrir conta'
-                : 'Criar pedido'}
+          <Button className="w-full" size="xl" loading={busy} onClick={() => void submit()}>
+            {submitLabel}
           </Button>
         </aside>
+      </div>
+
+      {/* Phone: the total stays at the bottom; the summary is below the catalog. */}
+      <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t bg-card p-3 lg:hidden">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-muted-foreground">
+            {cart.length} {cart.length === 1 ? 'item' : 'itens'}
+          </p>
+          <p className="text-xl font-extrabold">{formatBRL(totals.totalCents)}</p>
+        </div>
+        <Button
+          size="lg"
+          onClick={() => summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        >
+          Ver pedido
+        </Button>
       </div>
 
       {index && (

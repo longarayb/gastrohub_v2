@@ -1,9 +1,12 @@
 'use client';
 
 import type { ReportScope } from '@app/shared';
-import { cn } from '@app/ui/lib/utils';
+import { Segmented } from '@app/ui/components/segmented';
+import { PageHeader } from '@app/ui/components/states';
 import type { ReactNode } from 'react';
 import { useSession } from '@/lib/auth';
+
+export { Segmented };
 
 /** Page header of the dashboard and reports (docs/DESIGN.md): 34 px title, muted subtitle. */
 export function ReportHeader({
@@ -16,52 +19,11 @@ export function ReportHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4 font-display">
-      <div className="min-w-0 space-y-1">
-        <h1 className="text-display font-extrabold tracking-tight">{title}</h1>
-        <p className="text-sm text-muted-foreground first-letter:uppercase">{subtitle}</p>
-      </div>
-      {actions && <div className="flex flex-wrap items-center gap-2 print:hidden">{actions}</div>}
-    </header>
-  );
-}
-
-/** Segmented buttons of 44 px (periods, comparison, unit/network). */
-export function Segmented<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T;
-  options: readonly { value: T; label: string }[];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label={label}
-      className="flex flex-wrap gap-1 rounded-xl border bg-card p-1"
-    >
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          role="radio"
-          aria-checked={o.value === value}
-          onClick={() => onChange(o.value)}
-          className={cn(
-            'h-11 rounded-lg px-4 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-ring',
-            o.value === value
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
+    <PageHeader
+      title={title}
+      subtitle={<span className="block first-letter:uppercase">{subtitle}</span>}
+      actions={actions}
+    />
   );
 }
 

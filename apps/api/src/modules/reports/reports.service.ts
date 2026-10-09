@@ -130,7 +130,7 @@ export class ReportsService {
         store: { organizationId: store?.organizationId, isActive: true },
       },
       select: { store: { select: { id: true, tradeName: true } } },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
     if (!memberships.some((m) => m.store.id === this.ctx.tenantId)) {
       throw new ForbiddenError('Só o dono vê o consolidado da rede');

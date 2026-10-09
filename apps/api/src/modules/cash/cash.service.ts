@@ -33,7 +33,7 @@ const CONFLICT_MESSAGE =
   'O caixa teve movimentação enquanto você conferia. Os valores foram atualizados; confira e tente de novo.';
 
 const sessionInclude = {
-  movements: { orderBy: { createdAt: 'asc' } },
+  movements: { orderBy: { seq: 'asc' } },
   counts: true,
   payments: { include: { order: { select: { number: true, businessDate: true } } } },
   refunds: { include: { order: { select: { number: true, businessDate: true } } } },
@@ -226,7 +226,7 @@ export class CashService {
         kind: 'refunded' as const,
         at: (p.refundedAt ?? p.createdAt).toISOString(),
       })),
-    ].sort((a, b) => a.at.localeCompare(b.at));
+    ].sort((a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id));
     return {
       ...dto,
       movements: session.movements.map((m) => ({

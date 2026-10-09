@@ -210,6 +210,8 @@ model PasswordResetToken {
 /// Audit trail for sensitive operations (cancellations, discounts, price changes, permissions).
 model AuditLog {
   id        String   @id @default(cuid())
+  /// Creation order from the database (D040): lists sort by it, never by a clock.
+  seq       BigInt   @default(autoincrement())
   tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   userId    String?
   action    String
@@ -822,6 +824,8 @@ model Order {
 /// One send to the kitchen. Counter/delivery orders have a single round.
 model OrderRound {
   id        String    @id @default(cuid())
+  /// Creation order from the database (D040): lists sort by it, never by a clock.
+  seq       BigInt    @default(autoincrement())
   tenantId  String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   orderId   String
   number    Int
@@ -838,6 +842,8 @@ model OrderRound {
 
 model OrderItem {
   id                    String          @id @default(cuid())
+  /// Creation order from the database (D040): lists sort by it, never by a clock.
+  seq                   BigInt          @default(autoincrement())
   tenantId              String          @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   orderId               String
   roundId               String
@@ -878,6 +884,8 @@ model OrderItem {
 
 model OrderStatusHistory {
   id         String       @id @default(cuid())
+  /// Creation order from the database (D040): lists sort by it, never by a clock.
+  seq        BigInt       @default(autoincrement())
   tenantId   String       @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   orderId    String
   fromStatus OrderStatus?
@@ -893,6 +901,8 @@ model OrderStatusHistory {
 
 model Payment {
   id                 String        @id @default(cuid())
+  /// Creation order from the database (D040): lists sort by it, never by a clock.
+  seq                BigInt        @default(autoincrement())
   tenantId           String        @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   orderId            String
   method             PaymentMethod
@@ -988,6 +998,8 @@ model CashSession {
 /// Supply ("suprimento") or withdrawal ("sangria") of cash.
 model CashMovement {
   id          String           @id @default(cuid())
+  /// Creation order from the database (D040): lists sort by it, never by a clock.
+  seq         BigInt           @default(autoincrement())
   tenantId    String           @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   sessionId   String
   type        CashMovementType
@@ -1040,6 +1052,8 @@ enum ProductionTaskKind {
 /// (round, sector). Feeds the KDS and, later, printing per sector.
 model ProductionTask {
   id                String               @id @default(cuid())
+  /// Creation order from the database (D040): lists sort by it, never by a clock.
+  seq               BigInt               @default(autoincrement())
   tenantId          String               @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   orderId           String
   orderItemId       String
@@ -1201,6 +1215,8 @@ model Printer {
 /// by the agent (at-least-once, D036).
 model PrintJob {
   id                String         @id @default(cuid())
+  /// Creation order from the database (D040): lists sort by it, never by a clock.
+  seq               BigInt         @default(autoincrement())
   tenantId          String         @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   printerId         String
   kind              PrintJobKind
@@ -1358,6 +1374,8 @@ model DeliveryRun {
 /// One delivery attempt of an order in a route: times, what the customer paid, or why not.
 model DeliveryStop {
   id              String                 @id @default(cuid())
+  /// Creation order from the database (D040): lists sort by it, never by a clock.
+  seq             BigInt                 @default(autoincrement())
   tenantId        String                 @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   runId           String
   orderId         String
@@ -1421,6 +1439,8 @@ model CourierSettlement {
 /// Running balance of a courier (positive = the restaurant owes the courier).
 model CourierLedgerEntry {
   id             String            @id @default(cuid())
+  /// Creation order from the database (D040): lists sort by it, never by a clock.
+  seq            BigInt            @default(autoincrement())
   tenantId       String            @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   courierId      String
   type           CourierLedgerType

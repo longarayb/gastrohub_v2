@@ -145,7 +145,7 @@ export class KdsService {
       ? await this.db.productionTask.findMany({
           where: { OR: keys.map((k) => ({ roundId: k.roundId, sectorId: k.sectorId })) },
           include: taskInclude,
-          orderBy: [{ sentAt: 'asc' }, { name: 'asc' }],
+          orderBy: { seq: 'asc' },
         })
       : [];
 
@@ -171,6 +171,7 @@ export class KdsService {
         roundNumber: first.round.number,
         sectorId: first.sectorId,
         sentAt: first.sentAt.toISOString(),
+        seq: Number(first.seq),
         doneAt: done
           ? new Date(Math.max(...active.map((r) => r.readyAt?.getTime() ?? 0))).toISOString()
           : null,
@@ -182,7 +183,7 @@ export class KdsService {
     const open = all.filter((t) => !t.doneAt);
     const done = all
       .filter((t) => t.doneAt && t.doneAt >= since.toISOString())
-      .sort((a, b) => b.doneAt!.localeCompare(a.doneAt!))
+      .sort((a, b) => b.doneAt!.localeCompare(a.doneAt!) || b.seq - a.seq)
       .slice(0, KDS_RECENT_LIMIT);
     const visible = [...open, ...done].filter(
       (t) =>
@@ -191,7 +192,8 @@ export class KdsService {
     );
     return {
       sectors: (await this.sectors()).filter((s) => sectorIds.includes(s.id)),
-      tickets: visible.sort((a, b) => a.sentAt.localeCompare(b.sentAt)),
+      // Send order from the database (D040), never the clock that stamped sentAt.
+      tickets: visible.sort((a, b) => a.seq - b.seq),
       serverTime: now.toISOString(),
     };
   }
@@ -339,12 +341,12 @@ export class KdsService {
         items: { select: { roundId: true, status: true } },
         tasks: { select: { roundId: true, sectorId: true, status: true } },
         stops: {
-          orderBy: { dispatchedAt: 'desc' },
+          orderBy: { seq: 'desc' },
           take: 1,
           select: { failedAt: true, failureReason: true, failureNote: true },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ businessDate: 'asc' }, { number: 'asc' }],
       take: 100,
     });
     const sectors = await this.db.productionSector.findMany({ select: { id: true, name: true } });

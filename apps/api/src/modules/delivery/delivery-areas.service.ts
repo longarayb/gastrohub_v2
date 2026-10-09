@@ -214,7 +214,7 @@ export class DeliveryAreasService {
       this.db.order.findMany({
         where: { type: 'DELIVERY', createdAt: { gte: since } },
         select: { deliveryAddress: true, createdAt: true },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: 2000,
       }),
       this.db.customerAddress.findMany({

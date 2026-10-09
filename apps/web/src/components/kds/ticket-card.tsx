@@ -11,23 +11,44 @@ import {
 } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import { cn } from '@app/ui/lib/utils';
-import { Check, Flame, Play, Undo2, X } from 'lucide-react';
+import {
+  AlarmClock,
+  Bike,
+  Check,
+  Clock,
+  Flame,
+  Play,
+  ShoppingBag,
+  Undo2,
+  UtensilsCrossed,
+  X,
+} from 'lucide-react';
+
+// Same icons as the orders kanban.
+export const ORDER_TYPE_ICONS = {
+  DINE_IN: UtensilsCrossed,
+  TAKEOUT: ShoppingBag,
+  DELIVERY: Bike,
+} as const;
 
 export const ORDER_TYPE_STRIPE: Record<OrderType, string> = {
   DINE_IN: 'border-t-order-dine-in',
   TAKEOUT: 'border-t-order-takeout',
   DELIVERY: 'border-t-order-delivery',
 };
+// Color only on the background: colored text on its own tint fails 4.5:1 (axe, phase D).
 export const ORDER_TYPE_BADGE: Record<OrderType, string> = {
-  DINE_IN: 'bg-order-dine-in/20 text-order-dine-in',
-  TAKEOUT: 'bg-order-takeout/20 text-order-takeout',
-  DELIVERY: 'bg-order-delivery/20 text-order-delivery',
+  DINE_IN: 'bg-order-dine-in/25 text-foreground',
+  TAKEOUT: 'bg-order-takeout/25 text-foreground',
+  DELIVERY: 'bg-order-delivery/25 text-foreground',
 };
 const TIMER_STYLE = {
-  ok: 'text-muted-foreground',
+  ok: 'text-foreground',
   warn: 'bg-warning text-warning-foreground',
   late: 'bg-destructive text-destructive-foreground animate-pulse',
 } as const;
+// The level also shows as an icon (never color alone).
+const TIMER_ICON = { ok: Clock, warn: AlarmClock, late: Flame } as const;
 
 /** "mm:ss" (or "h:mm:ss") since the ticket was sent (until `now`, or until it was done). */
 export function elapsed(sentAt: string, now: number | string): string {
@@ -114,20 +135,27 @@ export function TicketCard({
     .filter((t) => t.status === 'QUEUED' || t.status === 'PREPARING')
     .map((t) => t.id);
 
+  const TypeIcon = ORDER_TYPE_ICONS[ticket.orderType];
+  const TimerIcon = TIMER_ICON[level];
+
   return (
     <article
+      // No fading for done or canceled tickets: the column and the flags say it, and faded text
+      // fails 4.5:1 (axe).
       aria-label={`Pedido ${ticket.orderNumber} rodada ${ticket.roundNumber}`}
       className={cn(
-        'flex flex-col overflow-hidden rounded-xl border border-t-8 bg-card text-card-foreground shadow-sm',
+        'flex flex-col overflow-hidden rounded-lg border border-t-4 bg-card text-card-foreground',
         ORDER_TYPE_STRIPE[ticket.orderType],
-        ticket.canceled && 'border-destructive opacity-80',
-        ticket.doneAt && 'opacity-70',
+        ticket.canceled && 'border-destructive',
       )}
     >
       <header className="flex items-start justify-between gap-2 p-3 pb-2">
         <div className="min-w-0">
-          <p className="text-2xl leading-tight font-bold">#{ticket.orderNumber}</p>
-          <p className="truncate text-base font-medium">{ticket.title}</p>
+          <p className="flex items-center gap-2 text-2xl leading-tight font-extrabold">
+            <TypeIcon className="size-6 shrink-0 text-muted-foreground" aria-hidden />#
+            {ticket.orderNumber}
+          </p>
+          <p className="truncate text-base font-semibold">{ticket.title}</p>
           <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
             <span
               className={cn(
@@ -143,12 +171,15 @@ export function TicketCard({
         </div>
         <span
           className={cn(
-            'tabular shrink-0 rounded-md px-2 py-1 text-xl font-bold',
+            'tabular flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xl font-extrabold',
             TIMER_STYLE[level],
           )}
           aria-label={ticket.doneAt ? 'Tempo de preparo' : 'Tempo desde o envio'}
         >
-          {level === 'late' && <Flame className="mr-1 inline size-5" aria-hidden />}
+          <TimerIcon
+            className={cn('size-5', level === 'ok' && 'text-muted-foreground')}
+            aria-hidden
+          />
           {/* A finished ticket shows how long it took (frozen), not a running clock. */}
           {elapsed(ticket.sentAt, ticket.doneAt ?? now)}
         </span>
@@ -169,7 +200,10 @@ export function TicketCard({
               className={cn('flex gap-3 p-3', task.status === 'READY' && 'bg-success/10')}
             >
               <div
-                className={cn('min-w-0 flex-1', canceled && 'line-through decoration-2 opacity-60')}
+                className={cn(
+                  'min-w-0 flex-1',
+                  canceled && 'text-muted-foreground line-through decoration-2',
+                )}
               >
                 <p className="text-xl leading-snug font-bold">
                   {task.quantity}× {task.name}

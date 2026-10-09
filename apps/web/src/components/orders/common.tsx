@@ -1,15 +1,6 @@
 'use client';
 
-import {
-  ORDER_STATUS_LABELS,
-  type OrderDetailDto,
-  type OrderItemDto,
-  type OrderStatus,
-  type OrderType,
-  deliveredLabel,
-  elapsedMinutes,
-  formatBRL,
-} from '@app/shared';
+import { type OrderDetailDto, type OrderItemDto, elapsedMinutes, formatBRL } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import {
   Dialog,
@@ -23,35 +14,64 @@ import { toast } from '@app/ui/components/sonner';
 import { Textarea } from '@app/ui/components/textarea';
 import { cn } from '@app/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
+import { CircleAlert, HandCoins } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { Field } from '@/components/form';
 import { ApiError, errorMessage } from '@/lib/api';
-import { STATUS_STYLES, orderKeys } from '@/lib/orders';
+import { orderKeys } from '@/lib/orders';
 
-export function statusLabel(status: OrderStatus, type: OrderType): string {
-  return status === 'DELIVERED' ? deliveredLabel(type) : ORDER_STATUS_LABELS[status];
-}
+// The status badge (icon, text and color) lives in @app/ui.
+export {
+  OrderStatusBadge as StatusBadge,
+  orderStatusLabel as statusLabel,
+} from '@app/ui/components/status-badge';
 
-export function StatusBadge({
-  status,
-  type,
+const FLAG_TONES = {
+  critical: { bar: 'border-signal-critical', icon: 'text-signal-critical' },
+  attention: { bar: 'border-signal-attention', icon: 'text-signal-attention' },
+  info: { bar: 'border-accent-blue', icon: 'text-accent-blue' },
+} as const;
+
+/**
+ * Line on cards (deadline, failed delivery, PIX to check, items not sent, open balance): icon
+ * and text in full contrast on a muted chip, the tone only on the 4 px bar and the icon
+ * (never color alone).
+ */
+export function CardFlag({
+  tone,
+  icon: Icon = CircleAlert,
+  title,
   className,
+  children,
 }: {
-  status: OrderStatus;
-  type: OrderType;
+  tone: keyof typeof FLAG_TONES;
+  icon?: React.ComponentType<{ className?: string }>;
+  title?: string;
   className?: string;
+  children: React.ReactNode;
 }) {
+  // A span (phrasing content): flags also live inside the card's button.
   return (
     <span
+      title={title}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap',
-        STATUS_STYLES[status].badge,
+        'flex items-start gap-1.5 rounded-md border-l-4 bg-muted px-2 py-1 text-sm font-semibold text-foreground',
+        FLAG_TONES[tone].bar,
         className,
       )}
     >
-      <span className={cn('size-1.5 rounded-full', STATUS_STYLES[status].dot)} />
-      {statusLabel(status, type)}
+      <Icon className={cn('mt-0.5 size-4 shrink-0', FLAG_TONES[tone].icon)} />
+      <span>{children}</span>
     </span>
+  );
+}
+
+/** "A receber R$ X": open balance of the order (`balanceCents`, D039). */
+export function BalanceFlag({ cents, className }: { cents: number; className?: string }) {
+  return (
+    <CardFlag tone="info" icon={HandCoins} className={className}>
+      A receber {formatBRL(cents)}
+    </CardFlag>
   );
 }
 

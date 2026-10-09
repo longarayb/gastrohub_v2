@@ -106,7 +106,9 @@ export class PrintAgentsService {
   // Panel (printers:manage)
 
   async list(): Promise<PrintAgentDto[]> {
-    const agents = await this.db.printAgent.findMany({ orderBy: { createdAt: 'asc' } });
+    const agents = await this.db.printAgent.findMany({
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
     const now = new Date();
     return agents.map((a) => toAgentDto(a, now));
   }
@@ -237,7 +239,7 @@ export class PrintAgentsService {
   private async printersOf(client: Db | DbTx | PrismaService, agentId: string) {
     const printers = await client.printer.findMany({
       where: { agentId, active: true, deletedAt: null },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
     return printers.map(toAgentPrinter);
   }

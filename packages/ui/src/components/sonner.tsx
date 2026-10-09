@@ -11,9 +11,18 @@ export function Toaster(props: ToasterProps) {
   return (
     <Sonner
       theme={theme as ToasterProps['theme']}
-      richColors
       closeButton
       position="top-right"
+      // Theme tokens instead of sonner's own palette: a colored 4 px bar per kind.
+      toastOptions={{
+        classNames: {
+          toast: 'rounded-xl! border-l-4! font-sans! text-sm!',
+          success: 'border-l-signal-positive! [&_[data-icon]]:text-signal-positive',
+          error: 'border-l-signal-critical! [&_[data-icon]]:text-signal-critical',
+          warning: 'border-l-signal-attention! [&_[data-icon]]:text-signal-attention',
+          info: 'border-l-accent-blue! [&_[data-icon]]:text-accent-blue',
+        },
+      }}
       style={
         {
           '--normal-bg': 'var(--popover)',

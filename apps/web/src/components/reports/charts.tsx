@@ -90,7 +90,13 @@ export function HourColumns({
           {compareLabel}
         </span>
       </div>
-      <div className="overflow-x-auto pb-1">
+      {/* Scrolls sideways on narrow screens: focusable, so the keyboard can scroll it too. */}
+      <div
+        className="overflow-x-auto pb-1"
+        tabIndex={0}
+        role="region"
+        aria-label="Gráfico de pedidos por hora"
+      >
         <svg
           role="img"
           aria-label={`Pedidos por hora: ${todayLabel} e ${compareLabel}`}
@@ -182,7 +188,7 @@ export function Heatmap({ grid, format }: { grid: number[][]; format: (v: number
   const max = Math.max(1, ...grid.flat());
   if (!hours.length) return <p className="text-sm text-muted-foreground">Nada no período.</p>;
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Mapa de calor">
       <table className="border-separate border-spacing-1 text-xs">
         <caption className="sr-only">Mapa de calor por dia da semana e hora</caption>
         <thead>
@@ -244,7 +250,12 @@ export function DayColumns({
   const width = Math.max(6, Math.min(28, Math.floor(900 / Math.max(days.length, 1)) - 2));
   if (!days.length) return <p className="text-sm text-muted-foreground">Nada no período.</p>;
   return (
-    <div className="overflow-x-auto pb-1">
+    <div
+      className="overflow-x-auto pb-1"
+      tabIndex={0}
+      role="region"
+      aria-label="Gráfico de faturamento por dia"
+    >
       <svg
         role="img"
         aria-label="Faturamento por dia"
