@@ -100,3 +100,31 @@ export function Kbd({ className, children }: { className?: string; children: Rea
     </kbd>
   );
 }
+
+/**
+ * Shortcuts of a screen, with what each key does HERE ("F9 Criar pedido"). Keyboard only:
+ * hidden on touch screens. The full map opens with "?" (docs/DESIGN.md).
+ */
+export function ShortcutBar({
+  items,
+  className,
+}: {
+  items: readonly (readonly [string, string])[];
+  className?: string;
+}) {
+  return (
+    <p
+      className={cn(
+        'hidden flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground pointer-fine:flex',
+        className,
+      )}
+      aria-label="Atalhos de teclado"
+    >
+      {items.map(([key, label]) => (
+        <span key={key} className="inline-flex items-center gap-1">
+          <Kbd>{key}</Kbd> {label}
+        </span>
+      ))}
+    </p>
+  );
+}

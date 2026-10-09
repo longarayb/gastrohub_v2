@@ -6,7 +6,7 @@
 
 ## Estado atual
 
-- `main` tem tudo até o **dashboard e relatórios** (merge da `feat/dashboard`). Todas as branches estão no GitHub. **Frente em andamento:** `feat/redesign` (fases A, B e C aprovadas; D040 feita; mapa único de atalhos aguardando aprovação; depois, fase D). Ela **alterou o schema** (migration `event_sequence`, D040): no desktop, `pnpm --filter @app/api db:deploy`. Ela **não altera o schema do Prisma**; outra branch pode alterá-lo se for preciso.
+- `main` tem tudo até o **dashboard e relatórios** (merge da `feat/dashboard`). Todas as branches estão no GitHub. **Frente em andamento:** `feat/redesign` (fases A, B e C aprovadas; D040 feita; mapa único de atalhos aprovado e aplicado; fase D em andamento). Ela **alterou o schema** (migration `event_sequence`, D040): no desktop, `pnpm --filter @app/api db:deploy`. Até o merge, só ela altera o schema do Prisma.
 - **Surface agora trabalha dentro do WSL** (Ubuntu-24.04, `~/projetos/GastroHub_v2`), porque o Smart App Control (ligado; decisão do usuário: **não desligar nem contornar**) bloqueia executáveis do Windows sem assinatura, como o `pnpm-native.exe`. Os programas do Linux não são afetados. `C:\GastroHub_v2` ficou como **cópia antiga, sem uso: não editar nem apagar**. Passo a passo e dicas em docs/SETUP.md ("O projeto inteiro dentro do WSL"). O desktop de casa continua no Windows (`D:\GastroHub_v2`).
 - Validado no WSL antes do merge: `pnpm check` 22/22 (~3,5 min), `pnpm format:check`, e2e 100/100 e **os 9 roteiros visuais com seed limpo antes de cada um** (auth 19, menu 15, orders 18, pos 12, kds 8, delivery 16, digital-menu 11, printing 13, dashboard 12 — tudo PASS, "inesperados: 0"). O painel abre no navegador do Windows por `localhost`.
 - Os roteiros com o seed novo acharam e corrigiram: "a receber" do caixa contava delivery estornado (agora usa a regra da D038: estorno não reabre a dívida); o histórico do seed entregava em bairros fora das áreas ativas; a confirmação de "Desvincular" da página local do agente usava JavaScript inline, bloqueado pela própria CSP (agora é uma página de confirmação); o `kds.mjs` sai da tela cheia antes de redimensionar (Chromium no Linux).
@@ -67,7 +67,7 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### Agora: etapa `feat/redesign` — fase C aguardando aprovação visual
+### Agora: etapa `feat/redesign` — fase D
 
 Proposta aprovada em 2026-10-08 (D039): fases A (menu lateral, layout, kanban), B (componentes base, referência, contraste, telas só de tema), C (telas de operação) e D (cozinha, login, acessibilidade automática, capturas finais em `docs/screenshots/final/`, documentação e merge), com aprovação visual ao fim de cada uma.
 
@@ -75,7 +75,8 @@ Proposta aprovada em 2026-10-08 (D039): fases A (menu lateral, layout, kanban), 
 - **"A receber" no kanban (decisão do usuário, D039):** a partir de "Pronto" com saldo, ou em qualquer etapa com pagamento parcial (`showsBalanceFlag`).
 - **Validação da fase C:** `pnpm check` 23/23, `format:check`, e2e 100/100, 10 roteiros com o relógio real e com o simulado (terça 23:50). No Surface, o relógio do WSL salta para trás e já derrubou testes que ordenam por horário no e2e (ver SETUP, "Problemas comuns"); repetir resolve.
 - **Capturas** (fora do git): `docs/screenshots/redesign/fase-c/{escuro,claro}/{computador,celular,tablet}`. No Windows: `\\wsl.localhost\Ubuntu-24.04\home\braian\projetos\GastroHub_v2\docs\screenshots\redesign\fase-c`.
-- **Próximo passo:** com a aprovação da fase C, fase D (tela da cozinha na paleta nova, login e cadastro, checagem automática de acessibilidade com axe-core, conjunto final de capturas em `docs/screenshots/final/`, documentação e merge).
+- **Mapa único de atalhos (aprovado em 2026-10-09, aplicado):** cada tecla significa o mesmo em todas as telas (DESIGN.md, "Mapa de atalhos"; fonte `SHORTCUTS` em `lib/hotkeys.ts`, lista com "?"); sangria e outras ações sensíveis sem tecla. F6/F7 testados no Edge e no Chrome do Windows com janela visível: a página consegue impedi-las com `preventDefault` (guarda global em todas as telas). Depois de um F9 que confirma, outro F9 é ignorado por 1 s e enquanto a tela seguinte abre (`confirmOnce`); a barra de cada tela diz o que o F9 faz ali. `keyboard.mjs` cobre o toque duplo (um pedido, um pagamento); `pos.mjs` confere que o F9 não abre a sangria. Validado: 10 roteiros com o relógio real e com o simulado.
+- **Próximo passo:** fase D (tela da cozinha na paleta nova, login e cadastro, checagem automática de acessibilidade com axe-core, conjunto final de capturas em `docs/screenshots/final/`, documentação e merge).
 - **Fase A (aprovada em 2026-10-09):** tema escuro padrão, azul como cor principal, fontes embutidas, foco global, 44 px, menu lateral e cabeçalho, kanban.
 - **Pedidos do usuário antes da fase B (feitos):**
   - **Atraso no cartão** (`orderDeadline`/`deadlineState`): "Prazo em X min" (atenção, 5 min ou menos) e "Atrasado X min" (crítico), pela estimativa que o pedido já tem (retirada: `estimatedReadyAt` até ficar pronto; delivery: tempo da área a partir do aceite, até entregar). Mesa e delivery sem tempo de área não mudam.
@@ -106,7 +107,7 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-- Aprovar o mapa único de atalhos proposto em 2026-10-09 (antes de aplicar e de seguir para a fase D).
+- Nenhuma no momento (fase D em andamento; aprovação visual ao fim dela).
 
 ## Lembretes de ambiente
 

@@ -20,10 +20,19 @@ import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@app/ui/components/dialog';
+import { Kbd } from '@app/ui/components/states';
 import { BrandMark } from '@/components/brand';
 import { PrintAlerts } from '@/components/printing/alerts';
 import { errorMessage } from '@/lib/api';
 import { useAuth, useSession } from '@/lib/auth';
+import { SHORTCUTS, lockConfirm, useBrowserKeyGuard, useHotkeys } from '@/lib/hotkeys';
 import { NAV } from './nav';
 
 /** Menu items (docs/DESIGN.md): 46 px, radius 12, thin Lucide icons, active with a 4 px bar. */
@@ -253,8 +262,44 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+/** The keyboard map ("?" anywhere outside a text field), the same on every screen. */
+function ShortcutsDialog() {
+  const [open, setOpen] = useState(false);
+  useHotkeys({ '?': () => setOpen(true) });
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Atalhos de teclado</DialogTitle>
+          <DialogDescription>
+            Cada tecla faz a mesma coisa em todas as telas. Sangria, cancelamento, estorno e
+            desconto não têm tecla: só pelo botão, com confirmação.
+          </DialogDescription>
+        </DialogHeader>
+        <dl className="divide-y overflow-hidden rounded-lg border">
+          {SHORTCUTS.map((s) => (
+            <div key={s.key} className="flex items-start gap-3 px-3 py-2.5">
+              <dt className="w-16 shrink-0">
+                <Kbd>{s.key}</Kbd>
+              </dt>
+              <dd className="min-w-0 text-sm">
+                <span className="font-bold">{s.label}</span>
+                <span className="block text-muted-foreground">{s.where}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  useBrowserKeyGuard();
+  // A new screen opens: a repeated F9 must not confirm its action.
+  useEffect(() => lockConfirm(), [pathname]);
 
   return (
     <div className="flex min-h-dvh">
@@ -281,6 +326,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
         <main className="flex-1">{children}</main>
       </div>
+      <ShortcutsDialog />
     </div>
   );
 }

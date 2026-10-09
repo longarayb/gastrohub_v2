@@ -17,7 +17,7 @@ import { Skeleton, Tabs, TabsList, TabsTrigger } from '@app/ui/components/misc';
 import { cn } from '@app/ui/lib/utils';
 import { BellOff, BellRing, Bike, ChevronDown, Plus, Search, Wifi, WifiOff } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { DispatchDialog } from '@/components/delivery/dispatch-dialog';
 import { BalanceFlag, StatusBadge, statusLabel, useNow } from '@/components/orders/common';
 import { OrderCard } from '@/components/orders/order-card';
@@ -34,6 +34,8 @@ import {
   orderTitle,
   useOrderBoard,
 } from '@/lib/orders';
+import { ShortcutBar } from '@app/ui/components/states';
+import { useHotkeys } from '@/lib/hotkeys';
 import { useRealtime } from '@/lib/realtime';
 
 function matchesSearch(o: OrderSummaryDto, q: string): boolean {
@@ -92,6 +94,8 @@ export default function OrdersPage() {
   );
   const finished = visible.filter((o) => isFinalStatus(o.status));
   const canAdvance = can(Permission.ORDERS_UPDATE_STATUS);
+  const searchRef = useRef<HTMLInputElement>(null);
+  useHotkeys({ F2: () => searchRef.current?.focus() }, !openId && !dispatchIds);
 
   function open(id: string, pay = false) {
     alert.markSeen(id);
@@ -150,6 +154,12 @@ export default function OrdersPage() {
         </>
       }
     >
+      <ShortcutBar
+        items={[
+          ['F2', 'Buscar'],
+          ['?', 'Atalhos'],
+        ]}
+      />
       <div className="flex flex-wrap items-center gap-3">
         <Tabs value={type} onValueChange={(v) => setType(v as OrderType | 'ALL')}>
           <TabsList>
@@ -167,6 +177,7 @@ export default function OrdersPage() {
             aria-hidden
           />
           <Input
+            ref={searchRef}
             className="pl-10"
             placeholder="Número, cliente, telefone ou mesa"
             aria-label="Buscar pedido"

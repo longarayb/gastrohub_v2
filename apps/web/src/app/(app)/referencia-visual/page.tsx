@@ -54,7 +54,7 @@ import {
   SheetTrigger,
 } from '@app/ui/components/sheet';
 import { toast } from '@app/ui/components/sonner';
-import { Kbd, ListSkeleton, LoadingArea } from '@app/ui/components/states';
+import { ListSkeleton, LoadingArea, ShortcutBar } from '@app/ui/components/states';
 import {
   Table,
   TableBody,
@@ -438,9 +438,15 @@ export default function VisualReferencePage() {
               { value: '30d', label: '30 dias' },
             ]}
           />
-          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            Novo pedido <Kbd>F2</Kbd> · Receber <Kbd>F8</Kbd> · Buscar <Kbd>Ctrl</Kbd>+<Kbd>K</Kbd>
-          </p>
+          <ShortcutBar
+            className="flex"
+            items={[
+              ['F2', 'Buscar'],
+              ['F4', 'Receber'],
+              ['F9', 'Criar pedido'],
+              ['?', 'Atalhos'],
+            ]}
+          />
         </Section>
 
         <Section title="Tabela (vira cartões abaixo de 768 px)">

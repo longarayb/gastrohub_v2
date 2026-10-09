@@ -54,8 +54,10 @@ await step(
       () => document.activeElement?.getAttribute('aria-label') === 'Buscar produto',
     );
     const bar = page.getByLabel('Atalhos de teclado');
-    for (const key of ['F2', 'F4', 'F6', 'F7', 'F9'])
-      await bar.getByText(key, { exact: true }).waitFor();
+    for (const key of ['F2', 'F6', 'F7', 'F9']) await bar.getByText(key, { exact: true }).waitFor();
+    // The bar says what F9 does here.
+    await bar.getByText('Criar pedido').waitFor();
+    if (await bar.getByText('F4', { exact: true }).count()) throw new Error('F4 on this screen');
   },
 );
 
@@ -68,6 +70,8 @@ await step(
     const dialog = page.getByRole('dialog', { name: /Água mineral/ });
     await dialog.waitFor();
     await page.keyboard.press('+'); // quantity 2
+    // A screen that just opened ignores F9 for 1 s (cooldown): a person is never this fast.
+    await page.waitForTimeout(1100);
     await dialog
       .getByRole('group', { name: 'Quantidade' })
       .getByText('2', { exact: true })
@@ -108,6 +112,7 @@ await step(
     await page.keyboard.press('F7');
     if (!(await focused()).length) throw new Error('F7 did not focus the note');
     await page.keyboard.type('sem cebola');
+    await page.waitForTimeout(1100); // 1 s after the previous confirmation
     await page.keyboard.press('Control+Enter');
     await dialog.waitFor({ state: 'detached' });
     await page
@@ -118,22 +123,74 @@ await step(
   },
 );
 
-await step('F7 order note, F9 creates the order, back to the board', async () => {
+let created = null;
+await step('F7 order note; F9 pressed twice creates ONE order (cooldown)', async () => {
   await page.keyboard.press('F7');
   await page.keyboard.type('Cliente aguardando no balcão');
+  // The item was confirmed a moment ago: let the 1 s cooldown pass, then a double press.
+  await page.waitForTimeout(1100);
   await page.keyboard.press('F9');
-  await page.getByText(/Pedido #\d+ criado/).waitFor();
+  await page.keyboard.press('F9');
+  const toast = page.getByText(/Pedido #\d+ criado/);
+  await toast.first().waitFor();
   await page.waitForURL('**/pedidos');
+  await page.waitForTimeout(1500);
+  if ((await toast.count()) !== 1) throw new Error(`${await toast.count()} orders created`);
+  created = Number((await toast.first().innerText()).match(/#(\d+)/)[1]);
 });
 
-await step('F4 changes the order type and F6 goes to the table field (dine-in)', async () => {
+await step(
+  'cash: F2 finds the order, F4 opens the payment; F9 twice pays and does NOT close the tab',
+  async () => {
+    await page.goto(`${WEB}/caixa`);
+    await page.getByLabel('Buscar pedido ou mesa').waitFor();
+    const bar = page.getByLabel('Atalhos de teclado');
+    for (const key of ['F2', 'F4', 'F8']) await bar.getByText(key, { exact: true }).waitFor();
+    await page.keyboard.press('F2');
+    await page.keyboard.type(String(created));
+    await page.keyboard.press('F4');
+    const dialog = page.getByRole('dialog', { name: new RegExp(`Receber · #${created}`) });
+    await dialog.waitFor();
+    await dialog.getByText('F9', { exact: true }).first().waitFor();
+    // The dialog just opened: an F9 now is ignored (it could be the screen's leftover press).
+    await page.waitForTimeout(1100);
+    await page.keyboard.press('F9'); // registers the payment (cash, the whole balance)
+    await page.keyboard.press('F9'); // too soon: must NOT confirm the next action (close)
+    await dialog.getByText('Conta paga').waitFor();
+    await page.waitForTimeout(1500);
+    if (!(await dialog.isVisible())) throw new Error('the second F9 closed the tab');
+    const payments = page.getByText(/Pagamento registrado/);
+    if ((await payments.count()) !== 1) throw new Error(`${await payments.count()} payments`);
+    // After the cooldown, F9 confirms the next action (the handover), if allowed here.
+    const close = dialog.getByRole('button', { name: /Confirmar retirada|Fechar conta/ });
+    if (await close.isVisible()) {
+      await page.keyboard.press('F9');
+      await dialog.waitFor({ state: 'detached' });
+    }
+    await shot('02-cash');
+  },
+);
+
+await step('F6 goes to the order type (← → change it), Tab to the table (dine-in)', async () => {
   await page.goto(`${WEB}/pedidos/novo`);
   await page.getByLabel('Buscar produto').waitFor();
-  await page.keyboard.press('F4'); // Balcão → Delivery
-  await page.keyboard.press('F4'); // Delivery → Mesa
-  await page.getByRole('tab', { name: 'Mesa', selected: true }).waitFor();
   await page.keyboard.press('F6');
+  await page.keyboard.press('ArrowRight'); // Balcão → Delivery
+  await page.getByRole('tab', { name: 'Delivery', selected: true }).waitFor();
+  await page.keyboard.press('ArrowRight'); // Delivery → Mesa
+  await page.getByRole('tab', { name: 'Mesa', selected: true }).waitFor();
+  await page.keyboard.press('Tab');
   if ((await focused()) !== 'Mesa') throw new Error(`focus on ${await focused()}`);
+});
+
+await step('"?" shows the keyboard map, the same on every screen', async () => {
+  // Outside a text field (in a field, ? is just typed).
+  await page.evaluate(() => document.activeElement?.blur?.());
+  await page.keyboard.press('?');
+  const map = page.getByRole('dialog', { name: 'Atalhos de teclado' });
+  await map.waitFor();
+  await map.getByText('Confirmar a ação principal').waitFor();
+  await page.keyboard.press('Escape');
 });
 
 await browser.close();

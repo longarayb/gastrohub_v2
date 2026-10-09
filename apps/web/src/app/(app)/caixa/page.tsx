@@ -73,6 +73,7 @@ import {
   useCurrentCash,
   useReceivables,
 } from '@/lib/cash';
+import { ShortcutBar } from '@app/ui/components/states';
 import { useHotkeys } from '@/lib/hotkeys';
 import { orderTitle, useOrder, useOrderBoard } from '@/lib/orders';
 import { hasCashPrinter, printCashSession, usePrintStatus } from '@/lib/printing';
@@ -376,13 +377,16 @@ function CountTable({ session }: { session: CashSessionDto }) {
 
 // ---------------------------------------------------------------------------
 
-/** F2: find an open order or table and receive (F4). */
+/** F2: find an open order or table; F4 (or Enter) receives the highlighted one. */
 function ReceivePanel({
   inputRef,
   onReceive,
+  keys,
 }: {
   inputRef: React.RefObject<HTMLInputElement | null>;
   onReceive: (orderId: string) => void;
+  /** Shortcuts on (off while a dialog is open). */
+  keys: boolean;
 }) {
   const { data: board } = useOrderBoard();
   const [q, setQ] = useState('');
@@ -398,6 +402,7 @@ function ReceivePanel({
         o.tableNames.some((t) => t.toLowerCase() === term),
     )
     .slice(0, 8);
+  useHotkeys({ F4: () => results[0] && onReceive(results[0].id) }, keys);
 
   return (
     <Card>
@@ -438,7 +443,7 @@ function ReceivePanel({
                 <span className="shrink-0 text-base font-bold">
                   {formatBRL(o.totalCents - o.paidCents)}
                 </span>
-                {i === 0 && term && <Kbd>Enter</Kbd>}
+                {i === 0 && <Kbd>F4</Kbd>}
               </button>
             </li>
           ))}
@@ -765,7 +770,7 @@ export default function CashPage() {
   useHotkeys(
     {
       F2: () => searchRef.current?.focus(),
-      F9: () => session && setMovement('WITHDRAWAL'),
+      F8: () => session && printReport(session.id),
     },
     !anyDialog,
   );
@@ -785,10 +790,10 @@ export default function CashPage() {
               <ArrowDownToLine /> Suprimento
             </Button>
             <Button variant="outline" onClick={() => setMovement('WITHDRAWAL')}>
-              <ArrowUpFromLine /> Sangria <Kbd>F9</Kbd>
+              <ArrowUpFromLine /> Sangria
             </Button>
             <Button variant="outline" onClick={() => printReport(session.id)}>
-              <Printer /> Parcial
+              <Printer /> Parcial <Kbd>F8</Kbd>
             </Button>
             <Button onClick={() => setClosing(true)}>
               <Lock /> Fechar caixa
@@ -797,6 +802,16 @@ export default function CashPage() {
         )
       }
     >
+      {session && (
+        <ShortcutBar
+          items={[
+            ['F2', 'Buscar conta'],
+            ['F4', 'Receber'],
+            ['F8', 'Relatório parcial'],
+            ['?', 'Atalhos'],
+          ]}
+        />
+      )}
       {isLoading ? (
         <Skeleton className="h-48" />
       ) : !session ? (
@@ -812,7 +827,7 @@ export default function CashPage() {
         // One column that never grows past the screen (auto columns grew to the widest row).
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="space-y-6">
-            <ReceivePanel inputRef={searchRef} onReceive={setPayingId} />
+            <ReceivePanel inputRef={searchRef} onReceive={setPayingId} keys={!anyDialog} />
             <CouriersToSettleCard />
             <ReceivablesCard onReceive={setPayingId} />
           </div>

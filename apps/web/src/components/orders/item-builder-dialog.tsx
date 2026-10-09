@@ -25,6 +25,7 @@ import {
 } from '@app/ui/components/dialog';
 import { Input } from '@app/ui/components/input';
 import { Kbd } from '@app/ui/components/states';
+import { confirmOnce } from '@/lib/hotkeys';
 import { Textarea } from '@app/ui/components/textarea';
 import { cn } from '@app/ui/lib/utils';
 import { Minus, Plus } from 'lucide-react';
@@ -312,7 +313,7 @@ export function ItemBuilderDialog({
       // would also send the order.
       e.preventDefault();
       e.stopPropagation();
-      add();
+      confirmOnce(add);
     } else if (e.key === 'F7') {
       e.preventDefault();
       document.getElementById(notesId)?.focus();

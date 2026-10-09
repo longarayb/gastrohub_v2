@@ -37,6 +37,7 @@ import {
 } from '@app/ui/components/select';
 import { cn } from '@app/ui/lib/utils';
 import { Notice } from '@app/ui/components/notice';
+import { ShortcutBar } from '@app/ui/components/states';
 import {
   Banknote,
   CheckCircle2,
@@ -56,7 +57,7 @@ import { ReasonDialog, formatClock, useOrderAction } from '@/components/orders/c
 import { errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { createPayment, refundPayment, useCurrentCash, usePixCharge } from '@/lib/cash';
-import { useHotkeys } from '@/lib/hotkeys';
+import { lockConfirm, useHotkeys } from '@/lib/hotkeys';
 import { changeOrderStatus, orderTitle } from '@/lib/orders';
 import { PixReportedBadge } from '@/components/digital-menu/order-badges';
 import { Kbd, QrCode } from './common';
@@ -184,6 +185,21 @@ export function PaymentDialog({
     Object.fromEntries(METHODS.map((m, i) => [String(i + 1), () => choose(m)])),
     open && balance > 0,
   );
+  // F9 confirms what the dialog shows: the payment, or closing the paid tab. A dialog that just
+  // opened ignores an F9 pressed on the screen before (cooldown).
+  useEffect(() => {
+    if (open) lockConfirm();
+  }, [open]);
+  useHotkeys(
+    {
+      F9: () => {
+        if (busy) return;
+        if (balance > 0) void submit();
+        else if (canClose && can(Permission.ORDERS_UPDATE_STATUS)) void closeTab();
+      },
+    },
+    open,
+  );
 
   async function submit(e?: React.FormEvent) {
     e?.preventDefault();
@@ -259,6 +275,20 @@ export function PaymentDialog({
             <dd className="text-2xl leading-tight font-extrabold">{formatBRL(balance)}</dd>
           </div>
         </dl>
+        <ShortcutBar
+          items={
+            balance > 0
+              ? [
+                  ['1–7', 'Forma de pagamento'],
+                  ['F9', method === 'PIX' ? 'Confirmar PIX recebido' : 'Registrar pagamento'],
+                  ['Esc', 'Voltar'],
+                ]
+              : [
+                  ['F9', order.type === 'TAKEOUT' ? 'Confirmar retirada' : 'Fechar conta'],
+                  ['Esc', 'Voltar'],
+                ]
+          }
+        />
         {order.pixReportedAt && balance > 0 && <PixReportedBadge className="text-sm" />}
 
         {balance === 0 ? (
@@ -268,6 +298,7 @@ export function PaymentDialog({
             {canClose && can(Permission.ORDERS_UPDATE_STATUS) && (
               <Button loading={busy} onClick={() => void closeTab()} autoFocus>
                 {order.type === 'TAKEOUT' ? 'Confirmar retirada' : 'Fechar conta'}
+                <Kbd className="bg-primary-foreground/20 text-primary-foreground">F9</Kbd>
               </Button>
             )}
           </div>
@@ -454,7 +485,7 @@ export function PaymentDialog({
                 disabled={!check.ok || (needsRegister && !registerOpen)}
               >
                 {method === 'PIX' ? 'Confirmar PIX recebido' : 'Registrar pagamento'}
-                <Kbd className="bg-primary-foreground/20 text-primary-foreground">Enter</Kbd>
+                <Kbd className="bg-primary-foreground/20 text-primary-foreground">F9</Kbd>
               </Button>
             </DialogFooter>
           </form>

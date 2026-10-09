@@ -26,7 +26,7 @@ import { Input } from '@app/ui/components/input';
 import { PriceLabel } from '@app/ui/components/menu-preview';
 import { Label } from '@app/ui/components/label';
 import { Separator, Skeleton, Tabs, TabsList, TabsTrigger } from '@app/ui/components/misc';
-import { Kbd } from '@app/ui/components/states';
+import { ShortcutBar } from '@app/ui/components/states';
 import {
   Select,
   SelectContent,
@@ -93,10 +93,13 @@ function CatalogPicker({
   categories,
   onPick,
   searchRef,
+  autoFocus,
 }: {
   categories: CatalogCategory[];
   onPick: (target: BuilderTarget) => void;
   searchRef: React.RefObject<HTMLInputElement | null>;
+  /** Only when the screen opens: a catalog reloaded by a type change keeps the focus where it is. */
+  autoFocus: boolean;
 }) {
   const [categoryId, setCategoryId] = useState<string>('ALL');
   const [q, setQ] = useState('');
@@ -156,7 +159,7 @@ function CatalogPicker({
         />
         <Input
           ref={searchRef}
-          autoFocus
+          autoFocus={autoFocus}
           className="pl-10"
           placeholder="Buscar produto"
           aria-label="Buscar produto"
@@ -232,22 +235,6 @@ function CatalogPicker({
   );
 }
 
-/** Shortcut hints (keyboard only: hidden on touch screens). */
-function ShortcutBar({ items }: { items: [string, string][] }) {
-  return (
-    <p
-      className="hidden flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground pointer-fine:flex"
-      aria-label="Atalhos de teclado"
-    >
-      {items.map(([key, label]) => (
-        <span key={key} className="inline-flex items-center gap-1">
-          <Kbd>{key}</Kbd> {label}
-        </span>
-      ))}
-    </p>
-  );
-}
-
 function newKey() {
   return crypto.randomUUID();
 }
@@ -291,6 +278,8 @@ function Composer() {
   const ids = { tab: useId(), notes: useId(), coupon: useId(), discount: useId() };
   const searchRef = useRef<HTMLInputElement>(null);
   const detailsRef = useRef<HTMLDivElement>(null);
+  const typeRef = useRef<HTMLDivElement>(null);
+  const typeChanged = useRef(false);
   const summaryRef = useRef<HTMLElement>(null);
 
   // After an item is added (or the dialog closed), back to the search for the next one.
@@ -464,18 +453,18 @@ function Composer() {
   }
 
   // Keyboard (shown on screen). Function keys work while typing; off while a dialog is open.
-  const ORDER_TYPES = ['TAKEOUT', 'DELIVERY', 'DINE_IN'] as const;
   useHotkeys(
     {
       F2: () => {
         searchRef.current?.focus();
         searchRef.current?.select();
       },
-      F4: () => {
-        if (!order) setType((t) => ORDER_TYPES[(ORDER_TYPES.indexOf(t) + 1) % ORDER_TYPES.length]!);
-      },
+      // The order type first (← → change it), then Tab goes to customer or table.
       F6: () =>
-        detailsRef.current?.querySelector<HTMLElement>('input, button[role="combobox"]')?.focus(),
+        (
+          typeRef.current?.querySelector<HTMLElement>('[role="tab"][data-state="active"]') ??
+          detailsRef.current?.querySelector<HTMLElement>('input, button[role="combobox"]')
+        )?.focus(),
       F7: () => document.getElementById(ids.notes)?.focus(),
       F9: () => {
         if (!busy) void submit();
@@ -496,9 +485,11 @@ function Composer() {
     ['F2', 'Buscar'],
     ['↑↓', 'Escolher'],
     ['Enter', 'Abrir produto'],
-    ...(order ? [] : ([['F4', 'Tipo']] as [string, string][])),
-    ...(order ? [] : ([['F6', type === 'DINE_IN' ? 'Mesa' : 'Cliente']] as [string, string][])),
+    ...(order
+      ? []
+      : ([['F6', `Tipo e ${type === 'DINE_IN' ? 'mesa' : 'cliente'}`]] as [string, string][])),
     ...(order ? [] : ([['F7', 'Observação']] as [string, string][])),
+    ['?', 'Atalhos'],
     ['F9', submitLabel],
   ];
 
@@ -527,6 +518,7 @@ function Composer() {
               categories={index.catalog.categories}
               onPick={setBuilder}
               searchRef={searchRef}
+              autoFocus={!typeChanged.current}
             />
           )}
         </div>
@@ -537,7 +529,14 @@ function Composer() {
           className="scroll-mt-20 space-y-5 rounded-card border bg-card p-4 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto"
         >
           {!order && (
-            <Tabs value={type} onValueChange={(v) => setType(v as OrderType)}>
+            <Tabs
+              ref={typeRef}
+              value={type}
+              onValueChange={(v) => {
+                typeChanged.current = true;
+                setType(v as OrderType);
+              }}
+            >
               <TabsList className="w-full">
                 {(['TAKEOUT', 'DELIVERY', 'DINE_IN'] as const).map((t) => (
                   <TabsTrigger key={t} value={t}>

@@ -157,28 +157,34 @@ Usadas por horas seguidas: legibilidade e velocidade antes da estética.
 - **Regras comuns:** nada de sombras ou animações decorativas; texto mínimo de 14 px; números importantes grandes e em negrito; cor sempre com texto ou ícone; foco sempre visível; alvos de 44 px.
 - **Larguras:** computador (menu lateral fixo a partir de 1280 px), **tablet na horizontal (1024×768, menu pelo botão)** e celular (390 px). Nenhuma tela rola para o lado.
 - **Novo pedido:** busca com foco ao abrir; catálogo em blocos de pelo menos 80 px; resumo fixo à direita com o total no tamanho do KPI e o botão de enviar no maior tamanho; no celular, barra inferior com o total e "Ver pedido".
-- **Teclado no novo pedido** (atalhos na tela, escondidos em telas de toque):
+- **Teclado no novo pedido:** busca com foco ao abrir; ↑ ↓ escolhem o produto, Enter abre o destacado (ou o único resultado), Esc limpa a busca. Na janela do item: Tab e Espaço percorrem e marcam as opções (a janela abre na primeira opção), + − mudam a quantidade. As demais teclas seguem o **mapa único** abaixo.
 
-| Tecla | Ação |
-|---|---|
-| digitar | busca (o foco já está nela) |
-| ↑ ↓ | escolhe o produto |
-| Enter | abre o produto destacado (ou o único resultado) |
-| Esc | limpa a busca |
-| F2 | volta à busca |
-| F4 | tipo do pedido (balcão → delivery → mesa) |
-| F6 | cliente (balcão/delivery) ou mesa |
-| F7 | observação do pedido |
-| F9 | cria o pedido / envia os itens |
-| **Na janela do item** | |
-| Tab, Espaço | percorre e marca as opções (a janela abre na primeira opção) |
-| + − | quantidade |
-| F7 | observação do item |
-| F9 ou Ctrl+Enter | adiciona e volta à busca |
-
-- **Caixa:** busca com F2 e Enter; lista com número e saldo em negrito; na janela de pagamento, total, pago e **a receber** em destaque, formas de pagamento em blocos de 56 px com ícone e atalho (1 a 7), **troco** em destaque na cor positiva.
+- **Caixa:** busca com F2, Enter ou F4 recebe a conta destacada, F8 imprime o relatório parcial (a sangria não tem tecla); lista com número e saldo em negrito; na janela de pagamento, total, pago e **a receber** em destaque, formas de pagamento em blocos de 56 px com ícone e atalho (1 a 7), **troco** em destaque na cor positiva.
 - **Mesas:** blocos de pelo menos 128 px com o número grande; estado com **cor, ícone e texto** (livre, ocupada, aguardando pagamento); valor da conta e tempo no bloco.
 - **Entregador (celular):** número, endereço e valor a cobrar em destaque; avisos (PIX informado, observação) no componente de aviso.
+
+## Mapa de atalhos (o mesmo em todas as telas)
+
+Cada tecla tem um só significado no painel inteiro; o mesmo funcionário usa o caixa e o novo pedido, e o hábito de uma tela não pode disparar uma ação diferente na outra. A lista abre com **?** em qualquer tela (fora de um campo de texto); cada tela mostra a sua barra de atalhos, com o que o F9 faz **ali** ("F9 Criar pedido", "F9 Registrar pagamento"). Fonte única no código: `SHORTCUTS` em `apps/web/src/lib/hotkeys.ts`.
+
+| Tecla | Significado (sempre) | Onde vale |
+|---|---|---|
+| F2 | Buscar | novo pedido (produto), caixa (conta), pedidos |
+| F4 | Receber (abre o pagamento) | detalhe do pedido; caixa (conta destacada) |
+| F6 | Dados do pedido | novo pedido: vai para o tipo (← → troca), Tab segue para cliente ou mesa |
+| F7 | Observação | novo pedido e janela do item |
+| F8 | Imprimir | pré-conta (detalhe da mesa); relatório parcial (caixa) |
+| F9 | Confirmar a ação principal | criar pedido ou enviar itens, adicionar item (também Ctrl+Enter), registrar pagamento, fechar a conta já paga |
+| Enter | Abrir ou escolher o destacado | listas e buscas |
+| Esc | Voltar / fechar | janelas |
+| 1 a 7 | Forma de pagamento | janela de pagamento |
+| + − | Quantidade | janela do item |
+| ? | Lista de atalhos | qualquer tela |
+
+- **Sem tecla, só botão com confirmação:** sangria, suprimento, fechar caixa, cancelar pedido ou item, estorno, desconto, desvincular.
+- **Teclas deixadas ao navegador:** F1, F3, F5, F10, F11 e F12 (ajuda, localizar, recarregar, menu, tela cheia, ferramentas).
+- **F6 e F7 no navegador de verdade** (testado em 2026-10-09 no Edge e no Chrome instalados no Windows, janela visível, teclas reais do sistema enviadas pelo Windows): sem `preventDefault`, o navegador toma a tecla (F6 vai para a barra de endereço, F7 abre o aviso da navegação por cursor) e o texto digitado em seguida não chega à página; **com `preventDefault` na página, a tecla fica com a página nos dois navegadores**, em duas rodadas. Por isso o painel impede F6 e F7 em **todas** as telas (`useBrowserKeyGuard` no layout), também onde não têm ação. Limite: com o foco fora da página (barra de endereço, outra janela), a tecla é do navegador.
+- **F9 não confirma duas vezes:** depois de qualquer confirmação com F9, outro F9 é ignorado por **1 segundo**; a trava também começa quando uma tela ou a janela de pagamento abre. Um toque duplo não confirma a ação da tela seguinte (por exemplo, registrar o pagamento e já fechar a conta). Todo F9 passa por `confirmOnce`. Coberto pelo roteiro `keyboard.mjs` (pedido e pagamento).
 
 ## Acessibilidade
 
