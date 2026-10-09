@@ -35,37 +35,52 @@ export default function RegisterPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Cadastre seu restaurante</h1>
+        <h1 className="text-2xl font-extrabold">Cadastre seu restaurante</h1>
         <p className="text-sm text-muted-foreground">Leva menos de um minuto.</p>
       </div>
-      <form onSubmit={onSubmit} className="space-y-4" noValidate>
-        <TextField control={form.control} name="tradeName" label="Nome do restaurante" autoFocus />
-        <TextField control={form.control} name="legalName" label="Razão social" />
-        <MaskedField control={form.control} name="cnpj" label="CNPJ" mask="cnpj" />
-        <div className="border-t pt-4" />
-        <TextField control={form.control} name="ownerName" label="Seu nome" autoComplete="name" />
-        <MaskedField
-          control={form.control}
-          name="phone"
-          label="Celular"
-          mask="phone"
-          autoComplete="tel"
-        />
-        <TextField
-          control={form.control}
-          name="email"
-          label="E-mail"
-          type="email"
-          autoComplete="email"
-        />
-        <TextField
-          control={form.control}
-          name="password"
-          label="Senha"
-          type="password"
-          autoComplete="new-password"
-          hint="Mínimo de 8 caracteres, com letras e números"
-        />
+      <form onSubmit={onSubmit} className="space-y-6" noValidate>
+        <fieldset className="space-y-4">
+          <legend className="mb-3 text-sm font-extrabold tracking-wide text-muted-foreground uppercase">
+            O restaurante
+          </legend>
+          <TextField
+            control={form.control}
+            name="tradeName"
+            label="Nome do restaurante"
+            autoFocus
+          />
+          <TextField control={form.control} name="legalName" label="Razão social" />
+          <MaskedField control={form.control} name="cnpj" label="CNPJ" mask="cnpj" />
+        </fieldset>
+        <hr />
+        <fieldset className="space-y-4">
+          <legend className="mb-3 text-sm font-extrabold tracking-wide text-muted-foreground uppercase">
+            Você (dono)
+          </legend>
+          <TextField control={form.control} name="ownerName" label="Seu nome" autoComplete="name" />
+          <MaskedField
+            control={form.control}
+            name="phone"
+            label="Celular"
+            mask="phone"
+            autoComplete="tel"
+          />
+          <TextField
+            control={form.control}
+            name="email"
+            label="E-mail"
+            type="email"
+            autoComplete="email"
+          />
+          <TextField
+            control={form.control}
+            name="password"
+            label="Senha"
+            type="password"
+            autoComplete="new-password"
+            hint="Mínimo de 8 caracteres, com letras e números"
+          />
+        </fieldset>
         <Button type="submit" size="lg" className="w-full" loading={form.formState.isSubmitting}>
           Criar conta
         </Button>

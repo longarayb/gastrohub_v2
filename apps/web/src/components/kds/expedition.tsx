@@ -13,7 +13,7 @@ import { cn } from '@app/ui/lib/utils';
 import { Bike, Check, CircleDashed, PackageCheck } from 'lucide-react';
 import { useState } from 'react';
 import { DeliveryFailureBadge } from '@/components/delivery/failure';
-import { ORDER_TYPE_BADGE, ORDER_TYPE_STRIPE, elapsed } from './ticket-card';
+import { ORDER_TYPE_BADGE, ORDER_TYPE_ICONS, ORDER_TYPE_STRIPE, elapsed } from './ticket-card';
 
 function ExpeditionCard({
   order,
@@ -33,20 +33,24 @@ function ExpeditionCard({
   const [courier, setCourier] = useState(order.courierId ?? '');
   const ready = order.rounds.filter((r) => r.complete);
   const delivery = order.type === 'DELIVERY';
+  const TypeIcon = ORDER_TYPE_ICONS[order.type];
 
   return (
     <article
       aria-label={`Expedição pedido ${order.number}`}
       className={cn(
-        'flex flex-col overflow-hidden rounded-xl border border-t-8 bg-card shadow-sm',
+        'flex flex-col overflow-hidden rounded-lg border border-t-4 bg-card text-card-foreground',
         ORDER_TYPE_STRIPE[order.type],
         order.complete && 'ring-4 ring-success',
       )}
     >
       <header className="flex items-start justify-between gap-2 p-3">
         <div className="min-w-0">
-          <p className="text-2xl font-bold">#{order.number}</p>
-          <p className="truncate text-base font-medium">{order.title}</p>
+          <p className="flex items-center gap-2 text-2xl leading-tight font-extrabold">
+            <TypeIcon className="size-6 shrink-0 text-muted-foreground" aria-hidden />#
+            {order.number}
+          </p>
+          <p className="truncate text-base font-semibold">{order.title}</p>
           <span
             className={cn(
               'rounded px-1.5 py-0.5 text-sm font-semibold',
@@ -57,8 +61,8 @@ function ExpeditionCard({
           </span>
         </div>
         {order.complete && (
-          <span className="rounded-md bg-success px-2 py-1 text-base font-bold text-success-foreground">
-            Pronto para sair
+          <span className="flex items-center gap-1 rounded-md bg-success px-2 py-1 text-base font-bold text-success-foreground">
+            <Check className="size-5" aria-hidden /> Pronto para sair
           </span>
         )}
       </header>

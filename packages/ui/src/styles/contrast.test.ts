@@ -90,6 +90,22 @@ const TEXT: [string, string][] = [
   ['--status-dispatched', '--card'],
   ['--status-delivered', '--card'],
   ['--status-canceled', '--card'],
+  // Colored text also sits on the page and on the kanban track, not only on cards (found by
+  // the axe check, tools/ui-walkthrough/a11y.mjs: links and "Tempo real" on the page).
+  ...(['--background', '--track'] as const).flatMap((bg): [string, string][] => [
+    ['--primary', bg],
+    ['--destructive', bg],
+    ['--success', bg],
+    ['--signal-critical', bg],
+    ['--signal-attention', bg],
+    ['--signal-positive', bg],
+    ['--status-pending', bg],
+    ['--status-accepted', bg],
+    ['--status-preparing', bg],
+    ['--status-ready', bg],
+    ['--status-dispatched', bg],
+    ['--status-canceled', bg],
+  ]),
   ['--sidebar-foreground', '--sidebar'],
   ['--sidebar-foreground', '--sidebar-to'],
   ['--muted-foreground', '--sidebar-to'],

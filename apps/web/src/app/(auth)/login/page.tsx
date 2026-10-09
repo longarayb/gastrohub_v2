@@ -66,7 +66,7 @@ export default function LoginPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Entrar</h1>
+        <h1 className="text-2xl font-extrabold">Entrar</h1>
         <p className="text-sm text-muted-foreground">Acesse o painel do seu restaurante</p>
       </div>
       <Suspense>

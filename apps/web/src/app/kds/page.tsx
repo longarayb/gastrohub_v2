@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BrandMark } from '@/components/brand';
 import { ExpeditionBoard } from '@/components/kds/expedition';
 import { TicketCard } from '@/components/kds/ticket-card';
 import { FullPageSpinner } from '@/components/page';
@@ -47,6 +48,7 @@ import {
 } from '@/lib/kds';
 import { enterFullscreen, toggleFullscreen, useKdsSound, useWakeLock } from '@/lib/kds-screen';
 import { KDS_REVOKED_KEY, useKdsRealtime, useKdsSession } from '@/lib/kds-session';
+import { STATUS_STYLES } from '@/lib/orders';
 
 const VIEW_KEY = 'kds-view';
 const EXPEDITION = 'expedition';
@@ -134,22 +136,28 @@ function SoldOutDialog({
   );
 }
 
+/** A column like the orders kanban: track background, status stripe on top, bold title. */
 function Column({
   title,
   count,
+  status,
   children,
-  className,
 }: {
   title: string;
   count: number;
+  /** Order status whose color marks the column (same tokens as the kanban). */
+  status: 'ACCEPTED' | 'PREPARING' | 'READY';
   children: React.ReactNode;
-  className?: string;
 }) {
   return (
-    <section className={cn('flex min-h-0 flex-col gap-3', className)} aria-label={title}>
-      <h2 className="flex items-center justify-between text-lg font-semibold text-muted-foreground">
+    <section
+      className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-card bg-track p-2 pt-0"
+      aria-label={title}
+    >
+      <div className={cn('-mx-2 h-1', STATUS_STYLES[status].dot)} aria-hidden />
+      <h2 className="flex min-h-11 items-center justify-between gap-2 px-1 text-lg font-extrabold">
         {title}
-        <span className="tabular rounded-md bg-muted px-2 text-base">{count}</span>
+        <span className="tabular rounded-full bg-card px-2.5 py-0.5 text-base">{count}</span>
       </h2>
       <div className="flex flex-col gap-3">{children}</div>
     </section>
@@ -352,9 +360,10 @@ export default function KdsPage() {
         </button>
       )}
 
-      <header className="flex flex-wrap items-center gap-2 border-b p-3">
+      <header className="flex flex-wrap items-center gap-2 border-b bg-sidebar p-3 text-sidebar-foreground">
+        <BrandMark className="size-10" />
         <div className="mr-2 min-w-0">
-          <p className="truncate text-lg font-bold">{device?.name ?? 'Cozinha'}</p>
+          <p className="truncate text-lg font-extrabold">{device?.name ?? 'Cozinha'}</p>
           <p className="truncate text-sm text-muted-foreground">{storeName}</p>
         </div>
         <nav className="flex flex-wrap gap-2" aria-label="Setores">
@@ -464,19 +473,19 @@ export default function KdsPage() {
         ) : (
           <>
             <div className="grid flex-1 grid-cols-1 gap-4 md:grid-cols-3">
-              <Column title="Na fila" count={queued.length}>
+              <Column title="Na fila" count={queued.length} status="ACCEPTED">
                 {queued.map(card)}
               </Column>
-              <Column title="Em preparo" count={preparing.length}>
+              <Column title="Em preparo" count={preparing.length} status="PREPARING">
                 {preparing.map(card)}
               </Column>
-              <Column title="Pronto (recentes)" count={done.length}>
+              <Column title="Pronto (recentes)" count={done.length} status="READY">
                 {done.map(card)}
               </Column>
             </div>
             {consolidated && (
               <aside
-                className="w-64 shrink-0 space-y-2 rounded-xl border bg-card p-3"
+                className="w-64 shrink-0 space-y-2 rounded-card bg-track p-3"
                 aria-label="Consolidado"
               >
                 <h2 className="text-lg font-semibold">Para preparar</h2>

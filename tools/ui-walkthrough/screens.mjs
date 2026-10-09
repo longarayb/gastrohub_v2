@@ -3,7 +3,7 @@
 //
 //   SHOTS=antes node screens.mjs        -> docs/screenshots/redesign/antes/{escuro,claro}/...
 //   SHOTS=fase-a node screens.mjs       -> docs/screenshots/redesign/fase-a/...
-//   SHOTS_DIR=../../docs/screenshots/final ONLY=painel,pedidos node screens.mjs
+//   SHOTS_DIR=../../docs/screenshots/final DEVICES=computador ONLY=painel,pedidos node screens.mjs
 //
 // docs/screenshots/redesign/ is gitignored; only the final set is versioned.
 import { mkdirSync } from 'node:fs';
@@ -24,6 +24,7 @@ const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null;
 /** [file name, path, user]; `mobile` also at 390 px, `tablet` at 1024×768 (landscape, touch). */
 const SCREENS = [
   { name: 'login', path: '/login', user: null, mobile: true },
+  { name: 'cadastro', path: '/cadastro', user: null, mobile: true },
   { name: 'painel', path: '/painel', user: 'dono', mobile: true },
   { name: 'pedidos', path: '/pedidos', user: 'dono', mobile: true },
   { name: 'pedidos-novo', path: '/pedidos/novo', user: 'dono', mobile: true, tablet: true },
@@ -59,7 +60,7 @@ const DEVICES = [
   ['computador', { viewport: { width: 1440, height: 900 } }],
   ['celular', { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }],
   ['tablet', { viewport: { width: 1024, height: 768 }, isMobile: true, hasTouch: true }],
-];
+].filter(([name]) => !process.env.DEVICES || process.env.DEVICES.split(',').includes(name));
 
 const browser = await chromium.launch({ ...BROWSER, args: ['--disable-gpu'] });
 const problems = [];
@@ -112,6 +113,12 @@ for (const [device, options] of DEVICES) {
         await page.waitForLoadState('networkidle');
         // Skeletons and fonts settle; animations are already reduced.
         await page.evaluate(() => document.fonts.ready);
+        // The kitchen display waits for a tap (sound, full screen) before showing the board.
+        const start = page.getByText('Toque para iniciar');
+        if (await start.isVisible()) {
+          await start.click();
+          await start.waitFor({ state: 'hidden' });
+        }
         await page.waitForTimeout(600);
         await page.screenshot({
           path: path.join(dir, `${screen.name}.png`),

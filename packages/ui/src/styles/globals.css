@@ -28,13 +28,13 @@
   /* Hover and selected rows (not the accent colors of charts, see --accent-*). */
   --accent: #e3ebf6;
   --accent-foreground: #0f1b2d;
-  --destructive: #d23a2e;
+  --destructive: #c0362b;
   --destructive-foreground: #ffffff;
-  --success: #13865a;
+  --success: #107a52;
   --success-foreground: #ffffff;
   --warning: #f5a524;
   --warning-foreground: #0f1b2d;
-  --info: #2f6fdb;
+  --info: #2a66cc;
   --info-foreground: #ffffff;
   /* Card and divider lines (decorative) vs. form field borders (3:1, WCAG 1.4.11). */
   --border: #d6dfea;
@@ -46,18 +46,18 @@
   --sidebar-foreground: #0f1b2d;
   --nav-active: #dcf3ea;
   --nav-active-foreground: #0b3d2e;
-  --nav-active-bar: #13865a;
+  --nav-active-bar: #107a52;
   /* User avatar on the sidebar footer (green, the initial of the name). */
-  --avatar: #13865a;
+  --avatar: #107a52;
   --avatar-foreground: #ffffff;
   /* Order status colors (kanban, badges): text on the card passes AA in both themes. */
-  --status-pending: #a86400;
-  --status-accepted: #2f6fdb;
+  --status-pending: #9a5c00;
+  --status-accepted: #2a66cc;
   --status-preparing: #7e46b8;
-  --status-ready: #13865a;
+  --status-ready: #107a52;
   --status-dispatched: #0e7490;
   --status-delivered: #52627a;
-  --status-canceled: #d23a2e;
+  --status-canceled: #c0362b;
   /* Table map: occupied and waiting for payment (pre-bill printed). */
   --table-occupied: var(--status-preparing);
   --table-billing: var(--status-pending);
@@ -73,13 +73,13 @@
   /* Thermal printer paper (pre-bill, cash report). */
   --receipt-width: 72mm;
   /* Accents, signals, chart series and bar track (docs/DESIGN.md). */
-  --accent-blue: #2f6fdb;
-  --accent-green: #13865a;
+  --accent-blue: #2a66cc;
+  --accent-green: #107a52;
   --accent-purple: #7e46b8;
   --accent-orange: #b86e00;
-  --signal-attention: #a86400;
-  --signal-critical: #d23a2e;
-  --signal-positive: #13865a;
+  --signal-attention: #9a5c00;
+  --signal-critical: #c0362b;
+  --signal-positive: #107a52;
   --chart-1: var(--accent-blue);
   --chart-2: var(--accent-green);
   --chart-3: var(--accent-purple);
@@ -111,7 +111,7 @@
   --success-foreground: #0b111c;
   --warning: #f5a524;
   --warning-foreground: #0b111c;
-  --info: #4c8df6;
+  --info: #5694f7;
   --info-foreground: #0b111c;
   --border: #22304a;
   --input: #5e7191;
@@ -125,14 +125,14 @@
   --avatar: #2ebd85;
   --avatar-foreground: #0b111c;
   --status-pending: #f5a524;
-  --status-accepted: #4c8df6;
+  --status-accepted: #5694f7;
   /* Lighter than accent-purple: small badge text needs 4.5:1 on the card. */
   --status-preparing: #b48ae0;
   --status-ready: #3fcf8e;
   --status-dispatched: #22c3d6;
   --status-delivered: #9aaac2;
   --status-canceled: #ff6b5e;
-  --accent-blue: #4c8df6;
+  --accent-blue: #5694f7;
   --accent-green: #2ebd85;
   --accent-purple: #a06cd5;
   --accent-orange: #f59e0b;
@@ -142,6 +142,23 @@
   --chart-compare: #3a4a66;
   --chart-compare-cap: #9aaac2;
   --track: #1e2a40;
+}
+
+/*
+ * Aliases resolve where they are declared: declared again on every `.dark` element, so a dark
+ * subtree inside a light page (the kitchen display, dark dialogs) gets the dark colors.
+ */
+.dark {
+  --table-occupied: var(--status-preparing);
+  --table-billing: var(--status-pending);
+  --order-dine-in: var(--status-accepted);
+  --order-takeout: var(--status-preparing);
+  --order-delivery: var(--status-dispatched);
+  --chart-1: var(--accent-blue);
+  --chart-2: var(--accent-green);
+  --chart-3: var(--accent-purple);
+  --chart-4: var(--accent-orange);
+  --chart-5: var(--signal-critical);
 }
 
 @theme inline {

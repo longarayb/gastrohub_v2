@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
     return (
       <div className="space-y-4 text-center">
         <MailCheck className="mx-auto size-10 text-primary" />
-        <h1 className="text-2xl font-semibold">Verifique seu e-mail</h1>
+        <h1 className="text-2xl font-extrabold">Verifique seu e-mail</h1>
         <p className="text-sm text-muted-foreground">
           Se existir uma conta com esse e-mail, você receberá um link para redefinir a senha.
         </p>
@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Recuperar senha</h1>
+        <h1 className="text-2xl font-extrabold">Recuperar senha</h1>
         <p className="text-sm text-muted-foreground">Enviaremos um link para o seu e-mail.</p>
       </div>
       <form onSubmit={onSubmit} className="space-y-4" noValidate>

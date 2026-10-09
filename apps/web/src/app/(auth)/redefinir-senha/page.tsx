@@ -68,7 +68,7 @@ function ResetForm() {
 export default function ResetPasswordPage() {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Nova senha</h1>
+      <h1 className="text-2xl font-extrabold">Nova senha</h1>
       <Suspense>
         <ResetForm />
       </Suspense>

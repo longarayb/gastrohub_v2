@@ -24,19 +24,19 @@ O **escuro é o padrão** do painel; o claro é a versão equivalente. A troca �
 | Série comparativa (`--chart-compare`) | `#3A4A66` | `#9AA9BF` |
 | Item ativo do menu: fundo | `#0F3B3A` | `#DCF3EA` |
 | Item ativo do menu: texto | `#FFFFFF` | `#0B3D2E` |
-| Item ativo do menu: borda esquerda (4 px) | `#2EBD85` | `#13865A` |
+| Item ativo do menu: borda esquerda (4 px) | `#2EBD85` | `#107A52` |
 
 ### Cores de destaque e semânticas
 
 | Token | Escuro | Claro | Uso |
 |---|---|---|---|
-| `--accent-blue` (principal) | `#4C8DF6` | `#2F6FDB` | destaque, série "hoje" |
-| `--accent-green` | `#2EBD85` | `#13865A` | |
+| `--accent-blue` (principal) | `#5694F7` | `#2A66CC` | destaque, série "hoje" |
+| `--accent-green` | `#2EBD85` | `#107A52` | |
 | `--accent-purple` | `#A06CD5` | `#7E46B8` | só em barras/faixas e texto grande |
 | `--accent-orange` | `#F59E0B` | `#B86E00` | |
-| `--signal-attention` (alerta) | `#F5A524` | `#A86400` | "Atenção agora", atrasos |
-| `--signal-critical` (crítico) | `#FF6B5E` | `#D23A2E` | piora, crítico |
-| `--signal-positive` (positivo) | `#3FCF8E` | `#13865A` | melhora, ok |
+| `--signal-attention` (alerta) | `#F5A524` | `#9A5C00` | "Atenção agora", atrasos |
+| `--signal-critical` (crítico) | `#FF6B5E` | `#C0362B` | piora, crítico |
+| `--signal-positive` (positivo) | `#3FCF8E` | `#107A52` | melhora, ok |
 | `--chart-1` … `--chart-5` | azul, verde, roxo, laranja, crítico (valores acima) | idem, versão clara | séries de gráficos, nesta ordem |
 
 ### Contraste (WCAG AA)
@@ -49,9 +49,10 @@ Medido com a fórmula do WCAG 2.x (a lista completa de pares está no teste de c
 | Texto apagado sobre o fundo | 8,01 : 1 | 5,72 : 1 |
 | Texto apagado sobre o trilho | 6,10 : 1 | 5,22 : 1 |
 | Texto principal sobre o card | 14,15 : 1 | 17,28 : 1 |
-| Azul sobre o card | 5,07 : 1 | 4,75 : 1 |
+| Azul sobre o card | 5,48 : 1 | 5,43 : 1 |
 | Roxo sobre o card | 4,40 : 1 (só texto grande ou gráfico) | 6,08 : 1 |
-| Crítico / alerta / positivo sobre o card | 5,91 / 8,09 / 8,27 : 1 | 4,79 / 4,68 / 4,58 : 1 |
+| Crítico / alerta / positivo sobre o card | 5,91 / 8,09 / 8,27 : 1 | 5,52 / 5,38 / 5,35 : 1 |
+| Texto colorido (azul, status, sinais) sobre o fundo e o trilho | ≥ 4,5 : 1 | ≥ 4,5 : 1 |
 | Série comparativa sobre o card | 1,85 : 1 | 2,39 : 1 |
 
 A série comparativa é de propósito discreta e fica abaixo de 3 : 1. Para cumprir o contraste de elementos gráficos (WCAG 1.4.11), cada coluna comparativa tem um **traço de 2 px no topo na cor do texto apagado** (≥ 3 : 1), e os valores aparecem na legenda e na tabela equivalente do gráfico.
@@ -163,6 +164,21 @@ Usadas por horas seguidas: legibilidade e velocidade antes da estética.
 - **Mesas:** blocos de pelo menos 128 px com o número grande; estado com **cor, ícone e texto** (livre, ocupada, aguardando pagamento); valor da conta e tempo no bloco.
 - **Entregador (celular):** número, endereço e valor a cobrar em destaque; avisos (PIX informado, observação) no componente de aviso.
 
+## Tela da cozinha (KDS)
+
+Sempre escura (`.dark` no layout próprio), com a mesma paleta e a mesma fonte do painel; pensada para ser lida a 2 metros.
+
+- **Cabeçalho** na superfície do menu lateral, com o logo, o nome da tela e da unidade, os setores (botões de 44 px), Consolidado, Acabou, conexão ("Ao vivo" com ícone), som, tela cheia e sair.
+- **Colunas** iguais às do kanban: trilho (`bg-track`), faixa de status no topo (na fila = aceito, em preparo, pronto), título em negrito e contador.
+- **Ticket:** faixa de 4 px no topo e ícone com a cor do **tipo** (mesa, balcão, delivery), número em 24 px, selo do tipo (cor só no fundo, texto na cor normal), rodada e setor. **Tempo sempre com ícone:** relógio (normal), despertador sobre o alerta (perto do limite do setor), chama sobre o crítico piscando (atrasado). Remoções em vermelho e caixa-alta, observação sobre o alerta.
+- Ticket pronto ou cancelado **não fica esmaecido** (o texto apagado perdia o contraste): a coluna "Pronto", o selo "Pedido cancelado" e o item riscado já dizem o estado.
+- Apelidos de cor (`--order-*`, `--chart-*`, `--table-*`) são declarados de novo em `.dark`: a cozinha aberta num painel claro usa as cores do escuro.
+
+## Entrada (login, cadastro, senha)
+
+- Computador: à esquerda, o painel da marca na superfície do menu lateral (logo, frase, slogan e quatro itens do que o sistema faz, com ícone); à direita, o formulário num **cartão**. Celular: só o formulário, com o logo em cima, sem cartão.
+- Cadastro em dois grupos com título: **O restaurante** e **Você (dono)**.
+
 ## Mapa de atalhos (o mesmo em todas as telas)
 
 Cada tecla tem um só significado no painel inteiro; o mesmo funcionário usa o caixa e o novo pedido, e o hábito de uma tela não pode disparar uma ação diferente na outra. A lista abre com **?** em qualquer tela (fora de um campo de texto); cada tela mostra a sua barra de atalhos, com o que o F9 faz **ali** ("F9 Criar pedido", "F9 Registrar pagamento"). Fonte única no código: `SHORTCUTS` em `apps/web/src/lib/hotkeys.ts`.
@@ -193,3 +209,11 @@ Cada tecla tem um só significado no painel inteiro; o mesmo funcionário usa o 
 - Com "reduzir movimento" ligado no sistema, as animações são cortadas.
 - **Áreas de toque de pelo menos 44 px.**
 - Gráficos em SVG com título e uma tabela equivalente (leitores de tela e CSV); cor nunca é a única forma de informação (setas, rótulos e valores acompanham).
+- Áreas que rolam para o lado (gráficos, mapa de calor) recebem o foco do teclado e têm nome (`tabIndex=0`, `role="region"`).
+- Abas usadas como filtro (sem painel) não apontam `aria-controls` para um painel inexistente (`TabsTrigger` só o define quando a tela passa o id).
+
+### Checagem automática (axe-core)
+
+`tools/ui-walkthrough/a11y.mjs` passa o axe-core (regras WCAG 2.1 A e AA) em 48 combinações: login, cadastro, senha, painel, pedidos, novo pedido e a janela do item, caixa, mesas, app do entregador, cozinha, vendas, cardápio, produto, empresa, usuários e o cardápio digital, nos dois temas, no computador e no celular. Falha com violação **séria ou crítica**; as moderadas aparecem como aviso. Nova tela entra na lista `SCREENS`.
+
+Na primeira rodada (2026-10-09) achou, e o redesign corrigiu: texto colorido sobre o **fundo da página** (links do login no celular, "Tempo real") abaixo de 4,5 : 1, porque o teste de contraste só media sobre o cartão (agora mede também sobre o fundo e o trilho; os tons do claro ficaram um pouco mais escuros: azul `#2A66CC`, verde `#107A52`, alerta `#9A5C00`, crítico `#C0362B`; o azul do escuro, um pouco mais claro: `#5694F7`); abas sem painel com `aria-controls` inválido; gráfico que rola sem acesso pelo teclado; seletor "Adicionar grupo de complementos" sem nome; selo do tipo e tickets esmaecidos na cozinha; produto indisponível esmaecido no cardápio digital (agora só a foto fica apagada).

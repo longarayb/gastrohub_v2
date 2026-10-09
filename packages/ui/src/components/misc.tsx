@@ -69,11 +69,18 @@ export const TabsList = ({
   />
 );
 
+/**
+ * Our tabs mostly filter or choose (order type, kanban filter) without a TabsContent panel, so
+ * Radix's `aria-controls` would point to nothing (axe: invalid ARIA). It is only set when the
+ * caller passes it, with the id of the panel.
+ */
 export const TabsTrigger = ({
   className,
+  'aria-controls': controls,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Trigger>) => (
   <TabsPrimitive.Trigger
+    aria-controls={controls}
     className={cn(
       // Muted text on the track; the active tab is a card with full-contrast bold text.
       "relative inline-flex h-full flex-1 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-semibold whitespace-nowrap text-muted-foreground transition-colors after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] hover:text-foreground focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs",

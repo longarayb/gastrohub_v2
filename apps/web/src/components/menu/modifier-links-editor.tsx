@@ -240,7 +240,8 @@ export function ModifierLinksEditor({
             onChange([...links, { groupId, minSelect: 0, maxSelect: 1, isDisabled: false }])
           }
         >
-          <SelectTrigger className="w-full sm:w-72">
+          {/* The placeholder alone does not name the button (axe). */}
+          <SelectTrigger className="w-full sm:w-72" aria-label="Adicionar grupo de complementos">
             <SelectValue placeholder="+ Adicionar grupo de complementos" />
           </SelectTrigger>
           <SelectContent>

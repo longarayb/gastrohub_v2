@@ -43,11 +43,12 @@ export const BRAND: Brand = {
   logo: { src: '/brand/logo.svg' },
   favicon: '/brand/favicon.svg',
   // Blue of docs/DESIGN.md (accent-blue); orange is reserved for "attention" signals.
-  // Dark: bright blue with dark text (5.8:1); light: deeper blue with white text (4.8:1).
+  // Dark: bright blue with dark text (6.3:1); light: deeper blue with white text (5.4:1).
+  // Both pass 4.5:1 as text on the page background and on the kanban track too.
   colors: {
-    light: { primary: '#2f6fdb', primaryForeground: '#ffffff' },
-    dark: { primary: '#4c8df6', primaryForeground: '#0b111c' },
-    primaryHex: '#2f6fdb',
+    light: { primary: '#2a66cc', primaryForeground: '#ffffff' },
+    dark: { primary: '#5694f7', primaryForeground: '#0b111c' },
+    primaryHex: '#2a66cc',
   },
 };
 

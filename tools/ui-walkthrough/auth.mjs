@@ -66,7 +66,7 @@ await step('brand name and colors come from BRAND', async () => {
     getComputedStyle(document.documentElement).getPropertyValue('--primary').trim(),
   );
   // BRAND.colors.dark.primary (dark is the default theme since feat/redesign, D039).
-  if (primary !== '#4c8df6') throw new Error('--primary=' + primary);
+  if (primary !== '#5694f7') throw new Error('--primary=' + primary);
 });
 
 await step('register validation shows pt-BR errors', async () => {
