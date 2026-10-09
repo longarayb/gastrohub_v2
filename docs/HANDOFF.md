@@ -6,7 +6,7 @@
 
 ## Estado atual
 
-- `main` tem tudo até o **dashboard e relatórios** (merge da `feat/dashboard`). Todas as branches estão no GitHub. **Não há frentes em andamento**: a próxima etapa que abrir pode alterar o schema do Prisma.
+- `main` tem tudo até o **dashboard e relatórios** (merge da `feat/dashboard`). Todas as branches estão no GitHub. **Frente em andamento:** `feat/redesign` (fase A pronta, aguardando a aprovação visual do usuário). Ela **não altera o schema do Prisma**; outra branch pode alterá-lo se for preciso.
 - **Surface agora trabalha dentro do WSL** (Ubuntu-24.04, `~/projetos/GastroHub_v2`), porque o Smart App Control (ligado; decisão do usuário: **não desligar nem contornar**) bloqueia executáveis do Windows sem assinatura, como o `pnpm-native.exe`. Os programas do Linux não são afetados. `C:\GastroHub_v2` ficou como **cópia antiga, sem uso: não editar nem apagar**. Passo a passo e dicas em docs/SETUP.md ("O projeto inteiro dentro do WSL"). O desktop de casa continua no Windows (`D:\GastroHub_v2`).
 - Validado no WSL antes do merge: `pnpm check` 22/22 (~3,5 min), `pnpm format:check`, e2e 100/100 e **os 9 roteiros visuais com seed limpo antes de cada um** (auth 19, menu 15, orders 18, pos 12, kds 8, delivery 16, digital-menu 11, printing 13, dashboard 12 — tudo PASS, "inesperados: 0"). O painel abre no navegador do Windows por `localhost`.
 - Os roteiros com o seed novo acharam e corrigiram: "a receber" do caixa contava delivery estornado (agora usa a regra da D038: estorno não reabre a dívida); o histórico do seed entregava em bairros fora das áreas ativas; a confirmação de "Desvincular" da página local do agente usava JavaScript inline, bloqueado pela própria CSP (agora é uma página de confirmação); o `kds.mjs` sai da tela cheia antes de redimensionar (Chromium no Linux).
@@ -67,9 +67,15 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### Agora: etapa `feat/redesign` — proposta aguardando aprovação
+### Agora: etapa `feat/redesign` — fase A aguardando aprovação visual
 
-Aplicar o tema do docs/DESIGN.md em todo o painel (lógica, API e regras de negócio não mudam). A proposta foi apresentada em 2026-10-08 e começa por um conjunto pequeno (menu lateral, layout geral e o kanban de pedidos) para o usuário aprovar o visual antes de seguir para o resto.
+Proposta aprovada em 2026-10-08 (D039): fases A (menu lateral, layout, kanban), B (componentes base, página de referência completa, teste de contraste, telas que mudam só pelo tema), C (novo pedido, caixa, mesas, Minhas entregas, diálogos de operação) e D (cozinha, login, acessibilidade automática, capturas finais em `docs/screenshots/final/`, documentação e merge), com aprovação visual ao fim de cada uma.
+
+- **Fase A (branch `feat/redesign`, enviada):** cores dos dois temas, escuro como padrão, botão "Tema" por aparelho, azul como cor principal (laranja só para atenção), Nunito Sans/Inter embutidas (`next/font/local`), foco global, alvos de 44 px, menu lateral e cabeçalho novos, cabeçalho de página com o dia de negócio, kanban redesenhado (as 14 informações do cartão estão na D039), primeira versão de `/referencia-visual`. Corrigido de passagem: as `NEXT_PUBLIC_*` do `.env` da raiz não chegavam ao navegador no painel.
+- **Validação:** typecheck, lint e format; os 9 roteiros passam (auth 19, menu 15, orders 18, pos 12, kds 8, delivery 16, digital-menu 11, printing 13, dashboard 12). Ajustes só de seletor/valor: tema no botão próprio, cor da marca, #16 repetido com o histórico de ontem. Contraste AA de todos os pares nos dois temas (medido em `/referencia-visual`).
+- **Capturas** (fora do git): `docs/screenshots/redesign/antes` e `.../fase-a`, `{escuro,claro}/{computador,celular}`. No Windows: `\\wsl.localhost\Ubuntu-24.04\home\braian\projetos\GastroHub_v2\docs\screenshots\redesign`.
+- **Próximo passo:** com a aprovação da fase A, seguir para a fase B. Já se sabe para a fase C: o caixa tem 72 px de rolagem lateral no celular (já existia antes: 95 px).
+- **Observações:** os roteiros dependem do horário (depois do fechamento da loja do seed, 23:30 na quinta, o dia de negócio vira e o `pos`/`orders` falham); rode-os longe desse horário. O `kds.mjs` tem uma corrida rara (1 em 3): um 403 do tablet logo depois de ser revogado.
 
 ### Semana que vem, logo depois do redesign: hospedagem
 

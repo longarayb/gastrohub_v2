@@ -42,10 +42,12 @@ export const BRAND: Brand = {
   headline: 'Pedidos, salão, cozinha e delivery em um só lugar.',
   logo: { src: '/brand/logo.svg' },
   favicon: '/brand/favicon.svg',
+  // Blue of docs/DESIGN.md (accent-blue); orange is reserved for "attention" signals.
+  // Dark: bright blue with dark text (5.8:1); light: deeper blue with white text (4.8:1).
   colors: {
-    light: { primary: 'oklch(0.64 0.19 42)', primaryForeground: 'oklch(0.99 0 0)' },
-    dark: { primary: 'oklch(0.7 0.18 45)', primaryForeground: 'oklch(0.16 0.01 60)' },
-    primaryHex: '#ea580c',
+    light: { primary: '#2f6fdb', primaryForeground: '#ffffff' },
+    dark: { primary: '#4c8df6', primaryForeground: '#0b111c' },
+    primaryHex: '#2f6fdb',
   },
 };
 

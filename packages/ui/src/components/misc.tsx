@@ -31,7 +31,9 @@ export function Separator({
 
 /* ---------- Skeleton ---------- */
 export function Skeleton({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('animate-pulse rounded-md bg-muted', className)} {...props} />;
+  return (
+    <div aria-hidden className={cn('animate-pulse rounded-lg bg-track', className)} {...props} />
+  );
 }
 
 /* ---------- Switch ---------- */
@@ -39,7 +41,7 @@ export function Switch({ className, ...props }: React.ComponentProps<typeof Swit
   return (
     <SwitchPrimitive.Root
       className={cn(
-        'peer inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input dark:data-[state=unchecked]:bg-input/80',
+        'peer inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input dark:data-[state=unchecked]:bg-input/80',
         className,
       )}
       {...props}
@@ -60,7 +62,7 @@ export const TabsList = ({
 }: React.ComponentProps<typeof TabsPrimitive.List>) => (
   <TabsPrimitive.List
     className={cn(
-      'inline-flex h-9 w-fit items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground',
+      'inline-flex h-11 w-fit max-w-full items-center justify-start overflow-x-auto rounded-lg border bg-muted p-1 text-muted-foreground',
       className,
     )}
     {...props}
@@ -73,7 +75,8 @@ export const TabsTrigger = ({
 }: React.ComponentProps<typeof TabsPrimitive.Trigger>) => (
   <TabsPrimitive.Trigger
     className={cn(
-      'inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-1 text-sm font-medium whitespace-nowrap text-foreground transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:shadow-sm dark:text-muted-foreground dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 dark:data-[state=active]:text-foreground',
+      // Muted text on the track; the active tab is a card with full-contrast bold text.
+      "relative inline-flex h-full flex-1 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-semibold whitespace-nowrap text-muted-foreground transition-colors after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] hover:text-foreground focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs",
       className,
     )}
     {...props}

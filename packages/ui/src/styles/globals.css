@@ -6,42 +6,58 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Panel theme (docs/DESIGN.md). Light values here, dark in `.dark` (the default theme).
+ * Every screen uses only these tokens: a redesign changes this file, not the screens.
+ * Contrast pairs are checked by src/styles/contrast.test.ts (WCAG AA).
+ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.985 0.002 75);
-  --foreground: oklch(0.2 0.01 60);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.01 60);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.01 60);
+  --radius: 0.75rem;
+  --background: #f3f6fa;
+  --foreground: #0f1b2d;
+  --card: #ffffff;
+  --card-foreground: #0f1b2d;
+  --popover: #ffffff;
+  --popover-foreground: #0f1b2d;
   /* --primary, --primary-foreground and --ring come from BRAND (@app/shared brand.ts),
      injected by each app layout via brandCssVariables(). */
-  --secondary: oklch(0.95 0.008 75);
-  --secondary-foreground: oklch(0.25 0.01 60);
-  --muted: oklch(0.95 0.006 75);
-  --muted-foreground: oklch(0.5 0.015 60);
-  --accent: oklch(0.94 0.03 60);
-  --accent-foreground: oklch(0.25 0.01 60);
-  --destructive: oklch(0.58 0.22 27);
-  --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.6 0.15 150);
-  --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.78 0.16 80);
-  --warning-foreground: oklch(0.25 0.03 70);
-  --info: oklch(0.6 0.15 245);
-  --info-foreground: oklch(0.99 0 0);
-  --border: oklch(0.9 0.008 75);
-  --input: oklch(0.88 0.008 75);
-  --sidebar: oklch(0.97 0.004 75);
-  --sidebar-foreground: oklch(0.2 0.01 60);
-  /* Order status colors (kanban, badges). */
-  --status-pending: oklch(0.7 0.17 70);
-  --status-accepted: oklch(0.6 0.15 245);
-  --status-preparing: oklch(0.62 0.17 295);
-  --status-ready: oklch(0.62 0.15 150);
-  --status-dispatched: oklch(0.6 0.12 200);
-  --status-delivered: oklch(0.55 0.02 60);
-  --status-canceled: oklch(0.58 0.2 27);
+  --secondary: #e7ecf3;
+  --secondary-foreground: #0f1b2d;
+  --muted: #edf1f6;
+  --muted-foreground: #52627a;
+  /* Hover and selected rows (not the accent colors of charts, see --accent-*). */
+  --accent: #e3ebf6;
+  --accent-foreground: #0f1b2d;
+  --destructive: #d23a2e;
+  --destructive-foreground: #ffffff;
+  --success: #13865a;
+  --success-foreground: #ffffff;
+  --warning: #f5a524;
+  --warning-foreground: #0f1b2d;
+  --info: #2f6fdb;
+  --info-foreground: #ffffff;
+  /* Card and divider lines (decorative) vs. form field borders (3:1, WCAG 1.4.11). */
+  --border: #d6dfea;
+  --input: #74849d;
+  --overlay: rgb(15 27 45 / 0.45);
+  /* Sidebar: vertical gradient, active item with a 4 px bar. */
+  --sidebar: #ffffff;
+  --sidebar-to: #eef3fa;
+  --sidebar-foreground: #0f1b2d;
+  --nav-active: #dcf3ea;
+  --nav-active-foreground: #0b3d2e;
+  --nav-active-bar: #13865a;
+  /* User avatar on the sidebar footer (green, the initial of the name). */
+  --avatar: #13865a;
+  --avatar-foreground: #ffffff;
+  /* Order status colors (kanban, badges): text on the card passes AA in both themes. */
+  --status-pending: #a86400;
+  --status-accepted: #2f6fdb;
+  --status-preparing: #7e46b8;
+  --status-ready: #13865a;
+  --status-dispatched: #0e7490;
+  --status-delivered: #52627a;
+  --status-canceled: #d23a2e;
   /* Table map: occupied and waiting for payment (pre-bill printed). */
   --table-occupied: var(--status-preparing);
   --table-billing: var(--status-pending);
@@ -50,13 +66,13 @@
   --order-takeout: var(--status-preparing);
   --order-delivery: var(--status-dispatched);
   /* QR Codes are always dark on light (scanners need the contrast), in both themes. */
-  --qr-foreground: oklch(0 0 0);
-  --qr-background: oklch(1 0 0);
+  --qr-foreground: #000000;
+  --qr-background: #ffffff;
   /* Layout sizes used by operational screens. */
   --kanban-column-width: 20rem;
   /* Thermal printer paper (pre-bill, cash report). */
   --receipt-width: 72mm;
-  /* Dashboard and reports (docs/DESIGN.md): accents, signals, chart series, bar track. */
+  /* Accents, signals, chart series and bar track (docs/DESIGN.md). */
   --accent-blue: #2f6fdb;
   --accent-green: #13865a;
   --accent-purple: #7e46b8;
@@ -77,37 +93,45 @@
 }
 
 .dark {
-  --background: oklch(0.17 0.006 60);
-  --foreground: oklch(0.96 0.004 75);
-  --card: oklch(0.21 0.007 60);
-  --card-foreground: oklch(0.96 0.004 75);
-  --popover: oklch(0.21 0.007 60);
-  --popover-foreground: oklch(0.96 0.004 75);
-  --secondary: oklch(0.27 0.008 60);
-  --secondary-foreground: oklch(0.96 0.004 75);
-  --muted: oklch(0.26 0.007 60);
-  --muted-foreground: oklch(0.7 0.01 70);
-  --accent: oklch(0.3 0.03 50);
-  --accent-foreground: oklch(0.96 0.004 75);
-  --destructive: oklch(0.65 0.2 25);
-  --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.68 0.15 150);
-  --success-foreground: oklch(0.16 0.01 60);
-  --warning: oklch(0.8 0.15 80);
-  --warning-foreground: oklch(0.2 0.03 70);
-  --info: oklch(0.68 0.14 245);
-  --info-foreground: oklch(0.16 0.01 60);
-  --border: oklch(0.32 0.008 60);
-  --input: oklch(0.34 0.008 60);
-  --sidebar: oklch(0.19 0.006 60);
-  --sidebar-foreground: oklch(0.96 0.004 75);
-  --status-pending: oklch(0.78 0.15 75);
-  --status-accepted: oklch(0.7 0.14 245);
-  --status-preparing: oklch(0.72 0.15 295);
-  --status-ready: oklch(0.72 0.15 150);
-  --status-dispatched: oklch(0.72 0.11 200);
-  --status-delivered: oklch(0.65 0.02 70);
-  --status-canceled: oklch(0.68 0.18 25);
+  --background: #0b111c;
+  --foreground: #e8eef7;
+  --card: #151f31;
+  --card-foreground: #e8eef7;
+  --popover: #182338;
+  --popover-foreground: #e8eef7;
+  --secondary: #1e2a40;
+  --secondary-foreground: #e8eef7;
+  --muted: #1a2438;
+  --muted-foreground: #9aaac2;
+  --accent: #22304a;
+  --accent-foreground: #e8eef7;
+  --destructive: #ff6b5e;
+  --destructive-foreground: #0b111c;
+  --success: #3fcf8e;
+  --success-foreground: #0b111c;
+  --warning: #f5a524;
+  --warning-foreground: #0b111c;
+  --info: #4c8df6;
+  --info-foreground: #0b111c;
+  --border: #22304a;
+  --input: #5e7191;
+  --overlay: rgb(2 6 12 / 0.65);
+  --sidebar: #0d1b30;
+  --sidebar-to: #0f2442;
+  --sidebar-foreground: #e8eef7;
+  --nav-active: #0f3b3a;
+  --nav-active-foreground: #ffffff;
+  --nav-active-bar: #2ebd85;
+  --avatar: #2ebd85;
+  --avatar-foreground: #0b111c;
+  --status-pending: #f5a524;
+  --status-accepted: #4c8df6;
+  /* Lighter than accent-purple: small badge text needs 4.5:1 on the card. */
+  --status-preparing: #b48ae0;
+  --status-ready: #3fcf8e;
+  --status-dispatched: #22c3d6;
+  --status-delivered: #9aaac2;
+  --status-canceled: #ff6b5e;
   --accent-blue: #4c8df6;
   --accent-green: #2ebd85;
   --accent-purple: #a06cd5;
@@ -121,7 +145,7 @@
 }
 
 @theme inline {
-  /* Apps define --font-app with next/font. */
+  /* Apps define --font-app with next/font (local files, see src/fonts). */
   --font-sans: var(--font-app), ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -148,8 +172,15 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
   --color-sidebar: var(--sidebar);
+  --color-sidebar-to: var(--sidebar-to);
   --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-nav-active: var(--nav-active);
+  --color-nav-active-foreground: var(--nav-active-foreground);
+  --color-nav-active-bar: var(--nav-active-bar);
+  --color-avatar: var(--avatar);
+  --color-avatar-foreground: var(--avatar-foreground);
   --color-status-pending: var(--status-pending);
   --color-status-accepted: var(--status-accepted);
   --color-status-preparing: var(--status-preparing);
@@ -166,8 +197,8 @@
   --color-qr-background: var(--qr-background);
   --width-kanban-column: var(--kanban-column-width);
   --width-receipt: var(--receipt-width);
-  /* Dashboard (docs/DESIGN.md): display font (Nunito Sans), sizes, accents and charts. */
-  --font-display: var(--font-display-app), var(--font-app), ui-sans-serif, system-ui, sans-serif;
+  /* Type scale (docs/DESIGN.md): page title, KPI value, attention number, KPI label. */
+  --font-display: var(--font-app), ui-sans-serif, system-ui, sans-serif;
   --text-display: 2.125rem;
   --text-display--line-height: 1.15;
   --text-kpi: 2.375rem;
@@ -199,10 +230,28 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground antialiased;
+    /* Tabular figures everywhere: prices, totals and times line up (docs/DESIGN.md). */
+    font-variant-numeric: tabular-nums;
+  }
+  /* Keyboard focus: a 3 px outline in the brand blue, visible on any background of both
+     themes; outlines (unlike box-shadow rings) also survive Windows high contrast mode. */
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
   /* Tabular numbers for prices and totals */
   .tabular {

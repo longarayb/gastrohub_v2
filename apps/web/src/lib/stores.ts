@@ -1,5 +1,6 @@
-import type { BusinessHour } from '@app/shared';
+import { type BusinessHour, currentBusinessDay } from '@app/shared';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { apiGet } from './api';
 
 export interface StoreDto {
@@ -53,4 +54,17 @@ export function useBusinessHours() {
     queryKey: storeKeys.hours,
     queryFn: () => apiGet<BusinessHour[]>('/stores/current/hours'),
   });
+}
+
+/** Current business day of the store (night shifts belong to the day they started). */
+export function useBusinessToday(): string | null {
+  const { data: hours } = useBusinessHours();
+  const { data: store } = useCurrentStore();
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+  if (!hours || !store) return null;
+  return currentBusinessDay(hours, now, store.timezone).date;
 }

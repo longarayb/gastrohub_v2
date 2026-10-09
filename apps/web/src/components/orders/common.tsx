@@ -23,6 +23,7 @@ import { toast } from '@app/ui/components/sonner';
 import { Textarea } from '@app/ui/components/textarea';
 import { cn } from '@app/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
+import { CircleAlert } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { Field } from '@/components/form';
 import { ApiError, errorMessage } from '@/lib/api';
@@ -44,7 +45,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap',
+        'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold whitespace-nowrap',
         STATUS_STYLES[status].badge,
         className,
       )}
@@ -52,6 +53,43 @@ export function StatusBadge({
       <span className={cn('size-1.5 rounded-full', STATUS_STYLES[status].dot)} />
       {statusLabel(status, type)}
     </span>
+  );
+}
+
+/**
+ * Alert line on cards (failed delivery, PIX to check, items not sent): icon and text in full
+ * contrast on a muted chip, the tone only on the 4 px bar and the icon (never color alone).
+ */
+export function CardFlag({
+  tone,
+  icon: Icon = CircleAlert,
+  title,
+  className,
+  children,
+}: {
+  tone: 'attention' | 'critical';
+  icon?: React.ComponentType<{ className?: string }>;
+  title?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <p
+      title={title}
+      className={cn(
+        'flex items-start gap-1.5 rounded-md border-l-4 bg-muted px-2 py-1 text-sm font-semibold text-foreground',
+        tone === 'critical' ? 'border-signal-critical' : 'border-signal-attention',
+        className,
+      )}
+    >
+      <Icon
+        className={cn(
+          'mt-0.5 size-4 shrink-0',
+          tone === 'critical' ? 'text-signal-critical' : 'text-signal-attention',
+        )}
+      />
+      <span>{children}</span>
+    </p>
   );
 }
 

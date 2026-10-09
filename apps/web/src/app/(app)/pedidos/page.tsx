@@ -53,8 +53,8 @@ function ConnectionIndicator() {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 text-xs',
-        online ? 'text-success' : 'text-muted-foreground',
+        'inline-flex items-center gap-1.5 text-sm font-semibold',
+        online ? 'text-signal-positive' : 'text-signal-attention',
       )}
       role="status"
       title={online ? 'Recebendo pedidos em tempo real' : 'Reconectando...'}
@@ -122,18 +122,18 @@ export default function OrdersPage() {
   return (
     <Page
       title="Pedidos"
+      dated
       className="max-w-none"
       actions={
         <>
           <ConnectionIndicator />
           {alert.soundOn ? (
-            <Button variant="outline" size="sm" onClick={alert.disable}>
+            <Button variant="outline" onClick={alert.disable}>
               <BellRing /> Som ativado
             </Button>
           ) : (
             <Button
               variant={alert.needsGesture || alert.unseenCount ? 'default' : 'outline'}
-              size="sm"
               onClick={alert.enable}
             >
               <BellOff /> Ativar som de novos pedidos
@@ -160,10 +160,13 @@ export default function OrdersPage() {
             ))}
           </TabsList>
         </Tabs>
-        <div className="relative w-full max-w-xs">
-          <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative w-full max-w-sm">
+          <Search
+            className="absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
           <Input
-            className="pl-8"
+            className="pl-10"
             placeholder="Número, cliente, telefone ou mesa"
             aria-label="Buscar pedido"
             value={q}
@@ -172,7 +175,8 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-2">
+      {/* Columns snap one by one on the phone; the page itself never scrolls sideways. */}
+      <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:snap-none md:px-0">
         {columns.map((status) => {
           const items = visible
             .filter((o) => o.status === status)
@@ -181,18 +185,17 @@ export default function OrdersPage() {
             <section
               key={status}
               aria-label={statusLabel(status, 'DELIVERY')}
-              className="flex w-kanban-column shrink-0 flex-col gap-2 rounded-xl bg-muted/50 p-2"
+              className="flex w-kanban-column max-w-[85vw] shrink-0 snap-start flex-col gap-2 overflow-hidden rounded-card bg-track p-2 pt-0"
             >
-              <header className="flex items-center justify-between px-1 py-1">
-                <h2 className="flex items-center gap-2 text-sm font-semibold">
-                  <span className={cn('size-2 rounded-full', STATUS_STYLES[status].dot)} />
+              <div className={cn('-mx-2 h-1', STATUS_STYLES[status].dot)} aria-hidden />
+              <header className="flex min-h-11 items-center justify-between gap-2 px-1 pt-1">
+                <h2 className="text-base font-extrabold">
                   {status === 'DISPATCHED' ? 'Saiu para entrega' : statusLabel(status, 'DELIVERY')}
                 </h2>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-2">
                   {status === 'READY' && canAdvance && items.some((o) => o.type === 'DELIVERY') && (
                     <Button
                       size="sm"
-                      className="h-7"
                       variant="outline"
                       onClick={() => setDispatchIds([])}
                       title="Saída para entrega com vários pedidos"
@@ -200,13 +203,18 @@ export default function OrdersPage() {
                       <Bike /> Saída
                     </Button>
                   )}
-                  <span className="tabular text-xs text-muted-foreground">{items.length}</span>
+                  <span
+                    className="min-w-8 rounded-full bg-card px-2 py-0.5 text-center text-sm font-extrabold"
+                    aria-label={`${items.length} ${items.length === 1 ? 'pedido' : 'pedidos'}`}
+                  >
+                    {items.length}
+                  </span>
                 </span>
               </header>
               {isLoading ? (
-                <Skeleton className="h-28" />
+                <Skeleton className="h-36 bg-card" />
               ) : items.length === 0 ? (
-                <p className="px-1 py-6 text-center text-xs text-muted-foreground">Nenhum pedido</p>
+                <p className="px-1 py-8 text-center text-sm text-muted-foreground">Nenhum pedido</p>
               ) : (
                 items.map((o) => (
                   <OrderCard
@@ -229,7 +237,6 @@ export default function OrdersPage() {
       <section className="space-y-2">
         <Button
           variant="ghost"
-          size="sm"
           aria-expanded={showFinished}
           onClick={() => setShowFinished((v) => !v)}
         >
@@ -237,18 +244,18 @@ export default function OrdersPage() {
           Finalizados ({finished.length})
         </Button>
         {showFinished && (
-          <ul className="divide-y rounded-lg border bg-card">
+          <ul className="divide-y overflow-hidden rounded-card border bg-card">
             {finished.length === 0 && (
-              <li className="p-3 text-sm text-muted-foreground">Nenhum pedido finalizado.</li>
+              <li className="p-4 text-sm text-muted-foreground">Nenhum pedido finalizado.</li>
             )}
             {finished.map((o) => (
               <li key={o.id}>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-3 p-3 text-left text-sm hover:bg-accent"
+                  className="flex min-h-12 w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-accent focus-visible:-outline-offset-3"
                   onClick={() => open(o.id)}
                 >
-                  <span className="w-12 font-semibold">#{o.number}</span>
+                  <span className="w-14 text-base font-extrabold">#{o.number}</span>
                   <span className="flex-1 truncate">{orderTitle(o)}</span>
                   <StatusBadge status={o.status} type={o.type} />
                 </button>

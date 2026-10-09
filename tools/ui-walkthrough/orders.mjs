@@ -271,7 +271,8 @@ await step('cancel order requires a reason', async () => {
   await sheet().getByText('Cancelado: Cliente não veio buscar').waitFor();
   await closeSheet();
   await page.getByRole('button', { name: /^Finalizados/ }).click();
-  await page.getByRole('button', { name: new RegExp(`#${createdNumber}`) }).waitFor();
+  // Yesterday's finished orders (seed history) are also listed and may repeat the number.
+  await page.getByRole('button', { name: new RegExp(`^#${createdNumber} .*Cancelado`) }).waitFor();
   await shot('06-finished');
 });
 

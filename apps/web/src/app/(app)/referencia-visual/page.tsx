@@ -1,0 +1,408 @@
+'use client';
+
+import { ORDER_STATUSES, type OrderSummaryDto } from '@app/shared';
+import { Badge } from '@app/ui/components/badge';
+import { Button } from '@app/ui/components/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@app/ui/components/card';
+import { Checkbox } from '@app/ui/components/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@app/ui/components/dialog';
+import { Input } from '@app/ui/components/input';
+import { Label } from '@app/ui/components/label';
+import { Skeleton, Switch, Tabs, TabsList, TabsTrigger } from '@app/ui/components/misc';
+import { toast } from '@app/ui/components/sonner';
+import { Textarea } from '@app/ui/components/textarea';
+import { cn } from '@app/ui/lib/utils';
+import { Inbox, Plus, Search, Smartphone } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { notFound } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { CardFlag, StatusBadge } from '@/components/orders/common';
+import { OrderCard } from '@/components/orders/order-card';
+import { EmptyState, Page } from '@/components/page';
+
+/**
+ * Visual reference of the panel theme (feat/redesign, docs/DESIGN.md): every base component
+ * and state, the color tokens with their measured contrast, both themes and the phone width.
+ * Development only (NEXT_PUBLIC_UI_REFERENCE=1), owner only (lib/routes.ts).
+ */
+
+/** [token, what it is, background it sits on]. */
+const TEXT_PAIRS: [string, string, string][] = [
+  ['--foreground', 'Texto principal', '--card'],
+  ['--muted-foreground', 'Texto apagado', '--card'],
+  ['--muted-foreground', 'Texto apagado sobre o fundo', '--background'],
+  ['--muted-foreground', 'Texto apagado sobre o trilho', '--track'],
+  ['--primary', 'Azul principal (links)', '--card'],
+  ['--primary-foreground', 'Texto do botão principal', '--primary'],
+  ['--signal-critical', 'Crítico', '--card'],
+  ['--signal-attention', 'Atenção', '--card'],
+  ['--signal-positive', 'Positivo', '--card'],
+  ['--status-pending', 'Status: pendente', '--card'],
+  ['--status-accepted', 'Status: aceito', '--card'],
+  ['--status-preparing', 'Status: em preparo', '--card'],
+  ['--status-ready', 'Status: pronto', '--card'],
+  ['--status-dispatched', 'Status: saiu', '--card'],
+  ['--status-delivered', 'Status: entregue', '--card'],
+  ['--status-canceled', 'Status: cancelado', '--card'],
+  ['--nav-active-foreground', 'Item ativo do menu', '--nav-active'],
+  ['--avatar-foreground', 'Inicial no avatar', '--avatar'],
+  ['--warning-foreground', 'Texto sobre atenção', '--warning'],
+  ['--destructive-foreground', 'Texto do botão de excluir', '--destructive'],
+];
+/** Non-text elements (WCAG 1.4.11): 3:1. */
+const UI_PAIRS: [string, string, string][] = [
+  ['--input', 'Borda dos campos', '--card'],
+  ['--ring', 'Foco do teclado', '--card'],
+  ['--ring', 'Foco do teclado sobre o fundo', '--background'],
+  ['--chart-compare-cap', 'Traço da série comparativa', '--card'],
+];
+
+function luminance(hex: string): number {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? [...h].map((c) => c + c).join('') : h.slice(0, 6);
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const c = parseInt(full.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+}
+const contrast = (a: string, b: string) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi! + 0.05) / (lo! + 0.05);
+};
+
+function ContrastTable({ pairs, min }: { pairs: [string, string, string][]; min: number }) {
+  const { resolvedTheme } = useTheme();
+  const [values, setValues] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const style = getComputedStyle(document.documentElement);
+    const read: Record<string, string> = {};
+    for (const [fg, , bg] of pairs) {
+      read[fg] = style.getPropertyValue(fg).trim();
+      read[bg] = style.getPropertyValue(bg).trim();
+    }
+    setValues(read);
+  }, [pairs, resolvedTheme]);
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="text-left text-muted-foreground">
+          <tr>
+            <th className="py-2 pr-3 font-bold">Combinação</th>
+            <th className="py-2 pr-3 font-bold">Amostra</th>
+            <th className="py-2 text-right font-bold">Contraste</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {pairs.map(([fg, label, bg]) => {
+            const a = values[fg];
+            const b = values[bg];
+            const ratio = a?.startsWith('#') && b?.startsWith('#') ? contrast(a, b) : null;
+            const ok = ratio !== null && ratio >= min;
+            return (
+              <tr key={`${fg}-${bg}-${label}`}>
+                <td className="py-2 pr-3">
+                  {label}
+                  <span className="block text-xs text-muted-foreground">
+                    {fg} sobre {bg}
+                  </span>
+                </td>
+                <td className="py-2 pr-3">
+                  <span
+                    className="inline-flex h-9 items-center rounded-md border px-3 font-bold"
+                    style={{ color: `var(${fg})`, background: `var(${bg})` }}
+                  >
+                    R$ 1.234,56
+                  </span>
+                </td>
+                <td className="py-2 text-right font-bold">
+                  {ratio === null ? '—' : `${ratio.toFixed(2).replace('.', ',')} : 1`}{' '}
+                  <span className={ok ? 'text-signal-positive' : 'text-signal-critical'}>
+                    {ok ? '✓ AA' : '✗ abaixo'}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+const SAMPLE: OrderSummaryDto = {
+  id: 'ref-1',
+  number: 42,
+  publicCode: 'REF42',
+  businessDate: '2026-10-08',
+  type: 'DELIVERY',
+  source: 'DIGITAL_MENU',
+  status: 'READY',
+  version: 1,
+  tableNames: [],
+  tableSessionId: null,
+  tabLabel: null,
+  customerName: 'Mariana Souza',
+  customerPhone: null,
+  neighborhood: 'Bela Vista',
+  courierName: 'Fábio',
+  deliveryFailure: { reason: 'CUSTOMER_ABSENT', note: null, at: minutesAgo(6) },
+  pixReportedAt: minutesAgo(20),
+  itemCount: 3,
+  draftItemCount: 0,
+  totalCents: 8790,
+  paidCents: 0,
+  paymentStatus: 'UNPAID',
+  expectedPaymentMethod: 'PIX',
+  notes: null,
+  createdAt: minutesAgo(34),
+  acceptedAt: minutesAgo(32),
+  readyAt: minutesAgo(9),
+  updatedAt: minutesAgo(6),
+};
+const SAMPLE_TABLE: OrderSummaryDto = {
+  ...SAMPLE,
+  id: 'ref-2',
+  number: 17,
+  type: 'DINE_IN',
+  source: 'POS',
+  status: 'PENDING',
+  tableNames: ['2', '3'],
+  tabLabel: 'Carlos',
+  customerName: null,
+  neighborhood: null,
+  courierName: null,
+  deliveryFailure: null,
+  pixReportedAt: null,
+  draftItemCount: 2,
+  expectedPaymentMethod: null,
+  createdAt: minutesAgo(3),
+};
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">{children}</CardContent>
+    </Card>
+  );
+}
+
+export default function VisualReferencePage() {
+  if (process.env.NEXT_PUBLIC_UI_REFERENCE !== '1') notFound();
+  const { theme = 'dark', setTheme } = useTheme();
+  const [phone, setPhone] = useState(false);
+  const [now] = useState(() => new Date());
+
+  return (
+    <Page
+      title="Referência visual"
+      description="Componentes e cores do tema, para conferir os dois temas e a largura de celular. Só em desenvolvimento."
+      actions={
+        <>
+          <Tabs value={theme} onValueChange={setTheme}>
+            <TabsList aria-label="Tema">
+              <TabsTrigger value="dark">Escuro</TabsTrigger>
+              <TabsTrigger value="light">Claro</TabsTrigger>
+              <TabsTrigger value="system">Sistema</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button variant={phone ? 'default' : 'outline'} onClick={() => setPhone((v) => !v)}>
+            <Smartphone /> Largura de celular
+          </Button>
+        </>
+      }
+    >
+      <div className={cn('space-y-6', phone && 'mx-auto max-w-[390px]')}>
+        <Section title="Tipografia (Nunito Sans)">
+          <p className="text-display font-extrabold">Título da página · 34 px</p>
+          <p className="text-kpi font-extrabold">R$ 12.345,67</p>
+          <p className="text-kpi-label font-bold tracking-[0.1em] text-muted-foreground uppercase">
+            Rótulo do KPI · 13 px
+          </p>
+          <p className="text-base">Texto normal de 16 px, com algarismos tabulares: 1.111,11</p>
+          <p className="text-sm text-muted-foreground">Linha de apoio · 14 px, cor apagada</p>
+        </Section>
+
+        <Section title="Contraste do texto (AA: 4,5 : 1)">
+          <ContrastTable pairs={TEXT_PAIRS} min={4.5} />
+        </Section>
+        <Section title="Contraste de bordas, foco e gráficos (3 : 1)">
+          <ContrastTable pairs={UI_PAIRS} min={3} />
+        </Section>
+
+        <Section title="Botões (44 px; o pequeno tem área de toque de 44 px)">
+          <div className="flex flex-wrap gap-2">
+            <Button>Principal</Button>
+            <Button variant="secondary">Secundário</Button>
+            <Button variant="outline">Contorno</Button>
+            <Button variant="ghost">Discreto</Button>
+            <Button variant="success">Confirmar</Button>
+            <Button variant="destructive">Excluir</Button>
+            <Button variant="link">Link</Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm">Pequeno</Button>
+            <Button>Padrão</Button>
+            <Button size="lg">Grande</Button>
+            <Button size="xl">Extra grande</Button>
+            <Button size="icon" aria-label="Adicionar">
+              <Plus />
+            </Button>
+            <Button loading>Carregando</Button>
+            <Button disabled>Desabilitado</Button>
+          </div>
+        </Section>
+
+        <Section title="Campos">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="ref-name">Nome</Label>
+              <Input id="ref-name" placeholder="Digite o nome" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ref-search">Busca com ícone</Label>
+              <div className="relative">
+                <Search
+                  className="absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <Input id="ref-search" className="pl-10" placeholder="Número, cliente ou mesa" />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ref-error">Com erro</Label>
+              <Input id="ref-error" aria-invalid defaultValue="abc" />
+              <p className="text-sm text-destructive">Informe um valor válido</p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ref-disabled">Desabilitado</Label>
+              <Input id="ref-disabled" disabled defaultValue="Não editável" />
+            </div>
+            <div className="grid gap-2 md:col-span-2">
+              <Label htmlFor="ref-notes">Observação</Label>
+              <Textarea id="ref-notes" placeholder="Sem cebola" />
+            </div>
+            <Label className="flex items-center gap-2 font-normal">
+              <Checkbox defaultChecked /> Caixa de seleção
+            </Label>
+            <Label className="flex items-center gap-2 font-normal">
+              <Switch defaultChecked /> Interruptor
+            </Label>
+          </div>
+        </Section>
+
+        <Section title="Abas">
+          <Tabs defaultValue="ALL">
+            <TabsList>
+              <TabsTrigger value="ALL">Todos</TabsTrigger>
+              <TabsTrigger value="DINE_IN">Mesa</TabsTrigger>
+              <TabsTrigger value="TAKEOUT">Balcão/Retirada</TabsTrigger>
+              <TabsTrigger value="DELIVERY">Delivery</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </Section>
+
+        <Section title="Status, badges e alertas (cor sempre com texto)">
+          <div className="flex flex-wrap gap-2">
+            {ORDER_STATUSES.map((s) => (
+              <StatusBadge key={s} status={s} type="DELIVERY" />
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge>Principal</Badge>
+            <Badge variant="secondary">Secundário</Badge>
+            <Badge variant="success">Pago</Badge>
+            <Badge variant="warning">Atenção</Badge>
+            <Badge variant="destructive">Cancelado</Badge>
+            <Badge variant="outline">Contorno</Badge>
+          </div>
+          <div className="grid gap-2 md:max-w-sm">
+            <CardFlag tone="critical">Não entregue · Cliente ausente · 19:42</CardFlag>
+            <CardFlag tone="attention">2 não enviados</CardFlag>
+          </div>
+        </Section>
+
+        <Section title="Cartões de pedido (kanban)">
+          <div className="flex flex-wrap gap-4 rounded-card bg-track p-3">
+            {[SAMPLE_TABLE, SAMPLE].map((o, i) => (
+              <div key={o.id} className="w-kanban-column max-w-full">
+                <OrderCard
+                  order={o}
+                  now={now}
+                  highlight={i === 0}
+                  canAdvance
+                  advancing={false}
+                  onOpen={() => toast.info(`Pedido #${o.number}`)}
+                  onAdvance={() => toast.success('Ação do cartão')}
+                />
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Avisos, diálogo, vazio e carregando">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => toast.success('Pedido aceito')}>
+              Aviso de sucesso
+            </Button>
+            <Button variant="outline" onClick={() => toast.error('O pedido foi alterado')}>
+              Aviso de erro
+            </Button>
+            <Button variant="outline" onClick={() => toast.warning('Impressora sem resposta')}>
+              Aviso de atenção
+            </Button>
+            <Button variant="outline" onClick={() => toast.info('Nova versão disponível')}>
+              Aviso informativo
+            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">Abrir diálogo</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Cancelar pedido #42?</DialogTitle>
+                  <DialogDescription>
+                    O cliente é avisado e a cozinha para o preparo.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline">Voltar</Button>
+                  <Button variant="destructive">Cancelar pedido</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <EmptyState
+            icon={Inbox}
+            title="Nenhum pedido"
+            description="Os pedidos novos aparecem aqui."
+          />
+          <div className="grid gap-2">
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-24" />
+          </div>
+        </Section>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Cartão de página</CardTitle>
+            <CardDescription>Raio de 18 px, borda fina, sem sombra.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    </Page>
+  );
+}

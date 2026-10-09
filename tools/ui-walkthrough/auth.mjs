@@ -65,7 +65,8 @@ await step('brand name and colors come from BRAND', async () => {
   const primary = await page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue('--primary').trim(),
   );
-  if (!primary.startsWith('oklch(0.64')) throw new Error('--primary=' + primary);
+  // BRAND.colors.dark.primary (dark is the default theme since feat/redesign, D039).
+  if (primary !== '#4c8df6') throw new Error('--primary=' + primary);
 });
 
 await step('register validation shows pt-BR errors', async () => {
@@ -162,7 +163,8 @@ await step('create a waiter user', async () => {
 });
 
 await step('dark mode toggle', async () => {
-  await page.getByRole('button', { name: 'Menu do usuário' }).click();
+  // The theme has its own button in the header (feat/redesign).
+  await page.getByRole('button', { name: /^Tema/ }).click();
   await page.getByRole('menuitemradio', { name: 'Escuro' }).click();
   await page.waitForFunction(() => document.documentElement.classList.contains('dark'));
   await shot('05-dark');

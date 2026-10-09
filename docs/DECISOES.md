@@ -204,3 +204,36 @@ QR Code estático no padrão BR Code (EMV), montado por função pura (`buildPix
 - **Visual:** componentes do dashboard seguem [DESIGN.md](DESIGN.md) só com tokens (`accent-*`, `signal-*`, `chart-1…5`, `chart-compare`, `track`, `rounded-card`, `font-display` = Nunito Sans); o tema completo do painel vem na etapa de redesign.
 - **Seed:** 90 dias de histórico determinístico (sexta e sábado mais fortes, picos no almoço e no jantar, popularidade variada, cancelamentos concentrados num usuário, descontos, taxas retiradas, estornos, diferenças de caixa, tempos do KDS e de entrega), inserido em lote (`jsonb_populate_recordset`) e com limpeza rápida (`session_replication_role = replica` na transação, quando o usuário do banco é superusuário): seed completo em ~15 s. `HISTORY_DAYS=365` gera um ano para medir desempenho.
 
+
+## D039 — Redesign do painel: tema, componentes base e telas de operação
+
+Aprovada em 2026-10-08, em fases (A: menu lateral, layout e kanban; B: componentes; C: telas de operação; D: cozinha, login e fechamento), com aprovação visual ao fim de cada uma. Só muda a aparência: lógica, API, regras e textos ficam como estão.
+
+- **Tema:** valores do [DESIGN.md](DESIGN.md) nos dois temas, em `packages/ui/src/styles/globals.css`. **Escuro é o padrão**; "Sistema" é uma opção que acompanha o sistema operacional ao vivo. A escolha fica **por aparelho** (`localStorage` do `next-themes`): o computador do caixa pode ficar no claro e o do escritório no escuro. A troca tem botão próprio no cabeçalho ("Tema deste aparelho"). A barra do navegador no celular acompanha o tema.
+- **Cor principal:** o azul do DESIGN.md, trocado no `brand.ts` (continua a única fonte da marca; logo e favicon também). Escuro `#4C8DF6` com texto escuro (5,8 : 1); claro `#2F6FDB` com texto branco (4,8 : 1). **O laranja fica só para atenção** (um botão principal laranja parecia um alerta).
+- **Fontes embutidas:** Nunito Sans (painel) e Inter (cardápio digital) por `next/font/local`, com os arquivos `woff2` e a licença OFL em `packages/ui/assets/fonts`. Nada é baixado do Google nem no build nem no uso (internet instável, LGPD). Subconjunto latino (cobre o português).
+- **Foco e toque:** contorno de 3 px na cor `--ring` com afastamento, global (`:focus-visible`), visível nos dois temas e no alto contraste do Windows (contorno, não sombra). Botões e campos de 44 px; o tamanho pequeno mede 36 px, com área de toque de 44 px.
+- **Bordas de campo** com 3 : 1 sobre o cartão (`--input`); linhas decorativas continuam discretas (`--border`). Cores de status do pedido com 4,5 : 1 sobre o cartão nos dois temas (o roxo do "em preparo" no escuro é mais claro que o roxo dos gráficos).
+- **Página de referência** `/referencia-visual`: todos os componentes e estados, o contraste medido na própria página, os dois temas e a largura de celular. Só com `NEXT_PUBLIC_UI_REFERENCE=1` (desenvolvimento) e para quem tem `store:manage`.
+- **Capturas:** `tools/ui-walkthrough/screens.mjs` captura as telas principais nos dois temas, no computador e no celular, e avisa rolagem lateral da página. As capturas de cada fase ficam em `docs/screenshots/redesign/` (fora do git); só o conjunto final enxuto vai para `docs/screenshots/final/`.
+
+### O que o cartão do kanban mostra (nada pode sumir no redesign)
+
+Levantado no cartão antes do redesign (`components/orders/order-card.tsx`) e conferido no cartão novo:
+
+1. **Status**, pela faixa colorida à esquerda (e pela coluna).
+2. **Pedido novo ainda não aberto:** contorno de destaque; agora também o selo "Novo" (antes era só cor).
+3. **Tipo** (mesa, balcão/retirada, delivery): ícone, com o nome para leitores de tela.
+4. **Número** do pedido.
+5. **Tempo decorrido:** desde a criação; no "Pronto", desde que ficou pronto.
+6. **Título:** mesa(s) e nome da conta, cliente, "Balcão" ou "Cliente".
+7. **Delivery:** bairro e entregador.
+8. **Quantidade de itens** e **origem** quando não é o PDV (cardápio digital, iFood…).
+9. **Total.**
+10. **Forma de pagamento prevista** (delivery e cardápio digital), inclusive "Pagamento online".
+11. **Entrega não realizada:** motivo, observação e horário.
+12. **PIX informado pelo cliente · conferir** (enquanto o pedido não está pago).
+13. **Itens não enviados** para a cozinha (rodada em aberto), com a quantidade.
+14. **Ação principal** (com permissão): aceitar, iniciar preparo, marcar como pronto, saiu, entregue; "Receber" quando a mesa ou o balcão precisa ser pago antes de concluir; "Reenviar" depois de uma entrega não realizada.
+
+O cartão de hoje **não** mostra, porque essas informações não existiam nele: situação do pagamento além do "Receber", atraso por limite de tempo (o tempo decorrido aparece, sem cor de atraso) e o número das rodadas (só os itens não enviados). Ficam como sugestão, fora do redesign, para não criar regra nova.
