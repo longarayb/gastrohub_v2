@@ -303,4 +303,37 @@ Roteiros visuais com Playwright (opcional): veja [tools/ui-walkthrough/README.md
 | Porta 3000/3333 em uso | Um servidor antigo ficou aberto: `Get-NetTCPConnection -LocalPort 3000 \| Select OwningProcess` e `Stop-Process -Id <pid>` |
 | Taxa de entrega pede "escolha a área manualmente" | O endereço não está em nenhuma área por bairro e o mapa não o encontrou (ou o Nominatim está fora/sem internet). Escolha a área no pedido, ou inclua o bairro numa área em Áreas de entrega ("Bairros sem área") |
 | Cardápio digital mostra dados antigos depois de mudar o cardápio | O cache é atualizado pela API com `MENU_REVALIDATE_SECRET` (igual nos dois apps; no `start:lite` o cardápio recebe o `.env`). Sem o segredo, a página se atualiza sozinha em até 5 minutos |
+| `Could not run the pnpm binary ... pnpm-native.exe: spawnSync ... UNKNOWN`, ou "Uma política de Controle de Aplicativo bloqueou este arquivo" ao rodar `pnpm` (ou outro executável sem assinatura, como o agente de impressão) | Bloqueio do **Smart App Control** do Windows 11 (confira no PowerShell: `(Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy').VerifiedAndReputablePolicyState` — `1` = ligado; o log "Microsoft-Windows-CodeIntegrity/Operational" registra os bloqueios). **Orientação do projeto: não desligue o Smart App Control** (depois de desligado, o Windows só permite religá-lo reinstalando o sistema) nem tente contornar o bloqueio. No Surface o projeto já vive no WSL ("O projeto inteiro dentro do WSL", abaixo); em outro computador com o mesmo bloqueio, siga o mesmo roteiro |
 | Login responde 429 | Limite de tentativas de login por minuto e IP (`LOGIN_RATE_LIMIT_PER_MINUTE`: 10 em produção; 300 no `.env.example` de desenvolvimento). Espere 1 minuto ou reinicie a API; se o seu `.env` é antigo, acrescente a variável |
+
+## O projeto inteiro dentro do WSL (Surface)
+
+> **Em uso no Surface desde 2026-10-08.** O Smart App Control do Windows 11 bloqueia executáveis do Windows sem assinatura (como o `pnpm-native.exe`) e a orientação é não desligá-lo; os programas do Linux rodam dentro da máquina virtual do WSL e **não são bloqueados por ele** (confirmado: pnpm, Prisma, esbuild, Next e o Chromium do Playwright rodam normalmente). Medido no Surface: `pnpm check` em ~3,5 min, e2e em ~1 min 45 s, seed em ~20 s. A pasta `C:\GastroHub_v2` ficou como cópia antiga, sem uso (não apagar).
+>
+> Dicas de quem montou: o `wsl.exe -- comando` passa o comando por um shell intermediário, que expande `$variáveis` antes da hora (prefira scripts `.sh`); no Git Bash do Windows, use `MSYS_NO_PATHCONV=1` para o caminho `/mnt/c/...` não ser convertido; comandos que usam Node precisam do `nvm` carregado (num shell interativo ele já vem do `~/.bashrc`).
+
+1. **Memória (antes de tudo).** O Surface tem 8 GB, e o WSL e o Docker Desktop dividem a mesma máquina virtual. Crie `%UserProfile%\.wslconfig`:
+
+   ```ini
+   [wsl2]
+   # Deixa ~3 GB para o Windows (VS Code, navegador); o WSL usa o arquivo de troca quando precisar.
+   memory=5GB
+   swap=8GB
+   processors=4
+
+   [experimental]
+   # Devolve ao Windows a memória que o Linux deixou de usar.
+   autoMemoryReclaim=gradual
+   ```
+
+   Depois: `wsl --shutdown` (aplica a configuração). Mantenha no `.env` `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1`.
+2. **Ubuntu:** `wsl --install -d Ubuntu-24.04` (PowerShell como administrador), crie o usuário e rode `sudo apt update && sudo apt install -y build-essential git curl unzip`.
+3. **Docker Desktop:** Settings › Resources › WSL integration › ativar o Ubuntu. Dentro do Ubuntu, `docker ps` deve funcionar. Os containers continuam os mesmos do Docker Desktop (o projeto `C:\GastroHub`, que usa a 5432, segue convivendo: mantenha `POSTGRES_PORT=5433` no `.env`).
+4. **Node e pnpm no Linux:** Node 24 LTS com o `nvm` (sem `sudo`): `curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash`, reabra o terminal, `nvm install 24`, `nvm alias default 24`, `corepack enable pnpm`.
+5. **Código no sistema de arquivos do Linux, nunca em `/mnt/c`:** `mkdir -p ~/projetos && cd ~/projetos && git clone https://github.com/longarayb/gastrohub_v2.git GastroHub_v2`. Em `/mnt/c` tudo fica muito lento (milhares de arquivos do `node_modules`) e os watchers não recebem as mudanças. Configure o Git no Linux com a mesma identidade dos commits e o login do Windows: `git config --global user.name longarayb`, `git config --global user.email longarayb@gmail.com`, `git config --global core.autocrlf false` e `git config --global credential.helper "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe"` (reaproveita o Git Credential Manager do Windows: nada de token novo; se não funcionar, `gh auth login`).
+6. **`.env`:** copie o do Windows (`cp /mnt/c/GastroHub_v2/.env ~/projetos/GastroHub_v2/.env`) e confira as portas. Depois, o fluxo de sempre: `pnpm install`, `pnpm infra:up`, `pnpm --filter @app/api db:deploy`, `pnpm db:seed` (compila o `@app/shared` sozinho), `pnpm start:lite`. O navegador do Windows acessa `http://localhost:3000` normalmente (o WSL encaminha as portas).
+7. **Claude Code no WSL:** instale dentro do Ubuntu (`curl -fsSL https://claude.ai/install.sh | bash`) e rode `claude` na pasta do projeto. No VS Code, use a extensão **WSL** e abra a pasta com `code .` a partir do Ubuntu (o editor roda no Windows, os comandos no Linux).
+8. **Roteiros visuais no Linux:** usam o Chromium do Playwright (`tools/ui-walkthrough/browser.mjs`; no Windows continua o Edge). Uma vez: `cd tools/ui-walkthrough && npm install && npx playwright-core install chromium` e, com a sua senha, `sudo apt-get install -y libnss3 libnspr4 libasound2t64`. **Continua no Windows:** o agente de impressão (serviço do Windows; instalador e teste de reinicialização no desktop de casa).
+9. **Uma pasta por vez:** com o projeto no WSL, não use mais `C:\GastroHub_v2` neste computador (evita duas cópias divergentes). O GitHub continua sendo a ponte com o desktop de casa.
+10. **Claude Code dentro do WSL:** `curl -fsSL https://claude.ai/install.sh | bash` no Ubuntu; para abrir: `wsl -d Ubuntu-24.04`, `cd ~/projetos/GastroHub_v2`, `claude`. No VS Code: extensão **WSL** e `code .` a partir do Ubuntu (ou "WSL: Conectar à distribuição" › Ubuntu-24.04 › abrir a pasta), com a extensão do Claude Code instalada no lado do WSL.
+

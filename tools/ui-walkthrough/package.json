@@ -11,7 +11,8 @@
     "kds": "node kds.mjs",
     "delivery": "node delivery.mjs",
     "digital-menu": "node digital-menu.mjs",
-    "printing": "node printing.mjs"
+    "printing": "node printing.mjs",
+    "dashboard": "node dashboard.mjs"
   },
   "dependencies": {
     "playwright-core": "^1.63.0"

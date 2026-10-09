@@ -1,19 +1,12 @@
 'use client';
 
-import { Card, CardDescription, CardHeader, CardTitle } from '@app/ui/components/card';
-import { Page } from '@/components/page';
-import { useSession } from '@/lib/auth';
+import { DayDashboard } from '@/components/reports/day-dashboard';
 
+/** Dashboard of the day (D038), first screen of owners and managers. */
 export default function DashboardPage() {
-  const session = useSession();
   return (
-    <Page title={`Olá, ${session.user.name.split(' ')[0]}!`} description={session.store.tradeName}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Painel do dia</CardTitle>
-          <CardDescription>Os indicadores de vendas aparecerão aqui.</CardDescription>
-        </CardHeader>
-      </Card>
-    </Page>
+    <div className="mx-auto w-full max-w-7xl p-4 md:p-6">
+      <DayDashboard />
+    </div>
   );
 }

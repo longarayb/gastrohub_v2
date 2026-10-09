@@ -5,6 +5,7 @@ import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { BROWSER } from './browser.mjs';
 
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'screenshots');
 mkdirSync(OUT, { recursive: true });
@@ -26,8 +27,7 @@ const step = async (name, fn) => {
 };
 
 const browser = await chromium.launch({
-  channel: 'msedge',
-  headless: true,
+  ...BROWSER,
   args: ['--disable-gpu', '--disable-extensions', '--renderer-process-limit=1'],
 });
 const context = await browser.newContext({

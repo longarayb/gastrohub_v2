@@ -2,20 +2,30 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções e regras de trabalho em duas máquinas), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-08**, no Surface (`C:\GastroHub_v2`), depois da `chore/print-installer` (instalador do agente gerado e testado) e com a proposta da `feat/dashboard` apresentada.
+> Atualizado em **2026-10-08** (noite), no Surface, **com o projeto dentro do WSL** (`~/projetos/GastroHub_v2`). A `feat/dashboard` foi validada e integrada na `main`.
 
 ## Estado atual
 
-- `main` contém tudo o que foi feito; todas as branches estão no GitHub (`longarayb/gastrohub_v2`, público). Nenhuma frente em paralelo.
-- Validação no último commit da `feat/printing`: `pnpm check` verde (22 tarefas; unitários: shared 233, api 22, print-agent 12, web 5), `pnpm format:check` verde, `pnpm test:e2e` com 93 testes (9 novos de impressão), roteiro visual `printing.mjs` 13/13 (agente real em modo virtual). Na `chore/print-installer` (2026-10-08) **todos os roteiros** rodaram de novo, com seed limpo antes de cada um: auth 19, menu 15, orders 18, pos 12, kds 8, delivery 16, digital-menu 11 e printing 13 — todos verdes, sem erros inesperados.
-- Migrations: `auth_tenancy`, `menu`, `orders`, `tables_pos`, `kds`, `delivery`, `digital_menu`, `printing`. Um clone novo fica igual com `pnpm bootstrap` (ou `pnpm --filter @app/api db:deploy` + `pnpm db:seed`).
-- O seed **não** configura impressão (sem computador conectado, uma impressora cadastrada geraria alertas permanentes na demonstração); o roteiro `printing.mjs` configura tudo pelas telas e remove no fim.
+- `main` tem tudo até o **dashboard e relatórios** (merge da `feat/dashboard`). Todas as branches estão no GitHub. **Não há frentes em andamento**: a próxima etapa que abrir pode alterar o schema do Prisma.
+- **Surface agora trabalha dentro do WSL** (Ubuntu-24.04, `~/projetos/GastroHub_v2`), porque o Smart App Control (ligado; decisão do usuário: **não desligar nem contornar**) bloqueia executáveis do Windows sem assinatura, como o `pnpm-native.exe`. Os programas do Linux não são afetados. `C:\GastroHub_v2` ficou como **cópia antiga, sem uso: não editar nem apagar**. Passo a passo e dicas em docs/SETUP.md ("O projeto inteiro dentro do WSL"). O desktop de casa continua no Windows (`D:\GastroHub_v2`).
+- Validado no WSL antes do merge: `pnpm check` 22/22 (~3,5 min), `pnpm format:check`, e2e 100/100 e **os 9 roteiros visuais com seed limpo antes de cada um** (auth 19, menu 15, orders 18, pos 12, kds 8, delivery 16, digital-menu 11, printing 13, dashboard 12 — tudo PASS, "inesperados: 0"). O painel abre no navegador do Windows por `localhost`.
+- Os roteiros com o seed novo acharam e corrigiram: "a receber" do caixa contava delivery estornado (agora usa a regra da D038: estorno não reabre a dívida); o histórico do seed entregava em bairros fora das áreas ativas; a confirmação de "Desvincular" da página local do agente usava JavaScript inline, bloqueado pela própria CSP (agora é uma página de confirmação); o `kds.mjs` sai da tela cheia antes de redimensionar (Chromium no Linux).
+- `pnpm db:seed` e `pnpm db:reset` passam pelo Turborepo e compilam antes o `@app/shared` (funcionam num clone novo). Os roteiros usam o Edge no Windows e o Chromium do Playwright no Linux (`tools/ui-walkthrough/browser.mjs`).
+- Migrations: `auth_tenancy`, `menu`, `orders`, `tables_pos`, `kds`, `delivery`, `digital_menu`, `printing` e `reports` (preenche o dia de negócio dos pagamentos e pedidos antigos).
+- O seed **não** configura impressão; gera **90 dias de histórico** para o dashboard (~20 s no total).
+- **Agente de impressão no Surface:** o serviço `app-print-agent` ficou instalado no Windows (aponta para a API local, não vinculado). Não serve para o teste de reinicialização (o Smart App Control contamina o resultado); pode ser removido em Configurações › Aplicativos quando quiser.
 
 ### Desktop de casa, na próxima sessão
 
-1. `git pull` na `main` e `pnpm install` (pacote novo `apps/print-agent`, com `esbuild`, `socket.io-client` e `postject`).
-2. `pnpm --filter @app/api db:deploy` (migration `printing`) e `pnpm db:seed`. Nenhuma variável nova obrigatória no `.env` (opcional no painel: `NEXT_PUBLIC_PRINT_AGENT_DOWNLOAD_URL`, link do instalador).
-3. Para ver a impressão funcionando sem impressora: `pnpm start:lite`, depois `pnpm --filter @app/print-agent build` e `pnpm --filter @app/print-agent start:virtual`, e siga docs/SETUP.md ("Agente de impressão").
+1. `git fetch`, `git checkout main`, `git pull`.
+2. `pnpm install` (novidades desde a última vez no desktop: `apps/print-agent` com `esbuild`, `socket.io-client` e `postject`; `packages/ui` ganhou o `popover`).
+3. `pnpm --filter @app/api db:deploy` (migrations `printing` e `reports`) e `pnpm db:seed` (90 dias de histórico; termina com "✔ Histórico: … pedidos em 90 dias").
+4. **Teste de reinicialização do agente de impressão** (reservado para o desktop): `winget install --id JRSoftware.InnoSetup -e --scope user`; `pnpm --filter @app/print-agent package -- --api http://localhost:3333/api`; instalar `apps/print-agent/release/instalar-impressao.exe` (pede administrador); com `pnpm start:lite` rodando, vincular pela página `http://127.0.0.1:9180` (Configurações › Impressão › Adicionar computador) e cadastrar uma impressora virtual; **reiniciar o Windows** e conferir que o serviço sobe sozinho (`(Get-Service app-print-agent).Status` = Running), que a página local mostra "Conectado" e que a página de teste imprime (arquivo em `C:\ProgramData\app-print-agent\impressoes`). Confira também o novo "Desvincular este computador" (abre a confirmação "Sim, desvincular"/"Cancelar"). Se o desktop também tiver o Smart App Control ligado, registre o resultado: reforça a assinatura de código (ROADMAP).
+5. Depois, a proposta da `feat/table-qr` (abaixo).
+
+### Surface, na próxima sessão
+
+Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/projetos/GastroHub_v2` e `claude` (ou VS Code conectado ao WSL). Lá: `git fetch`, `git pull`, `pnpm infra:up` (Docker Desktop aberto) e seguir os próximos passos.
 
 ### Etapas concluídas
 
@@ -34,9 +44,11 @@
 | `fix/pg-concurrent-queries` | Leituras com várias relações dentro de transação carregam uma relação por vez (`findFirstSequential`); o e2e reprova consultas paralelas na mesma conexão |
 | `feat/printing` | Agente de impressão local (serviço do Windows, executável único, instalador Inno Setup + WinSW, página de vínculo em 127.0.0.1:9180, credencial com DPAPI), vários computadores por unidade com status no painel; impressoras de rede, USB/compartilhadas (spooler RAW) e virtuais; perfis Elgin, Bematech, Epson, Daruma, Tanca e genéricos, "sem acentos" e página de teste com acentos; fila no banco gravada na transação do pedido (comanda por setor com 1–3 vias, "CANCELADO", via de entrega no aceite), confirmação por tentativa, novas tentativas, "POSSÍVEL 2ª VIA", "IMPRESSÃO ATRASADA", retenção com decisão no painel e 2ª via auditada; alertas no topo; pré-conta, fechamento de caixa e acerto direto na impressora do caixa (navegador continua como alternativa); memória medida ~60 MB |
 | `feat/digital-menu` | App `menu` com a marca do restaurante (cor, logo, capa; a nossa só no "feito com"), renderizado no servidor com cache atualizado pela API, SEO e imagem de prévia de link; aberto/fechado com próxima abertura; item com complementos, pizza e combos pelas funções do shared; checkout com área, taxa, mínimo, "grátis acima de", cupom, pagamento na entrega (troco, cartão, PIX), consentimento LGPD e "Não é você?"; limites contra trote (telefone, IP largo, pendentes), honeypot e telefones bloqueados; recusa com motivo para o cliente e nota interna; acompanhamento em tempo real por token não adivinhável com QR do PIX após o aceite e "Já paguei" (visível no kanban, caixa e entregador); configurações em Configurações › Cardápio digital |
+| `feat/dashboard` | Dashboard do dia em tempo real (faturamento com quebra, ticket alternável, comparação com a semana anterior ou a média de 4 semanas até o mesmo momento, "Atenção agora", canais, mais vendidos, pedidos por hora, conciliação exata com o caixa, visão de rede); relatórios por período (vendas com curva ABC e mapa de calor, pagamentos, garçons, controle de perdas, tempos de preparo) com CSV e impressão A4; gráficos em SVG próprio com tokens do tema; 90 dias de histórico determinístico no seed |
 
 ### Decisões recentes (detalhes em DECISOES.md)
 
+- **D038 Relatórios:** faturamento = pedidos concluídos no dia de negócio da conclusão; "a receber" à parte (total − tudo o que já foi pago; estorno não reabre a dívida, regra também do "a receber" do caixa); estorno de concluído abatido no dia do estorno; pagamentos guardam o dia de negócio do caixa; conciliação exata testada no e2e; comparação até o mesmo momento do dia.
 - **D035 Agente de impressão:** agente próprio como serviço do Windows (navegador fica como alternativa manual; D012 substituída na impressão automática); vários por unidade; papel `PRINT_AGENT` que só imprime; vínculo por código com os limites do KDS; credencial com DPAPI, sem rotação; só conexões de saída; perfis por marca; meta de memória até 80 MB (medido ~60 MB); Windows 10 1809+ ou 11, 64 bits.
 - **D036 Fila:** outbox na transação do evento com `dedupeKey`; arrendamento de 60 s e confirmação por tentativa; novas tentativas 5 s/15 s/30 s/1 min; lease vencido → "POSSÍVEL 2ª VIA"; mais de 2 min → "IMPRESSÃO ATRASADA"; mais de 30 min (configurável) → retido para imprimir ou descartar; 2ª via auditada; alertas no painel.
 - **D037 Documentos:** funções puras do shared (prévia = papel), 58 mm/32 colunas e 80 mm/48 colunas, "Não é documento fiscal" nos documentos do cliente.
@@ -55,15 +67,11 @@
 
 ## Próximos passos (nesta ordem)
 
-### 1. Etapa `feat/dashboard` — proposta apresentada, aguardando aprovação
+### 1. Antes do lançamento (não é etapa de código agora)
 
-Proposta apresentada na sessão de 2026-10-08 (definições de faturamento, recebimentos e conciliação com o caixa e o relatório de entregas; dashboard do dia em tempo real com comparação; relatórios por período com curva ABC e mapa de calor; prevenção de perdas; tempos do KDS; consolidado da rede para o dono; CSV e impressão; celular; desempenho com `Payment.businessDate` e tabelas de resumo condicionadas a medição; gráficos em SVG próprio com tokens; seed com 90 dias). Esperar as respostas às perguntas da proposta e seguir a ordem de sempre.
+**Assinatura de código agora é requisito obrigatório** (Smart App Control do Windows 11; ver ROADMAP, com a pesquisa do serviço de assinatura da Microsoft no Azure para empresas no Brasil). Certificado de assinatura de código para o `instalar-impressao.exe` e o `print-agent.exe` (ROADMAP, "Antes do lançamento"). O instalador já é gerado por `pnpm --filter @app/print-agent package -- --api <url>` (Inno Setup instalado no Surface por winget, por usuário; WinSW baixado da release oficial com SHA-256 fixado) e foi testado neste computador: instalação, serviço automático como LocalSystem, vínculo pela página local, impressão virtual, atualização por cima mantendo o vínculo e desinstalação limpa (serviço, programa e `C:\ProgramData\app-print-agent` com a credencial removidos). Reinício automático em falha testado em 2026-10-08 (agente morto: volta em 10 s; serviço morto: volta em 19 s, depois da correção `fix/print-agent-orphan`, em que o agente sai junto com o serviço e espera a porta liberar). O serviço ficou instalado no Surface, mas o teste de reinicialização ficou **reservado para o desktop de casa** (passo 4 acima). Falta: esse teste e uma impressora térmica física (rede e USB). No desktop de casa, para gerar o instalador: `winget install --id JRSoftware.InnoSetup -e --scope user`.
 
-### 2. Antes do lançamento (não é etapa de código agora)
-
-Certificado de assinatura de código para o `instalar-impressao.exe` e o `print-agent.exe` (ROADMAP, "Antes do lançamento"). O instalador já é gerado por `pnpm --filter @app/print-agent package -- --api <url>` (Inno Setup instalado no Surface por winget, por usuário; WinSW baixado da release oficial com SHA-256 fixado) e foi testado neste computador: instalação, serviço automático como LocalSystem, vínculo pela página local, impressão virtual, atualização por cima mantendo o vínculo e desinstalação limpa (serviço, programa e `C:\ProgramData\app-print-agent` com a credencial removidos). Reinício automático em falha testado em 2026-10-08 (agente morto: volta em 10 s; serviço morto: volta em 19 s, depois da correção `fix/print-agent-orphan`, em que o agente sai junto com o serviço e espera a porta liberar). O serviço **ficou instalado no Surface** (aponta para a API local, não vinculado) para o usuário testar a reinicialização do Windows. Falta: esse teste de reinicialização (com o usuário) e uma impressora térmica física (rede e USB). No desktop de casa, para gerar o instalador: `winget install --id JRSoftware.InnoSetup -e --scope user`.
-
-### 3. Etapa `feat/table-qr` — apresentar a proposta ANTES de codar
+### 2. Etapa `feat/table-qr` — apresentar a proposta ANTES de codar
 
 QR Code na mesa: o cliente sentado no salão faz o pedido pelo celular e os itens viram rodadas na conta da mesa (sessão). Decidido na `feat/digital-menu`: etapa própria, logo depois, reaproveitando os componentes do `apps/menu` (cardápio, montagem de item, carrinho, preço pelo shared).
 
@@ -75,13 +83,13 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-Nenhuma no momento.
+- Nenhuma no momento. A proposta da `feat/table-qr` será apresentada para aprovação antes de codar.
 
 ## Lembretes de ambiente
 
 - **Testar no celular:** `pnpm start:lite --menu --lan` e `pnpm lan:links` (mesma rede Wi-Fi; regra do firewall em docs/SETUP.md). Prévia do link no WhatsApp: `pnpm tunnel:menu` (túnel temporário que se fecha em 30 min; expõe o ambiente de desenvolvimento).
 
-- Surface (8 GB): `.env` com `POSTGRES_PORT=5433`, `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1`. Playwright headless, um navegador, sem paralelismo; pare os servidores antes de builds.
+- Surface (8 GB, projeto no WSL limitado a 5 GB + 8 GB de troca pelo `C:\Users\braia\.wslconfig`): `.env` com `POSTGRES_PORT=5433`, `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1`. Playwright headless, um navegador, sem paralelismo; pare os servidores antes de builds.
 - Depois de reiniciar o Windows, abra o Docker Desktop antes do `pnpm test:e2e`/`start:lite` (o `global-setup` do e2e falha com "dockerDesktopLinuxEngine" se o engine estiver parado).
 - Roteiros visuais: `pnpm db:seed` antes de cada um (eles alteram pedidos e saídas).
 - Repositório público: nunca commitar `.env`, segredos ou dados reais; conferir `git diff --cached` antes de cada push.

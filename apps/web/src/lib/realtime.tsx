@@ -10,6 +10,7 @@ import { cashKeys } from './cash';
 import { deliveryKeys } from './delivery';
 import { orderKeys } from './orders';
 import { printKeys } from './printing';
+import { reportKeys } from './reports';
 
 export type RealtimeStatus = 'connecting' | 'online' | 'offline';
 
@@ -49,11 +50,21 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     socketRef.current = socket;
     let hadConnection = false;
 
+    // The dashboard recomputes the day: a burst of order events refreshes it once.
+    let reportsTimer: ReturnType<typeof setTimeout> | null = null;
+    const refreshReports = () => {
+      if (reportsTimer) return;
+      reportsTimer = setTimeout(() => {
+        reportsTimer = null;
+        void queryClient.invalidateQueries({ queryKey: [...reportKeys.all, 'day'] });
+      }, 2000);
+    };
     const refetchAll = () => {
       void queryClient.invalidateQueries({ queryKey: orderKeys.all });
       void queryClient.invalidateQueries({ queryKey: orderKeys.tables });
       void queryClient.invalidateQueries({ queryKey: cashKeys.all });
       void queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
+      refreshReports();
     };
     // Server-side disconnects (expired token) are not retried automatically.
     const reconnectWithFreshToken = async () => {
@@ -83,6 +94,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       void queryClient.invalidateQueries({ queryKey: orderKeys.detail(event.id) });
       void queryClient.invalidateQueries({ queryKey: orderKeys.tables });
       void queryClient.invalidateQueries({ queryKey: cashKeys.receivables });
+      refreshReports();
     });
     socket.on(REALTIME_EVENTS.CASH_UPDATED, () => {
       void queryClient.invalidateQueries({ queryKey: cashKeys.all });
@@ -108,6 +120,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       document.removeEventListener('visibilitychange', onFocus);
       window.removeEventListener('online', onFocus);
+      if (reportsTimer) clearTimeout(reportsTimer);
       socket.removeAllListeners();
       socket.disconnect();
       socketRef.current = null;

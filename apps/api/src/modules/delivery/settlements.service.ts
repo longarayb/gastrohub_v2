@@ -234,6 +234,7 @@ export class SettlementsService {
             receivedCents: s.method === 'CASH' ? (received ?? amountCents) : null,
             changeCents: s.method === 'CASH' ? (received ?? amountCents) - amountCents : null,
             cashSessionId: usesCashRegister(s.method) ? session.id : null,
+            businessDate: session.businessDate,
             externalRef: s.method === 'PIX' ? order.publicCode : null,
             createdById: userId,
           },

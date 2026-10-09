@@ -27,11 +27,11 @@ O nome **GastroHub é provisório**. Nada no código, nos pacotes ou na infraest
 
 ## Ambiente
 
-- Windows, pasta raiz do monorepo (não criar subpasta): `C:\GastroHub_v2` no Surface, `D:\GastroHub_v2` no desktop de casa (ver "Trabalho em várias máquinas").
+- Pasta raiz do monorepo (não criar subpasta): **no Surface, `~/projetos/GastroHub_v2` dentro do WSL** (Ubuntu 24.04; desde 2026-10-08, por causa do Smart App Control); **no desktop de casa, `D:\GastroHub_v2`** no Windows (ver "Trabalho em várias máquinas"). No Surface, `C:\GastroHub_v2` é **cópia antiga, sem uso: não editar nem apagar**.
 - Portas do Docker no host vêm do `.env` de cada máquina (`POSTGRES_PORT`, `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`; padrão 5432/6379/1025/8025 no `.env.example`); `DATABASE_URL`, `REDIS_URL` e `SMTP_PORT` as referenciam com `${...}`. Quem lê o `.env` precisa expandir variáveis: Next (`@next/env`) já expande; na API, use `expand(loadEnv(...))` do `dotenv-expand` e `expandVariables: true` no `ConfigModule`. Nunca troque a porta no `.env.example` para resolver conflito de uma máquina.
 - Repositório: https://github.com/longarayb/gastrohub_v2 (público), branch `main`.
 - Node 24 LTS, pnpm via corepack, Docker Desktop (WSL2), Git.
-- Scripts do `package.json` precisam funcionar em PowerShell e Git Bash: usar `cross-env`, `rimraf`, scripts Node em `scripts/`. Nada de `rm -rf`, `export`, `&&` dependente de shell Unix.
+- Scripts do `package.json` precisam funcionar em PowerShell, Git Bash **e Linux (WSL)**: usar `cross-env`, `rimraf`, scripts Node em `scripts/`. Nada de `rm -rf`, `export`, `&&` dependente de shell Unix.
 - Line endings: LF (`.gitattributes` + Prettier `endOfLine: "lf"`). `.ps1/.cmd` em CRLF.
 
 ## Trabalho em várias máquinas (seguir sempre)
@@ -40,7 +40,7 @@ O usuário alterna o projeto entre dois computadores, **um por vez**: o **Surfac
 
 | Máquina | Pasta | `.env` local | Memória |
 |---|---|---|---|
-| Surface (hostname `Infra`) | `C:\GastroHub_v2` | `POSTGRES_PORT=5433` (outro projeto Docker, `C:\GastroHub`, usa a 5432), `CHECK_CONCURRENCY=1`, `NEXT_BUILD_CPUS=1` | 8 GB: concorrência 1 em testes e build |
+| Surface (hostname `Infra`) | **WSL** (Ubuntu-24.04): `~/projetos/GastroHub_v2` · `C:\GastroHub_v2` é cópia antiga sem uso | `POSTGRES_PORT=5433` (outro projeto Docker, `C:\GastroHub`, usa a 5432), `CHECK_CONCURRENCY=1`, `NEXT_BUILD_CPUS=1` | 8 GB; WSL limitado a 5 GB + 8 GB de troca (`.wslconfig`). Concorrência 1 em testes e build. **Smart App Control ligado** (bloqueia executáveis do Windows sem assinatura, como o pnpm): não desligar nem contornar; por isso o projeto vive no WSL (docs/SETUP.md). Claude Code aberto dentro do WSL |
 | Desktop de casa | `D:\GastroHub_v2` | portas padrão | concorrência padrão (2) |
 
 - **Ao iniciar uma sessão:** `git fetch`, `git pull` da branch atual e da `main` (sem reescrever histórico; se houver conflito ou divergência, parar e avisar o usuário) e ler `docs/HANDOFF.md`.
@@ -146,20 +146,22 @@ Validação completa antes de merge: `pnpm check` (imports versionados + build +
 - **Entregas (D029–D031):** área e taxa só pelo `DeliveryPricingService` (módulo de pedidos): `locate` (geocodificação) **fora** da transação, `apply` dentro, depois do `recalculate`. Saída, parada, entregue e não entregue só pelo `DispatchService`; `OrdersService.dispatchInTx` é a única porta para `DISPATCHED` com vários pedidos (kanban e KDS). Acerto e pagamentos ao entregador no módulo `delivery` com `CashService.lockOpenSession` (exportado pelo `CashModule`). O geocodificador recebe só o endereço (LGPD) e é `none` nos testes. O entregador (`courier:app`) só acessa `/courier/*` e vê a própria saída aberta. Eventos `delivery.updated` são emitidos pelo `OrdersService.publish` em pedidos de delivery.
 - **Cardápio digital (D032–D034):** rotas públicas em `/public/:slug/...` (`@Public()` + `PublicStoreGuard`, que resolve o slug pelo client raw e monta o tenant); o resto usa os serviços de sempre. O cliente nunca define preço: prévia e pedido são calculados no servidor (`PublicMenuService.evaluate`). Pedido do cardápio = `OrdersService.create` com `source: 'DIGITAL_MENU'`. Acompanhamento só por `trackingToken` (sem dados pessoais) e namespace `/tracking`. A marca no `apps/menu` é a do restaurante (`storeCssVariables`); a nossa só no "feito com". **Bundle do celular:** não importe schemas Zod nem libs pesadas em componentes do `apps/menu`; regra pura usada no navegador não pode morar num arquivo de schema (o `z.object` no topo do módulo entra no bundle). Mudanças em cardápio/loja/áreas atualizam o cache do cardápio pelo `MenuRevalidationInterceptor`.
 - **Impressão (D035–D037):** trabalho de impressão só pelo `PrintQueueService` (módulo `printing`, importado pelo de pedidos): `orderTickets` (pedido aceito e rodadas enviadas, só as rodadas passadas), `deliveryCopy` (aceite do delivery) e `canceled` (reescreve a comanda que não saiu ou gera "CANCELADO"), sempre **dentro da transação** e depois do `updateVersioned`; os agentes são avisados depois do commit pelo `flush()` (o `OrdersService.publish` já chama). Automáticos com `dedupeKey` (nunca duplicam); manuais e 2ª via sem chave, com `reprintOfId` e auditoria. Documentos só pelas funções puras de `shared/printing/documents.ts` (prévia do painel = o que o agente imprime). O agente (`apps/print-agent`) é bundle esbuild sem Zod (constantes de impressora ficam em `domain/printing.ts`, não no arquivo de schema); papel `PRINT_AGENT` só acessa `/print-agent/*` e a sala `print-agent:{id}`. Meta de memória do agente: até 80 MB.
+- **Relatórios (D038):** definições só em `shared/domain/reports.ts` (faturamento, conciliação, comparação, ABC, durações) e textos do ⓘ em `REPORT_HELP`. Pedido conta pelo `closedBusinessDate` (gravado no `changeStatus` ao concluir ou cancelar); pagamento e estorno pelo `businessDate`/`refundBusinessDate` (dia do caixa, ou o corrente se online) — novo ponto que cria pagamento ou estorno precisa gravá-los. Para filtrar instantes por período de dias de negócio use `businessDayWindow` (no banco) ou `businessDateResolver` (em memória), nunca `currentBusinessDay` por linha. Agregue no banco (`groupBy`/`aggregate`) em períodos longos. Visão da rede = calcular cada unidade com `TenantContext.run` e somar. Componentes do dashboard em `components/reports` seguem docs/DESIGN.md só com tokens.
+- **Seed com histórico:** `prisma/seed/history.ts` monta tudo em memória com as funções puras e insere em lote (`jsonb_populate_recordset`); determinístico (semente fixa). Ao criar coluna obrigatória num modelo do histórico, preencha-a lá também. `HISTORY_DAYS=365` para medir desempenho.
 - **Frontend — PDV:** atalhos com `useHotkeys` (`lib/hotkeys.ts`; teclas comuns não disparam enquanto se digita). Impressão com `PrintPortal` (renderiza em `.print-area`, largura `w-receipt`); QR Code com `QrCode` (tokens `qr-*`, sempre escuro no claro). Formulário com dados assíncronos: monte-o depois que os dados chegarem (`form.reset` em `useEffect` não alcança campos montados no mesmo ciclo).
 - **Rotas tipadas do Next:** ao criar uma página nova, rode `npx next typegen` em `apps/web` antes do `tsc`, senão `href="/nova-rota"` não compila.
 - **Roteiros visuais:** feche um diálogo de cada vez esperando a animação (`closeDialog`/`closeAll` em `pos.mjs`); dois `Escape` seguidos perdem o segundo. O limite de login vem de `LOGIN_RATE_LIMIT_PER_MINUTE` (produção: 10, o padrão; o `.env` de desenvolvimento usa 300 para os roteiros rodarem em sequência). O `kds.mjs` instrumenta o `AudioContext` para conferir os sons.
 - **Imagens:** sempre via `ImageService` (WebP); o banco guarda chaves (`imageKey`), nunca URLs.
-- **Seed:** `apps/api/prisma/seed` (re-executável; usa o client raw com `tenantId` explícito). Ao criar uma tabela de tenant nova, inclua-a em `TENANT_TABLES` do seed.
+- **Seed:** `apps/api/prisma/seed` (re-executável; usa o client raw com `tenantId` explícito). Ao criar uma tabela de tenant nova, inclua-a em `TENANT_TABLES` do seed. `pnpm db:seed` e `pnpm db:reset` passam pelo Turborepo e compilam antes os pacotes de que a API depende (`dependsOn: ["^build"]`): funcionam num clone novo.
 - **.gitignore:** regras de pastas genéricas devem ser ancoradas na raiz (`/storage/`); `pnpm check` falha se um arquivo versionado importar um arquivo não versionado (`scripts/check-tracked-imports.mjs`).
-- **Teste visual das telas:** roteiros Playwright em `tools/ui-walkthrough/` (fora do workspace pnpm; `npm install` na pasta) contra o build de produção (`pnpm start:lite`) e o seed. Edge headless, um navegador, sem paralelismo. Ao criar uma etapa com telas, acrescente um roteiro novo ali.
+- **Teste visual das telas:** roteiros Playwright em `tools/ui-walkthrough/` (fora do workspace pnpm; `npm install` na pasta) contra o build de produção (`pnpm start:lite`) e o seed. Navegador por `browser.mjs`: Edge instalado no Windows, Chromium do Playwright no Linux/WSL (`npx playwright-core install chromium` uma vez e as bibliotecas `libnss3 libnspr4 libasound2t64`); sempre headless, um navegador, sem paralelismo. Ao criar uma etapa com telas, acrescente um roteiro novo ali.
 
 ## Estrutura
 
 ```
 apps/api      apps/web      apps/menu
 packages/shared  packages/ui  packages/config
-docs/ARQUITETURA.md  docs/DECISOES.md  docs/ROADMAP.md
+docs/ARQUITETURA.md  docs/DECISOES.md  docs/ROADMAP.md  docs/DESIGN.md
 scripts/      docker/       docker-compose.yml
 ```
 

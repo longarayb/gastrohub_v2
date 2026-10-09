@@ -124,6 +124,12 @@ export class OrdersService {
     return store;
   }
 
+  /** Current business day of the store (night shifts belong to the day they started). */
+  async businessDate(now = new Date()): Promise<string> {
+    const store = await this.store();
+    return currentBusinessDay(await this.menu.hours(), now, store.timezone).date;
+  }
+
   private async findDetail(id: string, client: Db | DbTx = this.db): Promise<OrderDetailRow> {
     const order = await client.order.findFirst({ where: { id }, include: orderDetailInclude });
     if (!order) throw new NotFoundError('Pedido');
@@ -355,6 +361,17 @@ export class OrdersService {
       orderBy: { createdAt: 'desc' },
       take: 300,
     });
+    if (query.receivable && orders.length) {
+      // A refund does not reopen the debt (D038): receivable only while the total is above
+      // everything ever paid on the order, refunded payments included.
+      const paid = await this.db.payment.groupBy({
+        by: ['orderId'],
+        where: { orderId: { in: orders.map((o) => o.id) } },
+        _sum: { amountCents: true },
+      });
+      const gross = new Map(paid.map((p) => [p.orderId, p._sum.amountCents ?? 0]));
+      return orders.filter((o) => o.totalCents > (gross.get(o.id) ?? 0)).map(toOrderSummary);
+    }
     return orders.map(toOrderSummary);
   }
 
@@ -907,6 +924,8 @@ export class OrdersService {
             if (unpaid) throw new ValidationError(unpaid);
           }
           data.deliveredAt = now;
+          // Reports count the order on the day it was concluded (D038).
+          data.closedBusinessDate = await this.businessDate(now);
           await this.production.completeOrder(tx, id, now);
           await tx.orderItem.updateMany({
             where: { orderId: id, status: { in: ['QUEUED', 'PREPARING', 'READY'] } },
@@ -921,6 +940,7 @@ export class OrdersService {
             throw new ValidationError('Estorne os pagamentos antes de cancelar o pedido');
           }
           data.canceledAt = now;
+          data.closedBusinessDate = await this.businessDate(now);
           data.canceledById = this.ctx.userId ?? null;
           data.cancelReason = input.reason;
           if (input.customerReject) {

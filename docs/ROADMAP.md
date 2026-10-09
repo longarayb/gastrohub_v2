@@ -15,7 +15,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Delivery (áreas por bairro ou raio com taxa, tempo e mínimo; saída com vários pedidos; app do entregador; não entregue e reenvio; acerto no caixa com remuneração e saldo; relatório) | `feat/delivery` | ✅ |
 | Cardápio digital (app `menu`: marca do restaurante, carrinho com complementos/pizza/combos, entrega ou retirada, pagamento na entrega, limites contra trote, acompanhamento em tempo real com PIX e "Já paguei", LGPD, SEO e prévia de link) | `feat/digital-menu` | ✅ |
 | Impressão (agente local no Windows, vários por unidade; comanda por setor automática com vias, "CANCELADO", via de entrega, pré-conta, fechamento de caixa e acerto; perfis Elgin, Bematech, Epson, Daruma e Tanca; fila com confirmação, atraso, retenção e 2ª via; alertas no painel) — sem cupom fiscal | `feat/printing` | ✅ |
-| Dashboard e relatórios | `feat/dashboard` | ⏳ próxima |
+| Dashboard e relatórios (dashboard do dia em tempo real com comparação e "Atenção agora"; vendas com curva ABC e mapa de calor; controle de perdas; tempos do KDS; rede para o dono; CSV e impressão; conciliação exata com o caixa; 90 dias de histórico no seed) | `feat/dashboard` | ✅ |
 | QR Code na mesa (pedido pelo celular no salão, rodadas na conta da mesa) | `feat/table-qr` | ⏳ |
 | Seed de demonstração e documentação | `chore/seed-docs` | ⏳ |
 
@@ -23,12 +23,15 @@ Ordem combinada (2026-10-07): fechar o escopo do MVP primeiro — impressão, de
 
 ## Antes do lançamento (importante)
 
-- **Certificado de assinatura de código para o agente de impressão** (`instalar-impressao.exe` e `print-agent.exe`). Sem ele o Windows mostra o alerta do SmartScreen ("O Windows protegeu o computador"), que assusta o cliente e parece vírus. Quando chegar a hora, pesquisar as opções mais baratas: certificados OV de autoridades e revendedores (Sectigo, Certum, SSL.com e revendas) e o Azure Trusted Signing (assinatura na nuvem com mensalidade; exige empresa com histórico). Desde 2023 a chave precisa ficar em token físico ou HSM na nuvem — considerar isso no custo.
+- **Assinatura de código do agente de impressão — requisito obrigatório** (`instalar-impressao.exe`, `print-agent.exe` e o `PrintAgentService.exe` do WinSW, que também não é assinado). Motivo (2026-10-08): o **Smart App Control do Windows 11** bloqueia executáveis sem assinatura nem reputação — no Surface ele passou a bloquear até o `pnpm-native.exe`. Num computador de restaurante com Windows 11 recém-instalado (o Smart App Control vem ligado em instalações novas), o agente pode simplesmente não rodar; não é mais só o aviso do SmartScreen. Antes do lançamento, pesquisar e decidir:
+  - **Serviço de assinatura da Microsoft no Azure** (Trusted Signing, renomeado para Artifact Signing): verificar **se está disponível para empresas no Brasil** (no início era restrito a EUA, Canadá, UE e Reino Unido para organizações), o **custo mensal**, as exigências de validação da empresa (tempo de existência, documentos) e, principalmente, **se a assinatura dá reputação imediata no Smart App Control** (ou se ainda depende de reputação acumulada).
+  - **Certificados OV e EV** de autoridades e revendedores (Sectigo, Certum, SSL.com, DigiCert e revendas brasileiras): custo anual, exigência de token físico ou HSM na nuvem (obrigatória desde 2023) e efeito no Smart App Control (EV historicamente dava reputação imediata no SmartScreen; confirmar para o Smart App Control).
+  - Testar o instalador assinado num Windows 11 com o Smart App Control ligado antes de distribuir.
 - Publicar o instalador num endereço fixo (`NEXT_PUBLIC_PRINT_AGENT_DOWNLOAD_URL` mostra o botão "Baixar instalador") e atualização automática do agente.
 
 ## Redesign visual (planejado)
 
-O layout será refeito trocando o tema (`packages/ui/src/styles/globals.css`), sem reescrever as telas. Referência pedida pelo usuário (imagem não versionada, pois contém dados reais): dashboard escuro em azul-marinho, cards de KPI com borda lateral colorida, gráficos de barras e de rosca, tipografia limpa e bastante espaço entre os blocos. As telas usam apenas tokens do tema (`bg-card`, `text-muted-foreground`, `status-*`, `w-kanban-column`, raios de `--radius`).
+Especificação validada em [DESIGN.md](DESIGN.md) (2026-10-08); os componentes do dashboard já seguem a estrutura. O layout será refeito trocando o tema (`packages/ui/src/styles/globals.css`), sem reescrever as telas. Referência pedida pelo usuário (imagem não versionada, pois contém dados reais): dashboard escuro em azul-marinho, cards de KPI com borda lateral colorida, gráficos de barras e de rosca, tipografia limpa e bastante espaço entre os blocos. As telas usam apenas tokens do tema (`bg-card`, `text-muted-foreground`, `status-*`, `w-kanban-column`, raios de `--radius`).
 
 ## Fase 2+ (arquitetura preparada, não implementado)
 

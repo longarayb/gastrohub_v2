@@ -39,6 +39,14 @@
       "dependsOn": ["^build"],
       "cache": false
     },
+    "db:seed": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "db:reset": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
     "clean": {
       "cache": false
     }

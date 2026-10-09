@@ -2,17 +2,26 @@
 
 export const DEFAULT_TIMEZONE = 'America/Sao_Paulo';
 
+// Creating an Intl.DateTimeFormat is expensive: one per timezone, reused (reports convert
+// thousands of instants).
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
 function getParts(date: Date, timeZone: string): Record<string, string> {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    weekday: 'short',
-    hourCycle: 'h23',
-  }).formatToParts(date);
+  let formatter = formatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      weekday: 'short',
+      hourCycle: 'h23',
+    });
+    formatters.set(timeZone, formatter);
+  }
+  const parts = formatter.formatToParts(date);
   return Object.fromEntries(parts.map((p) => [p.type, p.value]));
 }
 

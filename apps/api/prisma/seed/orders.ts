@@ -383,6 +383,8 @@ export async function seedOrders(
         dispatchedAt: reached('DISPATCHED'),
         deliveredAt: reached('DELIVERED'),
         canceledAt: reached('CANCELED'),
+        closedBusinessDate:
+          spec.status === 'DELIVERED' || spec.status === 'CANCELED' ? businessDate : null,
         canceledById: spec.status === 'CANCELED' ? spec.userId : null,
         cancelReason: spec.cancelReason ?? null,
         createdAt,
@@ -556,6 +558,7 @@ export async function seedOrders(
         receivedCents,
         changeCents: receivedCents === null ? null : receivedCents - amountCents,
         cashSessionId: options.sessionId,
+        businessDate,
         externalRef: method === 'PIX' ? order.publicCode : (options.externalRef ?? null),
         cardBrand: options.cardBrand ?? null,
         authorizationCode: options.authorizationCode ?? null,
