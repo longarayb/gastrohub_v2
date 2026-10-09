@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { BROWSER } from './browser.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, 'screenshots');
@@ -90,8 +91,7 @@ async function waitPrints(before, count = 1, timeout = 15_000) {
 }
 
 const browser = await chromium.launch({
-  channel: 'msedge',
-  headless: true,
+  ...BROWSER,
   args: ['--disable-gpu', '--disable-extensions'],
 });
 const errors = [];

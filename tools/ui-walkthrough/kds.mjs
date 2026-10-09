@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { chromium } from 'playwright-core';
+import { BROWSER } from './browser.mjs';
 
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'screenshots');
 mkdirSync(OUT, { recursive: true });
@@ -45,8 +46,7 @@ async function apiCall(token, method, p, body, headers = {}) {
 }
 
 const browser = await chromium.launch({
-  channel: 'msedge',
-  headless: true,
+  ...BROWSER,
   args: ['--disable-gpu', '--disable-extensions', '--autoplay-policy=no-user-gesture-required'],
 });
 // Records every tone played (type and frequency) to check the new-ticket and cancel sounds.

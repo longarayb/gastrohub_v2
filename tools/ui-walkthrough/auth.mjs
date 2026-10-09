@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { BROWSER } from './browser.mjs';
 
 // Screenshots go to ./screenshots (gitignored).
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'screenshots');
@@ -25,8 +26,7 @@ const step = async (name, fn) => {
 
 // One headless browser, one page, no parallelism, lean flags (low commit memory on this machine).
 const browser = await chromium.launch({
-  channel: 'msedge',
-  headless: true,
+  ...BROWSER,
   args: [
     '--disable-gpu',
     '--disable-extensions',
