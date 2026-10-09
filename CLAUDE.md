@@ -27,11 +27,11 @@ O nome **GastroHub é provisório**. Nada no código, nos pacotes ou na infraest
 
 ## Ambiente
 
-- Windows, pasta raiz do monorepo (não criar subpasta): `C:\GastroHub_v2` no Surface, `D:\GastroHub_v2` no desktop de casa (ver "Trabalho em várias máquinas").
+- Pasta raiz do monorepo (não criar subpasta): **no Surface, `~/projetos/GastroHub_v2` dentro do WSL** (Ubuntu 24.04; desde 2026-10-08, por causa do Smart App Control); **no desktop de casa, `D:\GastroHub_v2`** no Windows (ver "Trabalho em várias máquinas"). No Surface, `C:\GastroHub_v2` é **cópia antiga, sem uso: não editar nem apagar**.
 - Portas do Docker no host vêm do `.env` de cada máquina (`POSTGRES_PORT`, `REDIS_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`; padrão 5432/6379/1025/8025 no `.env.example`); `DATABASE_URL`, `REDIS_URL` e `SMTP_PORT` as referenciam com `${...}`. Quem lê o `.env` precisa expandir variáveis: Next (`@next/env`) já expande; na API, use `expand(loadEnv(...))` do `dotenv-expand` e `expandVariables: true` no `ConfigModule`. Nunca troque a porta no `.env.example` para resolver conflito de uma máquina.
 - Repositório: https://github.com/longarayb/gastrohub_v2 (público), branch `main`.
 - Node 24 LTS, pnpm via corepack, Docker Desktop (WSL2), Git.
-- Scripts do `package.json` precisam funcionar em PowerShell e Git Bash: usar `cross-env`, `rimraf`, scripts Node em `scripts/`. Nada de `rm -rf`, `export`, `&&` dependente de shell Unix.
+- Scripts do `package.json` precisam funcionar em PowerShell, Git Bash **e Linux (WSL)**: usar `cross-env`, `rimraf`, scripts Node em `scripts/`. Nada de `rm -rf`, `export`, `&&` dependente de shell Unix.
 - Line endings: LF (`.gitattributes` + Prettier `endOfLine: "lf"`). `.ps1/.cmd` em CRLF.
 
 ## Trabalho em várias máquinas (seguir sempre)
@@ -40,7 +40,7 @@ O usuário alterna o projeto entre dois computadores, **um por vez**: o **Surfac
 
 | Máquina | Pasta | `.env` local | Memória |
 |---|---|---|---|
-| Surface (hostname `Infra`) | `C:\GastroHub_v2` | `POSTGRES_PORT=5433` (outro projeto Docker, `C:\GastroHub`, usa a 5432), `CHECK_CONCURRENCY=1`, `NEXT_BUILD_CPUS=1` | 8 GB: concorrência 1 em testes e build. **Smart App Control ligado bloqueia o pnpm** (desde 2026-10-08): não desligar nem contornar; ver HANDOFF e SETUP (alternativa: WSL) |
+| Surface (hostname `Infra`) | **WSL** (Ubuntu-24.04): `~/projetos/GastroHub_v2` · `C:\GastroHub_v2` é cópia antiga sem uso | `POSTGRES_PORT=5433` (outro projeto Docker, `C:\GastroHub`, usa a 5432), `CHECK_CONCURRENCY=1`, `NEXT_BUILD_CPUS=1` | 8 GB; WSL limitado a 5 GB + 8 GB de troca (`.wslconfig`). Concorrência 1 em testes e build. **Smart App Control ligado** (bloqueia executáveis do Windows sem assinatura, como o pnpm): não desligar nem contornar; por isso o projeto vive no WSL (docs/SETUP.md). Claude Code aberto dentro do WSL |
 | Desktop de casa | `D:\GastroHub_v2` | portas padrão | concorrência padrão (2) |
 
 - **Ao iniciar uma sessão:** `git fetch`, `git pull` da branch atual e da `main` (sem reescrever histórico; se houver conflito ou divergência, parar e avisar o usuário) e ler `docs/HANDOFF.md`.
@@ -152,9 +152,9 @@ Validação completa antes de merge: `pnpm check` (imports versionados + build +
 - **Rotas tipadas do Next:** ao criar uma página nova, rode `npx next typegen` em `apps/web` antes do `tsc`, senão `href="/nova-rota"` não compila.
 - **Roteiros visuais:** feche um diálogo de cada vez esperando a animação (`closeDialog`/`closeAll` em `pos.mjs`); dois `Escape` seguidos perdem o segundo. O limite de login vem de `LOGIN_RATE_LIMIT_PER_MINUTE` (produção: 10, o padrão; o `.env` de desenvolvimento usa 300 para os roteiros rodarem em sequência). O `kds.mjs` instrumenta o `AudioContext` para conferir os sons.
 - **Imagens:** sempre via `ImageService` (WebP); o banco guarda chaves (`imageKey`), nunca URLs.
-- **Seed:** `apps/api/prisma/seed` (re-executável; usa o client raw com `tenantId` explícito). Ao criar uma tabela de tenant nova, inclua-a em `TENANT_TABLES` do seed.
+- **Seed:** `apps/api/prisma/seed` (re-executável; usa o client raw com `tenantId` explícito). Ao criar uma tabela de tenant nova, inclua-a em `TENANT_TABLES` do seed. `pnpm db:seed` e `pnpm db:reset` passam pelo Turborepo e compilam antes os pacotes de que a API depende (`dependsOn: ["^build"]`): funcionam num clone novo.
 - **.gitignore:** regras de pastas genéricas devem ser ancoradas na raiz (`/storage/`); `pnpm check` falha se um arquivo versionado importar um arquivo não versionado (`scripts/check-tracked-imports.mjs`).
-- **Teste visual das telas:** roteiros Playwright em `tools/ui-walkthrough/` (fora do workspace pnpm; `npm install` na pasta) contra o build de produção (`pnpm start:lite`) e o seed. Edge headless, um navegador, sem paralelismo. Ao criar uma etapa com telas, acrescente um roteiro novo ali.
+- **Teste visual das telas:** roteiros Playwright em `tools/ui-walkthrough/` (fora do workspace pnpm; `npm install` na pasta) contra o build de produção (`pnpm start:lite`) e o seed. Navegador por `browser.mjs`: Edge instalado no Windows, Chromium do Playwright no Linux/WSL (`npx playwright-core install chromium` uma vez e as bibliotecas `libnss3 libnspr4 libasound2t64`); sempre headless, um navegador, sem paralelismo. Ao criar uma etapa com telas, acrescente um roteiro novo ali.
 
 ## Estrutura
 

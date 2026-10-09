@@ -15,7 +15,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Delivery (áreas por bairro ou raio com taxa, tempo e mínimo; saída com vários pedidos; app do entregador; não entregue e reenvio; acerto no caixa com remuneração e saldo; relatório) | `feat/delivery` | ✅ |
 | Cardápio digital (app `menu`: marca do restaurante, carrinho com complementos/pizza/combos, entrega ou retirada, pagamento na entrega, limites contra trote, acompanhamento em tempo real com PIX e "Já paguei", LGPD, SEO e prévia de link) | `feat/digital-menu` | ✅ |
 | Impressão (agente local no Windows, vários por unidade; comanda por setor automática com vias, "CANCELADO", via de entrega, pré-conta, fechamento de caixa e acerto; perfis Elgin, Bematech, Epson, Daruma e Tanca; fila com confirmação, atraso, retenção e 2ª via; alertas no painel) — sem cupom fiscal | `feat/printing` | ✅ |
-| Dashboard e relatórios (dashboard do dia em tempo real com comparação e "Atenção agora"; vendas com curva ABC e mapa de calor; controle de perdas; tempos do KDS; rede para o dono; CSV e impressão; conciliação exata com o caixa; 90 dias de histórico no seed) | `feat/dashboard` | 🚧 código pronto; falta validar e integrar no desktop de casa (ver HANDOFF) |
+| Dashboard e relatórios (dashboard do dia em tempo real com comparação e "Atenção agora"; vendas com curva ABC e mapa de calor; controle de perdas; tempos do KDS; rede para o dono; CSV e impressão; conciliação exata com o caixa; 90 dias de histórico no seed) | `feat/dashboard` | ✅ |
 | QR Code na mesa (pedido pelo celular no salão, rodadas na conta da mesa) | `feat/table-qr` | ⏳ |
 | Seed de demonstração e documentação | `chore/seed-docs` | ⏳ |
 
