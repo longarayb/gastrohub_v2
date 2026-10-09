@@ -15,7 +15,7 @@ cd ../..
 pnpm db:seed           # dados limpos (os roteiros alteram pedidos)
 pnpm start:lite        # em outro terminal: API 3333 + painel 3000
 cd tools/ui-walkthrough
-npm run orders         # ou: npm run auth / menu / pos / kds / delivery / digital-menu / printing / dashboard
+npm run orders         # ou: npm run auth / menu / keyboard / pos / kds / delivery / digital-menu / printing / dashboard
 ```
 
 Cada roteiro imprime `PASS`/`FAIL` por passo e os erros HTTP/console vistos; capturas de tela ficam em `screenshots/`.
@@ -31,6 +31,8 @@ Cada roteiro imprime `PASS`/`FAIL` por passo e os erros HTTP/console vistos; cap
 - `digital-menu.mjs` (precisa de `pnpm start:lite --menu`): celular com 3G simulado (mede LCP e JS transferido), marca do restaurante, montagem de item e pizza, checkout com área, PIX e consentimento, acompanhamento em tempo real com o aceite no painel e "Já paguei", recusa com motivo para o cliente, "Não é você?", configurações, loja fechada e imagem de prévia do link.
 
 - `printing.mjs` (precisa do bundle do agente: `pnpm --filter @app/print-agent build`, e do Docker para envelhecer um trabalho): computador novo com código, vínculo pela página local do agente real em modo virtual (código errado e certo), impressoras (validação do IP, modelo, 58 mm), página de teste com acentos, setores com vias e impressora do caixa, comandas por setor conferidas nos arquivos, 2ª via e histórico no detalhe do pedido, pré-conta direto no caixa, trabalho retido com o agente desligado e liberado pelo alerta (sai como atrasado), tema escuro, celular e desvínculo imediato; no fim remove as impressoras.
+
+- `keyboard.mjs`: novo pedido só com o teclado (busca com foco, setas e Enter, quantidade, complementos, observação, F4/F6/F7/F9), sem nenhum clique depois do login.
 
 - `dashboard.mjs`: dashboard do dia (indicadores, ⓘ, ticket total/só produtos, média de 4 semanas, pedido novo em tempo real, conciliação), celular sem rolagem lateral e áreas de toque ≥ 44 px, tema escuro, Vendas (90 dias, curva ABC, mapa de calor, CSV com BOM, impressão A4), Controle de perdas (por usuário, "depois da produção"), Tempos (limite de 120 dias) e permissões (caixa sem acesso, gerente sem a visão da rede). Usa o histórico de 90 dias do seed.
 

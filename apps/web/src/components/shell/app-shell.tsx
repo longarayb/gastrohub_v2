@@ -159,7 +159,7 @@ function UserCard({ compact = false }: { compact?: boolean }) {
           <button
             type="button"
             aria-label="Menu do usuário"
-            className="flex size-11 items-center justify-center rounded-full lg:hidden"
+            className="flex size-11 items-center justify-center rounded-full xl:hidden"
           >
             {avatar}
           </button>
@@ -258,14 +258,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh">
-      <aside className="sticky top-0 hidden h-dvh w-68 shrink-0 border-r lg:block">
+      <aside className="sticky top-0 hidden h-dvh w-68 shrink-0 border-r xl:block">
         <Sidebar />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur lg:px-8">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur xl:px-8">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Abrir menu">
+              <Button variant="ghost" size="icon" className="xl:hidden" aria-label="Abrir menu">
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>

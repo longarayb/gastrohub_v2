@@ -6,7 +6,7 @@
 
 ## Estado atual
 
-- `main` tem tudo até o **dashboard e relatórios** (merge da `feat/dashboard`). Todas as branches estão no GitHub. **Frente em andamento:** `feat/redesign` (fases A e B prontas; fase A aprovada, fase B aguardando a aprovação visual do usuário). Ela **não altera o schema do Prisma**; outra branch pode alterá-lo se for preciso.
+- `main` tem tudo até o **dashboard e relatórios** (merge da `feat/dashboard`). Todas as branches estão no GitHub. **Frente em andamento:** `feat/redesign` (fases A, B e C prontas; A e B aprovadas, C aguardando a aprovação visual do usuário). Ela **não altera o schema do Prisma**; outra branch pode alterá-lo se for preciso.
 - **Surface agora trabalha dentro do WSL** (Ubuntu-24.04, `~/projetos/GastroHub_v2`), porque o Smart App Control (ligado; decisão do usuário: **não desligar nem contornar**) bloqueia executáveis do Windows sem assinatura, como o `pnpm-native.exe`. Os programas do Linux não são afetados. `C:\GastroHub_v2` ficou como **cópia antiga, sem uso: não editar nem apagar**. Passo a passo e dicas em docs/SETUP.md ("O projeto inteiro dentro do WSL"). O desktop de casa continua no Windows (`D:\GastroHub_v2`).
 - Validado no WSL antes do merge: `pnpm check` 22/22 (~3,5 min), `pnpm format:check`, e2e 100/100 e **os 9 roteiros visuais com seed limpo antes de cada um** (auth 19, menu 15, orders 18, pos 12, kds 8, delivery 16, digital-menu 11, printing 13, dashboard 12 — tudo PASS, "inesperados: 0"). O painel abre no navegador do Windows por `localhost`.
 - Os roteiros com o seed novo acharam e corrigiram: "a receber" do caixa contava delivery estornado (agora usa a regra da D038: estorno não reabre a dívida); o histórico do seed entregava em bairros fora das áreas ativas; a confirmação de "Desvincular" da página local do agente usava JavaScript inline, bloqueado pela própria CSP (agora é uma página de confirmação); o `kds.mjs` sai da tela cheia antes de redimensionar (Chromium no Linux).
@@ -67,20 +67,24 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### Agora: etapa `feat/redesign` — fase B aguardando aprovação visual
+### Agora: etapa `feat/redesign` — fase C aguardando aprovação visual
 
-Proposta aprovada em 2026-10-08 (D039): fases A (menu lateral, layout, kanban), B (componentes base, página de referência completa, teste de contraste, telas que mudam só pelo tema), C (novo pedido, caixa, mesas, Minhas entregas, diálogos de operação) e D (cozinha, login, acessibilidade automática, capturas finais em `docs/screenshots/final/`, documentação e merge), com aprovação visual ao fim de cada uma.
+Proposta aprovada em 2026-10-08 (D039): fases A (menu lateral, layout, kanban), B (componentes base, referência, contraste, telas só de tema), C (telas de operação) e D (cozinha, login, acessibilidade automática, capturas finais em `docs/screenshots/final/`, documentação e merge), com aprovação visual ao fim de cada uma.
 
+- **Fase C (branch `feat/redesign`, enviada):** novo pedido com teclado completo (busca com foco, ↑↓ e Enter, F2/F4/F6/F7/F9; na janela do item, Tab/Espaço, + −, F7, F9 ou Ctrl+Enter; atalhos na tela) e barra de total no celular; caixa (rolagem lateral de 72 px no celular resolvida; pagamento com total/pago/a receber e troco em destaque, formas em blocos de 56 px com ícone); mesas em blocos de 128 px com cor, ícone e texto; app do entregador com endereço e valor em destaque; menu lateral fixo só a partir de 1280 px (tablet na horizontal usa o botão); capturas também em tablet 1024×768. Roteiro novo `keyboard.mjs` (pedido inteiro sem mouse). Achado: o F9 da janela do item também criava o pedido (corrigido).
+- **"A receber" no kanban (decisão do usuário, D039):** a partir de "Pronto" com saldo, ou em qualquer etapa com pagamento parcial (`showsBalanceFlag`).
+- **Validação da fase C:** `pnpm check` 23/23, `format:check`, e2e 100/100, 10 roteiros com o relógio real e com o simulado (terça 23:50). No Surface, o relógio do WSL salta para trás e já derrubou testes que ordenam por horário no e2e (ver SETUP, "Problemas comuns"); repetir resolve.
+- **Capturas** (fora do git): `docs/screenshots/redesign/fase-c/{escuro,claro}/{computador,celular,tablet}`. No Windows: `\\wsl.localhost\Ubuntu-24.04\home\braian\projetos\GastroHub_v2\docs\screenshots\redesign\fase-c`.
+- **Próximo passo:** com a aprovação da fase C, fase D (tela da cozinha na paleta nova, login e cadastro, checagem automática de acessibilidade com axe-core, conjunto final de capturas em `docs/screenshots/final/`, documentação e merge).
 - **Fase A (aprovada em 2026-10-09):** tema escuro padrão, azul como cor principal, fontes embutidas, foco global, 44 px, menu lateral e cabeçalho, kanban.
 - **Pedidos do usuário antes da fase B (feitos):**
   - **Atraso no cartão** (`orderDeadline`/`deadlineState`): "Prazo em X min" (atenção, 5 min ou menos) e "Atrasado X min" (crítico), pela estimativa que o pedido já tem (retirada: `estimatedReadyAt` até ficar pronto; delivery: tempo da área a partir do aceite, até entregar). Mesa e delivery sem tempo de área não mudam.
   - **"A receber R$ X"** (`openBalanceCents`) no cartão e na lista de finalizados. Rodadas ficaram fora do cartão.
   - **Roteiros em qualquer horário:** o seed ajusta os horários da unidade demo ao momento em que roda (aberta e no mesmo dia de negócio por 3 h); testado com o relógio simulado (`tools/ui-walkthrough/fake-clock.sh`): 9/9 numa terça às 23:37 e às 23:55 atravessando a meia-noite. Defeitos reais achados e corrigidos: "Caixas do dia" e relatório de entregadores na data do calendário (agora dia de negócio); o seed não atualizava o cache do cardápio digital; no `pnpm dev`, painel e cardápio não liam o `.env` da raiz.
   - **Tablet revogado:** o 403 vira "Dispositivo desvinculado" na página de vínculo; o roteiro aceita a corrida.
-- **Fase B (branch `feat/redesign`, enviada):** no `@app/ui`: tabela que vira cartões no celular, `Notice`, `Segmented`, `OrderStatusBadge` com ícone, `EmptyState`/`ListSkeleton`/`LoadingArea`, `PageHeader`, `Kbd`; itens de menu e seletor com 44 px no toque; teste de contraste com 80 pares nos dois temas (`packages/ui/src/styles/contrast.test.ts`); `/referencia-visual` completa; telas só de tema (usuários, cupons, relatório de entregadores, áreas, cardápio digital, entregadores, editor de produto). DESIGN.md com "Componentes base".
+- **Fase B (aprovada em 2026-10-09):** no `@app/ui`: tabela que vira cartões no celular, `Notice`, `Segmented`, `OrderStatusBadge` com ícone, `EmptyState`/`ListSkeleton`/`LoadingArea`, `PageHeader`, `Kbd`; itens de menu e seletor com 44 px no toque; teste de contraste com 80 pares nos dois temas (`packages/ui/src/styles/contrast.test.ts`); `/referencia-visual` completa; telas só de tema (usuários, cupons, relatório de entregadores, áreas, cardápio digital, entregadores, editor de produto). DESIGN.md com "Componentes base".
 - **Validação:** `pnpm check` 23/23, `format:check`, e2e 100/100, 9 roteiros com o relógio real e com o simulado.
 - **Capturas** (fora do git): `docs/screenshots/redesign/{antes,fase-a,fase-b}`. No Windows: `\\wsl.localhost\Ubuntu-24.04\home\braian\projetos\GastroHub_v2\docs\screenshots\redesign\fase-b`.
-- **Próximo passo:** com a aprovação da fase B, fase C (telas de operação). Já se sabe: o caixa tem 72 px de rolagem lateral no celular (já existia).
 
 ### Semana que vem, logo depois do redesign: hospedagem
 
@@ -102,8 +106,7 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-- **"A receber" no kanban:** como pedido, aparece sempre que há saldo, então quase todo pedido de mesa e delivery em andamento mostra o selo. Confirmar se fica assim ou se deve aparecer só a partir de "Pronto" (ou só com pagamento parcial).
-- Aprovação visual da fase B.
+- Aprovação visual da fase C.
 
 ## Lembretes de ambiente
 

@@ -409,20 +409,20 @@ function ReceivePanel({
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="relative">
-          <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" />
           <Input
             ref={inputRef}
             value={q}
             placeholder="Nº do pedido, mesa ou cliente"
             aria-label="Buscar pedido ou mesa"
-            className="pl-8"
+            className="pl-10"
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && results[0]) onReceive(results[0].id);
             }}
           />
         </div>
-        <ul className="divide-y rounded-md border">
+        <ul className="divide-y overflow-hidden rounded-lg border">
           {results.length === 0 && (
             <li className="p-3 text-sm text-muted-foreground">Nenhuma conta em aberto.</li>
           )}
@@ -430,12 +430,14 @@ function ReceivePanel({
             <li key={o.id}>
               <button
                 type="button"
-                className="flex w-full items-center gap-3 p-2.5 text-left text-sm hover:bg-accent"
+                className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent focus-visible:-outline-offset-3"
                 onClick={() => onReceive(o.id)}
               >
-                <span className="w-12 font-semibold">#{o.number}</span>
-                <span className="flex-1 truncate">{orderTitle(o)}</span>
-                <span className="tabular">{formatBRL(o.totalCents - o.paidCents)}</span>
+                <span className="w-12 shrink-0 text-base font-extrabold">#{o.number}</span>
+                <span className="min-w-0 flex-1 truncate">{orderTitle(o)}</span>
+                <span className="shrink-0 text-base font-bold">
+                  {formatBRL(o.totalCents - o.paidCents)}
+                </span>
                 {i === 0 && term && <Kbd>Enter</Kbd>}
               </button>
             </li>
@@ -462,7 +464,7 @@ function ReceivablesCard({ onReceive }: { onReceive: (orderId: string) => void }
           {receivables.map((o: OrderSummaryDto) => (
             <li key={o.id} className="flex items-center gap-3 p-2.5 text-sm">
               <span className="w-12 font-semibold">#{o.number}</span>
-              <span className="flex-1 truncate">
+              <span className="min-w-0 flex-1 truncate">
                 {orderTitle(o)}
                 {o.courierName ? ` · ${o.courierName}` : ''}
                 {o.pixReportedAt && <PixReportedBadge className="mt-1 w-fit" />}
@@ -498,7 +500,7 @@ function CouriersToSettleCard() {
         <ul className="divide-y rounded-md border">
           {due.map((c) => (
             <li key={c.id} className="flex items-center gap-3 p-2.5 text-sm">
-              <span className="flex-1 truncate font-medium">{c.name}</span>
+              <span className="min-w-0 flex-1 truncate font-semibold">{c.name}</span>
               <span className="text-muted-foreground">
                 {c.pendingSettlementRuns - (c.openRun ? 1 : 0)} saída(s)
               </span>
@@ -531,11 +533,11 @@ function SessionSummary({ session }: { session: CashSessionDetailDto }) {
             {session.totals.methods
               .filter((m) => m.method === 'CASH' || m.receivedCents > 0 || m.refundedCents > 0)
               .map((m) => (
-                <div key={m.method} className="rounded-md border p-3">
-                  <dt className="text-xs text-muted-foreground">
+                <div key={m.method} className="rounded-lg border p-3">
+                  <dt className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                     {PAYMENT_METHOD_LABELS[m.method]}
                   </dt>
-                  <dd className="tabular text-lg font-semibold">{formatBRL(m.expectedCents)}</dd>
+                  <dd className="text-xl font-extrabold">{formatBRL(m.expectedCents)}</dd>
                   {m.refundedCents > 0 && (
                     <dd className="text-xs text-muted-foreground">
                       estornos {formatBRL(m.refundedCents)}
@@ -807,7 +809,8 @@ export default function CashPage() {
           <OpenCashCard />
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        // One column that never grows past the screen (auto columns grew to the widest row).
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="space-y-6">
             <ReceivePanel inputRef={searchRef} onReceive={setPayingId} />
             <CouriersToSettleCard />

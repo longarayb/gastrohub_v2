@@ -33,14 +33,18 @@ import { cn } from '@app/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeftRight,
+  CircleDashed,
+  Clock,
   Combine,
   LayoutGrid,
   Pencil,
   Plus,
   Printer,
+  ReceiptText,
   Settings2,
   Split,
   Trash2,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
@@ -394,41 +398,65 @@ export default function TablesPage() {
       ) : (
         [...groups].map(([area, items]) => (
           <section key={area} className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">{area}</h2>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-3">
+            <h2 className="text-xs font-bold tracking-[0.1em] text-muted-foreground uppercase">
+              {area}
+            </h2>
+            {/* Tiles of at least 128 px: state by color AND icon AND text (docs/DESIGN.md). */}
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-3">
               {items.map((t) => {
                 const total =
                   t.session?.tabs.reduce((sum, tab) => sum + tab.totalCents - tab.paidCents, 0) ??
                   0;
                 const billing = !!t.session?.billRequestedAt;
+                const StateIcon = !t.session ? CircleDashed : billing ? ReceiptText : Users;
                 return (
                   <div key={t.id} className="relative">
                     <button
                       type="button"
                       onClick={() => setSelected(t.id)}
                       className={cn(
-                        'flex h-28 w-full flex-col justify-between rounded-xl border p-3 text-left transition-colors',
+                        'flex min-h-32 w-full flex-col justify-between gap-2 rounded-xl border border-l-4 bg-card p-3 text-left transition-colors hover:bg-accent focus-visible:-outline-offset-3',
                         !t.session
-                          ? 'bg-card hover:bg-accent'
+                          ? 'border-l-border'
                           : billing
-                            ? 'border-table-billing bg-table-billing/10 hover:bg-table-billing/15'
-                            : 'border-table-occupied bg-table-occupied/10 hover:bg-table-occupied/15',
-                        !t.isActive && 'opacity-50',
+                            ? 'border-table-billing'
+                            : 'border-table-occupied',
+                        !t.isActive && 'opacity-60',
                       )}
                     >
-                      <span className="text-lg font-semibold">{t.name}</span>
+                      <span className="pr-8 text-3xl leading-none font-extrabold">{t.name}</span>
+                      <span className="flex items-center gap-1.5 text-sm font-semibold">
+                        <StateIcon
+                          className={cn(
+                            'size-4 shrink-0',
+                            !t.session
+                              ? 'text-muted-foreground'
+                              : billing
+                                ? 'text-signal-attention'
+                                : 'text-table-occupied',
+                          )}
+                          aria-hidden
+                        />
+                        {!t.session
+                          ? t.isActive
+                            ? 'Livre'
+                            : 'Inativa'
+                          : billing
+                            ? 'Aguardando pagamento'
+                            : 'Ocupada'}
+                      </span>
                       {t.session ? (
-                        <span className="space-y-0.5 text-xs">
-                          <span className="tabular block font-medium">{formatBRL(total)}</span>
-                          <span className="block text-muted-foreground">
-                            {billing ? 'Aguardando pagamento' : `${t.session.tabs.length} conta(s)`}{' '}
-                            · {elapsedLabel(t.session.openedAt, now)}
+                        <span className="space-y-0.5">
+                          <span className="block text-lg font-extrabold">{formatBRL(total)}</span>
+                          <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Clock className="size-3.5 shrink-0" aria-hidden />
+                            {elapsedLabel(t.session.openedAt, now)} · {t.session.tabs.length}{' '}
+                            {t.session.tabs.length === 1 ? 'conta' : 'contas'}
                           </span>
                         </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">
-                          {t.isActive ? 'Livre' : 'Inativa'}
-                          {t.seats ? ` · ${t.seats} lugares` : ''}
+                        <span className="text-sm text-muted-foreground">
+                          {t.seats ? `${t.seats} lugares` : ' '}
                         </span>
                       )}
                     </button>

@@ -73,3 +73,20 @@ export function openBalanceCents(order: {
   const paid = counted.reduce((sum, p) => sum + p.amountCents, 0);
   return Math.max(order.totalCents - paid, 0);
 }
+
+/** Stages where an open balance is worth flagging: the order is done, money should be in. */
+const BALANCE_STAGES: readonly OrderStatus[] = ['READY', 'DISPATCHED', 'DELIVERED'];
+
+/**
+ * Whether the card shows "A receber R$ X" (D039): with an open balance, from "Pronto" on
+ * (ready, dispatched, delivered), or at any stage when it was partly paid. An order in
+ * progress with no payment at all does not show it (most tabs and deliveries pay at the end).
+ */
+export function showsBalanceFlag(order: {
+  status: OrderStatus;
+  balanceCents: number;
+  paidCents: number;
+}): boolean {
+  if (order.balanceCents <= 0) return false;
+  return BALANCE_STAGES.includes(order.status) || order.paidCents > 0;
+}

@@ -6,6 +6,7 @@ import {
   type OrderSummaryDto,
   PAYMENT_METHOD_LABELS,
   deadlineState,
+  showsBalanceFlag,
   formatBRL,
   primaryNextStatus,
   requiresPaymentToClose,
@@ -137,7 +138,7 @@ export function OrderCard({
             {order.draftItemCount} não {order.draftItemCount === 1 ? 'enviado' : 'enviados'}
           </CardFlag>
         )}
-        {order.balanceCents > 0 && <BalanceFlag cents={order.balanceCents} />}
+        {showsBalanceFlag(order) && <BalanceFlag cents={order.balanceCents} />}
       </button>
       {canAdvance && next && (
         <div className="border-t p-2">

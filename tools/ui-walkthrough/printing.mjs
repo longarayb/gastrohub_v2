@@ -191,7 +191,8 @@ await step('panel: the computer shows connected, with version and memory', async
   await page.bringToFront();
   const agents = card('Computadores que imprimem');
   await agents.getByText('Conectado').waitFor({ timeout: 15_000 });
-  await agents.getByText(/versão 1\.0\.0 · memória \d+ MB/).waitFor();
+  // Memory comes with the agent heartbeat: give it a full cycle on a busy machine.
+  await agents.getByText(/versão 1\.0\.0 · memória \d+ MB/).waitFor({ timeout: 60_000 });
 });
 
 await step('printers: address validation, kitchen by IP and cash as virtual', async () => {

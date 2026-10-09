@@ -224,11 +224,12 @@ await step('tables: transfer a tab, change, merge and split tables', async () =>
   await s.getByRole('button', { name: 'Separar' }).click();
   await toast('Mesas separadas');
   await closeDialog();
+  // Both tables stay occupied, each with its tabs ("1 conta", "2 contas").
   await table('7')
-    .getByText(/conta\(s\)/)
+    .getByText(/\d+ contas?/)
     .waitFor();
   await table('6')
-    .getByText(/conta\(s\)/)
+    .getByText(/\d+ contas?/)
     .waitFor();
 });
 

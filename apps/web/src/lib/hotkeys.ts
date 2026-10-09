@@ -18,6 +18,8 @@ export function useHotkeys(map: Record<string, Handler>, enabled = true): void {
   useEffect(() => {
     if (!enabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      // Already handled (e.g. by a dialog that just closed): never act twice on one key.
+      if (event.defaultPrevented) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       const handler = latest.current[event.key];
       if (!handler) return;

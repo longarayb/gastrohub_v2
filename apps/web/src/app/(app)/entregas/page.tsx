@@ -10,6 +10,7 @@ import {
 } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import { Skeleton } from '@app/ui/components/misc';
+import { Notice } from '@app/ui/components/notice';
 import { toast } from '@app/ui/components/sonner';
 import { cn } from '@app/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -55,19 +56,28 @@ function StopCard({
   return (
     <article
       aria-label={`Entrega do pedido ${stop.orderNumber}`}
-      className={cn('space-y-3 rounded-xl border bg-card p-4 shadow-xs', !pending && 'opacity-80')}
+      className={cn(
+        'space-y-4 rounded-card border border-l-4 bg-card p-4',
+        stop.status === 'DELIVERED'
+          ? 'border-l-signal-positive'
+          : stop.status === 'FAILED'
+            ? 'border-l-signal-critical'
+            : 'border-l-status-dispatched',
+        !pending && 'opacity-80',
+      )}
     >
       <header className="flex items-start justify-between gap-2">
-        <div>
-          <p className="text-xl font-bold">#{stop.orderNumber}</p>
-          <p className="font-medium">{stop.customerName ?? 'Cliente'}</p>
+        <div className="min-w-0">
+          <p className="text-2xl leading-tight font-extrabold">#{stop.orderNumber}</p>
+          <p className="truncate text-base font-semibold">{stop.customerName ?? 'Cliente'}</p>
         </div>
+        {/* Solid badges keep 4.5:1 in both themes. */}
         <span
           className={cn(
-            'rounded-md px-2 py-1 text-sm font-semibold',
-            stop.status === 'DELIVERED' && 'bg-success/15 text-success',
-            stop.status === 'FAILED' && 'bg-destructive/10 text-destructive',
-            pending && 'bg-status-dispatched/15 text-status-dispatched',
+            'shrink-0 rounded-md px-2 py-1 text-sm font-bold',
+            stop.status === 'DELIVERED' && 'bg-success text-success-foreground',
+            stop.status === 'FAILED' && 'bg-destructive text-destructive-foreground',
+            pending && 'bg-info text-info-foreground',
           )}
         >
           {STATUS_TEXT[stop.status]}
@@ -75,31 +85,32 @@ function StopCard({
       </header>
 
       {a && (
-        <p className="text-base">
+        <p className="text-lg leading-snug font-semibold">
           {a.street}, {a.number}
           {a.complement ? ` — ${a.complement}` : ''}
-          <br />
-          <span className="text-muted-foreground">
+          <span className="block text-base font-normal text-muted-foreground">
             {a.neighborhood} · {a.city}
           </span>
           {a.reference && (
-            <span className="block text-sm text-muted-foreground">Ref.: {a.reference}</span>
+            <span className="block text-sm font-normal text-muted-foreground">
+              Ref.: {a.reference}
+            </span>
           )}
         </p>
       )}
-      {stop.notes && <p className="rounded-md bg-muted p-2 text-sm">Obs.: {stop.notes}</p>}
+      {stop.notes && <Notice tone="info">Obs.: {stop.notes}</Notice>}
 
       {pending && stop.pixReportedAt && stop.chargeCents > 0 && (
-        <p className="rounded-md bg-warning/20 p-2 text-sm font-medium text-warning-foreground">
+        <Notice tone="attention">
           O cliente informou que pagou por PIX: não cobre de novo. Marque PIX ao entregar; a loja
           confere no acerto.
-        </p>
+        </Notice>
       )}
       {pending && (
         <p className="text-base">
           {stop.chargeCents > 0 ? (
             <>
-              Cobrar <span className="tabular font-semibold">{formatBRL(stop.chargeCents)}</span>
+              Cobrar <span className="text-2xl font-extrabold">{formatBRL(stop.chargeCents)}</span>
               {stop.expectedPaymentMethod &&
                 ` · ${PAYMENT_METHOD_LABELS[stop.expectedPaymentMethod]}`}
               {stop.changeForCents != null && stop.changeForCents > stop.chargeCents && (
@@ -110,7 +121,7 @@ function StopCard({
               )}
             </>
           ) : (
-            <span className="font-medium text-success">Já pago</span>
+            <span className="text-lg font-extrabold text-signal-positive">Já pago</span>
           )}
         </p>
       )}

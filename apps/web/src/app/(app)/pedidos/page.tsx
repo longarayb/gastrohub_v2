@@ -9,6 +9,7 @@ import {
   onlyDigits,
   primaryNextStatus,
   requiresPaymentToClose,
+  showsBalanceFlag,
 } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import { Input } from '@app/ui/components/input';
@@ -258,7 +259,7 @@ export default function OrdersPage() {
                   <span className="w-14 text-base font-extrabold">#{o.number}</span>
                   <span className="flex-1 truncate">{orderTitle(o)}</span>
                   {/* Delivered with an open balance (delivery "a receber"). */}
-                  {o.balanceCents > 0 && (
+                  {showsBalanceFlag(o) && (
                     <BalanceFlag cents={o.balanceCents} className="shrink-0" />
                   )}
                   <StatusBadge status={o.status} type={o.type} />

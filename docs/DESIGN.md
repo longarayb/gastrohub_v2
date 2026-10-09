@@ -150,6 +150,36 @@ Todos com os tokens do tema; a página `/referencia-visual` mostra cada um, com 
 | Cabeçalho de página (`PageHeader`) | título de 34 px (30 px no celular), subtítulo apagado, ações à direita |
 | Atalho (`Kbd`) | tecla com borda inferior mais grossa |
 
+## Telas de operação (novo pedido, caixa, mesas, entregador)
+
+Usadas por horas seguidas: legibilidade e velocidade antes da estética.
+
+- **Regras comuns:** nada de sombras ou animações decorativas; texto mínimo de 14 px; números importantes grandes e em negrito; cor sempre com texto ou ícone; foco sempre visível; alvos de 44 px.
+- **Larguras:** computador (menu lateral fixo a partir de 1280 px), **tablet na horizontal (1024×768, menu pelo botão)** e celular (390 px). Nenhuma tela rola para o lado.
+- **Novo pedido:** busca com foco ao abrir; catálogo em blocos de pelo menos 80 px; resumo fixo à direita com o total no tamanho do KPI e o botão de enviar no maior tamanho; no celular, barra inferior com o total e "Ver pedido".
+- **Teclado no novo pedido** (atalhos na tela, escondidos em telas de toque):
+
+| Tecla | Ação |
+|---|---|
+| digitar | busca (o foco já está nela) |
+| ↑ ↓ | escolhe o produto |
+| Enter | abre o produto destacado (ou o único resultado) |
+| Esc | limpa a busca |
+| F2 | volta à busca |
+| F4 | tipo do pedido (balcão → delivery → mesa) |
+| F6 | cliente (balcão/delivery) ou mesa |
+| F7 | observação do pedido |
+| F9 | cria o pedido / envia os itens |
+| **Na janela do item** | |
+| Tab, Espaço | percorre e marca as opções (a janela abre na primeira opção) |
+| + − | quantidade |
+| F7 | observação do item |
+| F9 ou Ctrl+Enter | adiciona e volta à busca |
+
+- **Caixa:** busca com F2 e Enter; lista com número e saldo em negrito; na janela de pagamento, total, pago e **a receber** em destaque, formas de pagamento em blocos de 56 px com ícone e atalho (1 a 7), **troco** em destaque na cor positiva.
+- **Mesas:** blocos de pelo menos 128 px com o número grande; estado com **cor, ícone e texto** (livre, ocupada, aguardando pagamento); valor da conta e tempo no bloco.
+- **Entregador (celular):** número, endereço e valor a cobrar em destaque; avisos (PIX informado, observação) no componente de aviso.
+
 ## Acessibilidade
 
 - Contraste mínimo **WCAG AA** em todos os textos, inclusive os apagados, nos dois temas (teste de contraste).

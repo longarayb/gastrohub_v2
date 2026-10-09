@@ -353,7 +353,10 @@ await step('waiter: open a new tab on an occupied table', async () => {
   await page.getByRole('button', { name: 'Abrir conta e enviar' }).click();
   await toast(/Pedido #\d+ criado/);
   await page.waitForURL('**/mesas');
-  await page.getByRole('button', { name: /^2\s/ }).getByText('3 conta(s)').waitFor();
+  await page
+    .getByRole('button', { name: /^2\s/ })
+    .getByText(/3 contas/)
+    .waitFor();
 });
 
 await step('waiter has no access to discounts', async () => {

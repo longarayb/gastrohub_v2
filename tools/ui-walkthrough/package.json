@@ -13,7 +13,8 @@
     "digital-menu": "node digital-menu.mjs",
     "printing": "node printing.mjs",
     "dashboard": "node dashboard.mjs",
-    "screens": "node screens.mjs"
+    "screens": "node screens.mjs",
+    "keyboard": "node keyboard.mjs"
   },
   "dependencies": {
     "playwright-core": "^1.63.0"

@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from '@app/ui/components/dialog';
 import { Input } from '@app/ui/components/input';
+import { Kbd } from '@app/ui/components/states';
 import { Textarea } from '@app/ui/components/textarea';
 import { cn } from '@app/ui/lib/utils';
 import { Minus, Plus } from 'lucide-react';
@@ -97,11 +98,12 @@ function OptionButton({
   return (
     <button
       type="button"
+      data-option
       aria-pressed={selected}
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors disabled:opacity-50',
+        'flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-colors disabled:opacity-50',
         selected ? 'border-primary bg-primary/10' : 'hover:bg-accent',
       )}
     >
@@ -298,9 +300,47 @@ export function ItemBuilderDialog({
     : '';
   const gross = result && !('error' in result) ? result.pricing.totalChargedCents : null;
 
+  /**
+   * Keyboard: Tab/Space pick the options; + and − change the quantity (outside text fields),
+   * F7 goes to the note, F9 or Ctrl+Enter adds the item.
+   */
+  function onKeyDown(e: React.KeyboardEvent) {
+    const target = e.target as HTMLElement;
+    const typing = ['INPUT', 'TEXTAREA'].includes(target.tagName);
+    if (e.key === 'F9' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) {
+      // Stop here: once the dialog closes, the page shortcuts listen again and the same F9
+      // would also send the order.
+      e.preventDefault();
+      e.stopPropagation();
+      add();
+    } else if (e.key === 'F7') {
+      e.preventDefault();
+      document.getElementById(notesId)?.focus();
+    } else if (!typing && (e.key === '+' || e.key === '=')) {
+      e.preventDefault();
+      setQuantity((q) => Math.min(99, q + 1));
+    } else if (!typing && e.key === '-') {
+      e.preventDefault();
+      setQuantity((q) => Math.max(1, q - 1));
+    }
+  }
+
   return (
     <Dialog open={!!target} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent
+        className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"
+        onKeyDown={onKeyDown}
+        // Start on the first option (Space picks it) or on "Adicionar": never in the note,
+        // where + and − would be typed instead of changing the quantity.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          const root = e.currentTarget as HTMLElement;
+          const first =
+            root.querySelector<HTMLElement>('[data-option]:not(:disabled)') ??
+            root.querySelector<HTMLElement>('[data-add-item]');
+          first?.focus();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {target?.kind === 'product' && target.product.description && (
@@ -457,9 +497,28 @@ export function ItemBuilderDialog({
           </div>
         )}
 
+        <p
+          className="hidden flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground pointer-fine:flex"
+          aria-label="Atalhos de teclado"
+        >
+          <span>
+            <Kbd>Tab</Kbd> <Kbd>Espaço</Kbd> opções
+          </span>
+          <span>
+            <Kbd>+</Kbd> <Kbd>−</Kbd> quantidade
+          </span>
+          <span>
+            <Kbd>F7</Kbd> observação
+          </span>
+          <span>
+            <Kbd>F9</Kbd> adicionar
+          </span>
+        </p>
         <DialogFooter className="items-center gap-3 sm:justify-between">
           <Stepper label="Quantidade" value={quantity} min={1} max={99} onChange={setQuantity} />
-          <Button onClick={add}>Adicionar{gross != null ? ` · ${formatBRL(gross)}` : ''}</Button>
+          <Button size="lg" data-add-item onClick={add}>
+            Adicionar{gross != null ? ` · ${formatBRL(gross)}` : ''}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

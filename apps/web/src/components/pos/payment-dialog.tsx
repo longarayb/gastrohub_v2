@@ -36,7 +36,19 @@ import {
   SelectValue,
 } from '@app/ui/components/select';
 import { cn } from '@app/ui/lib/utils';
-import { CheckCircle2, Copy, Undo2, Users } from 'lucide-react';
+import { Notice } from '@app/ui/components/notice';
+import {
+  Banknote,
+  CheckCircle2,
+  CircleEllipsis,
+  Copy,
+  CreditCard,
+  QrCode as QrCodeIcon,
+  Smartphone,
+  Ticket,
+  Undo2,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Field, MoneyInput } from '@/components/form';
@@ -59,6 +71,15 @@ const METHODS: PaymentMethod[] = [
   'ONLINE',
   'OTHER',
 ];
+const METHOD_ICONS: Record<PaymentMethod, React.ComponentType<{ className?: string }>> = {
+  CASH: Banknote,
+  PIX: QrCodeIcon,
+  CREDIT_CARD: CreditCard,
+  DEBIT_CARD: CreditCard,
+  MEAL_VOUCHER: Ticket,
+  ONLINE: Smartphone,
+  OTHER: CircleEllipsis,
+};
 const SHORT_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Dinheiro',
   PIX: 'PIX',
@@ -217,6 +238,27 @@ export function PaymentDialog({
             <span className="font-medium text-foreground">saldo {formatBRL(balance)}</span>
           </DialogDescription>
         </DialogHeader>
+        {/* The three numbers the cashier checks, big (docs/DESIGN.md, operation screens). */}
+        <dl className="grid grid-cols-3 gap-2" aria-hidden>
+          <div className="rounded-lg bg-muted p-3">
+            <dt className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+              Total
+            </dt>
+            <dd className="text-lg font-extrabold">{formatBRL(order.totalCents)}</dd>
+          </div>
+          <div className="rounded-lg bg-muted p-3">
+            <dt className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+              Pago
+            </dt>
+            <dd className="text-lg font-extrabold">{formatBRL(order.paidCents)}</dd>
+          </div>
+          <div className="rounded-lg border-l-4 border-accent-blue bg-muted p-3">
+            <dt className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+              A receber
+            </dt>
+            <dd className="text-2xl leading-tight font-extrabold">{formatBRL(balance)}</dd>
+          </div>
+        </dl>
         {order.pixReportedAt && balance > 0 && <PixReportedBadge className="text-sm" />}
 
         {balance === 0 ? (
@@ -236,35 +278,41 @@ export function PaymentDialog({
               role="radiogroup"
               aria-label="Forma de pagamento"
             >
-              {METHODS.map((m, i) => (
-                <Button
-                  key={m}
-                  type="button"
-                  role="radio"
-                  aria-checked={method === m}
-                  variant={method === m ? 'default' : 'outline'}
-                  className="justify-between"
-                  onClick={() => choose(m)}
-                >
-                  {SHORT_LABELS[m]}
-                  <Kbd
-                    className={cn(
-                      method === m && 'bg-primary-foreground/20 text-primary-foreground',
-                    )}
+              {METHODS.map((m, i) => {
+                const Icon = METHOD_ICONS[m];
+                return (
+                  <Button
+                    key={m}
+                    type="button"
+                    role="radio"
+                    aria-checked={method === m}
+                    variant={method === m ? 'default' : 'outline'}
+                    className="h-14 justify-between px-3"
+                    onClick={() => choose(m)}
                   >
-                    {i + 1}
-                  </Kbd>
-                </Button>
-              ))}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Icon className="size-5 shrink-0" />
+                      <span className="truncate">{SHORT_LABELS[m]}</span>
+                    </span>
+                    <Kbd
+                      className={cn(
+                        method === m && 'bg-primary-foreground/20 text-primary-foreground',
+                      )}
+                    >
+                      {i + 1}
+                    </Kbd>
+                  </Button>
+                );
+              })}
             </div>
 
             {needsRegister && cash.data && !registerOpen && (
-              <p className="rounded-md bg-warning/20 p-3 text-sm">
+              <Notice tone="attention" role="alert">
                 Abra o seu caixa para receber em {PAYMENT_METHOD_LABELS[method].toLowerCase()}.{' '}
-                <Link href="/caixa" className="font-medium underline">
+                <Link href="/caixa" className="font-bold underline">
                   Ir para o caixa
                 </Link>
-              </p>
+              </Notice>
             )}
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -336,6 +384,18 @@ export function PaymentDialog({
               )}
             </div>
 
+            {method === 'CASH' && check.ok && (check.payment.changeCents ?? 0) > 0 && (
+              <p
+                className="flex items-baseline justify-between rounded-lg border-l-4 border-signal-positive bg-muted p-3"
+                aria-hidden
+              >
+                <span className="font-bold">Troco</span>
+                <span className="text-2xl font-extrabold text-signal-positive">
+                  {formatBRL(check.payment.changeCents!)}
+                </span>
+              </p>
+            )}
+
             {method === 'PIX' && check.ok && (
               <PixPanel orderId={order.id} amountCents={check.payment.amountCents} />
             )}
@@ -350,7 +410,7 @@ export function PaymentDialog({
                   max={30}
                   value={people}
                   aria-label="Número de pessoas"
-                  className="h-8 w-16"
+                  className="w-20"
                   onChange={(e) =>
                     setPeople(Math.min(30, Math.max(1, Number(e.target.value) || 1)))
                   }

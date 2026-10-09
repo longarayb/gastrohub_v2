@@ -21,14 +21,14 @@ const WEB = 'http://localhost:3000';
 const PASSWORD = 'Demo1234';
 const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null;
 
-/** [file name, path, user]; `mobile` also captures it at 390 px. */
+/** [file name, path, user]; `mobile` also at 390 px, `tablet` at 1024×768 (landscape, touch). */
 const SCREENS = [
   { name: 'login', path: '/login', user: null, mobile: true },
   { name: 'painel', path: '/painel', user: 'dono', mobile: true },
   { name: 'pedidos', path: '/pedidos', user: 'dono', mobile: true },
-  { name: 'pedidos-novo', path: '/pedidos/novo', user: 'dono', mobile: true },
-  { name: 'caixa', path: '/caixa', user: 'caixa', mobile: true },
-  { name: 'mesas', path: '/mesas', user: 'dono', mobile: true },
+  { name: 'pedidos-novo', path: '/pedidos/novo', user: 'dono', mobile: true, tablet: true },
+  { name: 'caixa', path: '/caixa', user: 'caixa', mobile: true, tablet: true },
+  { name: 'mesas', path: '/mesas', user: 'dono', mobile: true, tablet: true },
   { name: 'entregas', path: '/entregas', user: 'entregador', mobile: true, phoneOnly: true },
   { name: 'kds', path: '/kds', user: 'dono' },
   { name: 'entregadores', path: '/entregadores', user: 'dono' },
@@ -58,6 +58,7 @@ const THEMES = [
 const DEVICES = [
   ['computador', { viewport: { width: 1440, height: 900 } }],
   ['celular', { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }],
+  ['tablet', { viewport: { width: 1024, height: 768 }, isMobile: true, hasTouch: true }],
 ];
 
 const browser = await chromium.launch({ ...BROWSER, args: ['--disable-gpu'] });
@@ -97,7 +98,14 @@ for (const [device, options] of DEVICES) {
     };
 
     for (const screen of SCREENS) {
-      if (device === 'celular' ? !screen.mobile : screen.phoneOnly) continue;
+      if (
+        device === 'celular'
+          ? !screen.mobile
+          : device === 'tablet'
+            ? !screen.tablet
+            : screen.phoneOnly
+      )
+        continue;
       const page = await pageFor(screen.user);
       try {
         await page.goto(`${WEB}${screen.path}`);

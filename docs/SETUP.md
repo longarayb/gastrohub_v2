@@ -305,6 +305,8 @@ O primeiro comando fixa o deslocamento; `same` reaproveita-o, para a API, o seed
 
 ## Problemas comuns
 
+- **e2e com erro de ordem só no WSL** (um registro criado depois aparece antes, por exemplo "expected [2, 1] to deeply equal [1, 2]" ou o histórico terminando no status errado): o relógio do WSL adianta e é puxado de volta em saltos de 1 a 3 s (medido no Surface em 2026-10-09: 3,4 s em 60 s). Registros feitos durante o salto ficam com hora anterior aos de antes. Não é defeito do código; rode o e2e de novo. Para conferir: `python3 -c "import time;w,m=time.time(),time.monotonic();time.sleep(60);print((time.time()-w)-(time.monotonic()-m))"` (bem diferente de zero = relógio saltando). `wsl --shutdown` no PowerShell costuma normalizar.
+
 | Sintoma | Solução |
 |---|---|
 | `Docker não está rodando` | Abra o Docker Desktop e espere "Engine running" |

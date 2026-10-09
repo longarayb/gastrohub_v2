@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deadlineState, openBalanceCents, orderDeadline } from './order-board.js';
+import { deadlineState, openBalanceCents, orderDeadline, showsBalanceFlag } from './order-board.js';
 
 const base = {
   createdAt: '2026-10-08T19:00:00.000Z',
@@ -84,5 +84,25 @@ describe('openBalanceCents', () => {
         payments: [{ amountCents: 5000, status: 'PENDING' }],
       }),
     ).toBe(5000);
+  });
+});
+
+describe('showsBalanceFlag', () => {
+  it('from "Pronto" on, when there is a balance', () => {
+    for (const status of ['READY', 'DISPATCHED', 'DELIVERED'] as const) {
+      expect(showsBalanceFlag({ status, balanceCents: 1000, paidCents: 0 })).toBe(true);
+      expect(showsBalanceFlag({ status, balanceCents: 0, paidCents: 5000 })).toBe(false);
+    }
+  });
+
+  it('in progress: only when partly paid', () => {
+    for (const status of ['PENDING', 'ACCEPTED', 'PREPARING'] as const) {
+      expect(showsBalanceFlag({ status, balanceCents: 5000, paidCents: 0 })).toBe(false);
+      expect(showsBalanceFlag({ status, balanceCents: 2000, paidCents: 3000 })).toBe(true);
+    }
+  });
+
+  it('canceled orders have no balance', () => {
+    expect(showsBalanceFlag({ status: 'CANCELED', balanceCents: 0, paidCents: 0 })).toBe(false);
   });
 });
