@@ -72,7 +72,7 @@ export class DispatchService {
   private pendingStop(tx: DbTx, orderId: string) {
     return tx.deliveryStop.findFirst({
       where: { orderId, deliveredAt: null, failedAt: null },
-      orderBy: { dispatchedAt: 'desc' },
+      orderBy: { seq: 'desc' },
     });
   }
 

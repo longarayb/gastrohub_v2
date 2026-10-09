@@ -92,7 +92,7 @@ export class PrintersService {
     const [printers, settings] = await Promise.all([
       this.db.printer.findMany({
         where: { deletedAt: null },
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         include: {
           agent: { select: { name: true } },
           sectors: { select: { id: true, name: true, printCopies: true } },
@@ -334,13 +334,13 @@ export class PrintersService {
       this.db.printJob.findMany({
         where: { status: 'HELD' },
         include: jobInclude,
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         take: 50,
       }),
       this.db.printJob.findMany({
         where: { status: { in: ['PENDING', 'LEASED'] } },
         include: jobInclude,
-        orderBy: { createdAt: 'asc' },
+        orderBy: { seq: 'asc' },
         take: 200,
       }),
     ]);

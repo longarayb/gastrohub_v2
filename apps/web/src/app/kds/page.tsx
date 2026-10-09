@@ -310,7 +310,9 @@ export default function KdsPage() {
       (t.canceled || t.tasks.every((x) => x.status === 'QUEUED' || x.status === 'CANCELED')),
   );
   const preparing = visible.filter((t) => !t.doneAt && !queued.includes(t));
-  const done = visible.filter((t) => t.doneAt).sort((a, b) => b.doneAt!.localeCompare(a.doneAt!));
+  const done = visible
+    .filter((t) => t.doneAt)
+    .sort((a, b) => b.doneAt!.localeCompare(a.doneAt!) || b.seq - a.seq);
   const totals = consolidate(
     visible.flatMap((t) =>
       t.tasks.map((x) => ({

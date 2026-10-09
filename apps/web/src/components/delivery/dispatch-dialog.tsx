@@ -44,7 +44,12 @@ export function DispatchDialog({
 
   const ready = (board.data ?? [])
     .filter((o) => o.type === 'DELIVERY' && o.status === 'READY')
-    .sort((a, b) => (a.readyAt ?? a.createdAt).localeCompare(b.readyAt ?? b.createdAt));
+    .sort(
+      (a, b) =>
+        (a.readyAt ?? a.createdAt).localeCompare(b.readyAt ?? b.createdAt) ||
+        a.businessDate.localeCompare(b.businessDate) ||
+        a.number - b.number,
+    );
   const active = (couriers.data ?? []).filter((c) => c.isActive);
 
   // Reset when (re)opening (state adjusted during render, no effect needed).

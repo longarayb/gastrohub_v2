@@ -56,7 +56,7 @@ export class PrintJobsService {
         ],
       },
       include: { printer: true },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { seq: 'asc' },
       take: max,
     });
     const jobs: LeasedPrintJobDto[] = [];
@@ -113,7 +113,7 @@ export class PrintJobsService {
     if (held) this.realtime.printingUpdated(this.ctx.tenantId);
     const printers = await this.db.printer.findMany({
       where: { agentId, active: true, deletedAt: null },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
     return { jobs, printers: printers.map(toAgentPrinter) };
   }
@@ -166,7 +166,7 @@ export class PrintJobsService {
         ...(query.orderId && { orderId: query.orderId }),
       },
       include: jobInclude,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { seq: 'desc' },
       take: query.limit,
     });
     return toJobDtos(this.db, rows);

@@ -75,7 +75,7 @@ export class PrintDocumentsService {
     const printer = await this.printer(printerId);
     const first = await this.db.printJob.findFirst({
       where: { orderId: id, kind: 'DELIVERY_COPY', reprintOfId: null },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { seq: 'asc' },
       select: { id: true },
     });
     const document = deliveryCopyDocument({
@@ -122,7 +122,7 @@ export class PrintDocumentsService {
         reprintOfId: null,
         status: { not: 'DISCARDED' },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { seq: 'asc' },
     });
     let queued = 0;
     await this.db.$transaction(async (tx) => {

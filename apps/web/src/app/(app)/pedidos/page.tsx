@@ -181,7 +181,8 @@ export default function OrdersPage() {
         {columns.map((status) => {
           const items = visible
             .filter((o) => o.status === status)
-            .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+            // Arrival order: business day and daily number, both from the database (D040).
+            .sort((a, b) => a.businessDate.localeCompare(b.businessDate) || a.number - b.number);
           return (
             <section
               key={status}

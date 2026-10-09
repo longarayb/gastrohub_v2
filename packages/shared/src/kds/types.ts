@@ -41,6 +41,8 @@ export interface KdsTicketDto {
   roundNumber: number;
   sectorId: string;
   sentAt: string;
+  /** Send order from the database (D040): tickets sort by it, not by `sentAt`. */
+  seq: number;
   /** Every active task ready: when the last one finished (null while there is work). */
   doneAt: string | null;
   /** Every task canceled (order or items canceled after sending). */

@@ -199,7 +199,7 @@ export class AuthService {
         memberships: {
           where: { isActive: true, store: { isActive: true } },
           include: { store: true },
-          orderBy: { createdAt: 'asc' },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         },
       },
     });

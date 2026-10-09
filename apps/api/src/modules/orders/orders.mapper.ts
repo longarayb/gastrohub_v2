@@ -30,7 +30,7 @@ export const orderSummaryInclude = {
   items: { select: { status: true, quantity: true } },
   // Latest delivery attempt: a failed one is shown on the board until dispatched again.
   stops: {
-    orderBy: { dispatchedAt: 'desc' },
+    orderBy: { seq: 'desc' },
     take: 1,
     select: { dispatchedAt: true, failedAt: true, failureReason: true, failureNote: true },
   },
@@ -42,12 +42,12 @@ export const orderSummaryInclude = {
 export const orderDetailInclude = {
   ...orderSummaryInclude,
   rounds: { orderBy: { number: 'asc' } },
-  items: { orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }], include: { round: true } },
-  history: { orderBy: { createdAt: 'asc' } },
-  payments: { orderBy: { createdAt: 'asc' } },
+  items: { orderBy: { seq: 'asc' }, include: { round: true } },
+  history: { orderBy: { seq: 'asc' } },
+  payments: { orderBy: { seq: 'asc' } },
   delivery: true,
   stops: {
-    orderBy: { dispatchedAt: 'desc' },
+    orderBy: { seq: 'desc' },
     include: { run: { select: { courier: { select: { name: true } } } } },
   },
 } satisfies Prisma.OrderInclude;

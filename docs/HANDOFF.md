@@ -6,7 +6,7 @@
 
 ## Estado atual
 
-- `main` tem tudo até o **dashboard e relatórios** (merge da `feat/dashboard`). Todas as branches estão no GitHub. **Frente em andamento:** `feat/redesign` (fases A, B e C prontas; A e B aprovadas, C aguardando a aprovação visual do usuário). Ela **não altera o schema do Prisma**; outra branch pode alterá-lo se for preciso.
+- `main` tem tudo até o **dashboard e relatórios** (merge da `feat/dashboard`). Todas as branches estão no GitHub. **Frente em andamento:** `feat/redesign` (fases A, B e C aprovadas; D040 feita; mapa único de atalhos aguardando aprovação; depois, fase D). Ela **alterou o schema** (migration `event_sequence`, D040): no desktop, `pnpm --filter @app/api db:deploy`. Ela **não altera o schema do Prisma**; outra branch pode alterá-lo se for preciso.
 - **Surface agora trabalha dentro do WSL** (Ubuntu-24.04, `~/projetos/GastroHub_v2`), porque o Smart App Control (ligado; decisão do usuário: **não desligar nem contornar**) bloqueia executáveis do Windows sem assinatura, como o `pnpm-native.exe`. Os programas do Linux não são afetados. `C:\GastroHub_v2` ficou como **cópia antiga, sem uso: não editar nem apagar**. Passo a passo e dicas em docs/SETUP.md ("O projeto inteiro dentro do WSL"). O desktop de casa continua no Windows (`D:\GastroHub_v2`).
 - Validado no WSL antes do merge: `pnpm check` 22/22 (~3,5 min), `pnpm format:check`, e2e 100/100 e **os 9 roteiros visuais com seed limpo antes de cada um** (auth 19, menu 15, orders 18, pos 12, kds 8, delivery 16, digital-menu 11, printing 13, dashboard 12 — tudo PASS, "inesperados: 0"). O painel abre no navegador do Windows por `localhost`.
 - Os roteiros com o seed novo acharam e corrigiram: "a receber" do caixa contava delivery estornado (agora usa a regra da D038: estorno não reabre a dívida); o histórico do seed entregava em bairros fora das áreas ativas; a confirmação de "Desvincular" da página local do agente usava JavaScript inline, bloqueado pela própria CSP (agora é uma página de confirmação); o `kds.mjs` sai da tela cheia antes de redimensionar (Chromium no Linux).
@@ -106,7 +106,7 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-- Aprovação visual da fase C.
+- Aprovar o mapa único de atalhos proposto em 2026-10-09 (antes de aplicar e de seguir para a fase D).
 
 ## Lembretes de ambiente
 
