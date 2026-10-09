@@ -39,6 +39,18 @@ page = await context.newPage();
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 page.on('response', (r) => r.status() >= 400 && errors.push(`HTTP ${r.status()} ${r.url()}`));
 
+// A slow board on demand (the double F9 step): its prefetch is refused, so the navigation
+// fetches it, and that fetch waits 2.5 s while `slowBoard` is on.
+let slowBoard = false;
+await page.route(
+  (url) => url.pathname === '/pedidos' && url.searchParams.has('_rsc'),
+  async (route) => {
+    if (route.request().headers()['next-router-prefetch']) return route.abort();
+    if (slowBoard) await new Promise((r) => setTimeout(r, 2500));
+    await route.continue().catch(() => undefined);
+  },
+);
+
 await page.goto(`${WEB}/login`);
 await page.getByLabel('E-mail').fill('caixa@demo.local');
 await page.getByLabel('Senha').fill('Demo1234');
@@ -124,20 +136,33 @@ await step(
 );
 
 let created = null;
-await step('F7 order note; F9 pressed twice creates ONE order (cooldown)', async () => {
-  await page.keyboard.press('F7');
-  await page.keyboard.type('Cliente aguardando no balcão');
-  // The item was confirmed a moment ago: let the 1 s cooldown pass, then a double press.
-  await page.waitForTimeout(1100);
-  await page.keyboard.press('F9');
-  await page.keyboard.press('F9');
-  const toast = page.getByText(/Pedido #\d+ criado/);
-  await toast.first().waitFor();
-  await page.waitForURL('**/pedidos');
-  await page.waitForTimeout(1500);
-  if ((await toast.count()) !== 1) throw new Error(`${await toast.count()} orders created`);
-  created = Number((await toast.first().innerText()).match(/#(\d+)/)[1]);
-});
+await step(
+  'F7 order note; F9 twice, and again while a slow next screen loads, creates ONE order',
+  async () => {
+    await page.keyboard.press('F7');
+    await page.keyboard.type('Cliente aguardando no balcão');
+    // The item was confirmed a moment ago: let the 1 s cooldown pass, then a double press.
+    await page.waitForTimeout(1100);
+    // A slow next screen: the board takes 2.5 s to arrive. An F9 after the 1 s cooldown, while
+    // it loads, must not send the same cart again.
+    slowBoard = true;
+    await page.keyboard.press('F9');
+    await page.keyboard.press('F9');
+    const toast = page.getByText(/Pedido #\d+ criado/);
+    await toast.first().waitFor();
+    await page.waitForTimeout(1200);
+    if (!page.url().endsWith('/pedidos/novo')) throw new Error('the board was not slow');
+    // The screen stays busy until the board opens (button too, not only the key).
+    const send = page.getByRole('button', { name: /Criar pedido/ });
+    if (!(await send.isDisabled())) throw new Error('the new order is usable while leaving');
+    await page.keyboard.press('F9');
+    await page.waitForURL('**/pedidos');
+    slowBoard = false;
+    await page.waitForTimeout(1500);
+    if ((await toast.count()) !== 1) throw new Error(`${await toast.count()} orders created`);
+    created = Number((await toast.first().innerText()).match(/#(\d+)/)[1]);
+  },
+);
 
 await step(
   'cash: F2 finds the order, F4 opens the payment; F9 twice pays and does NOT close the tab',
@@ -148,6 +173,8 @@ await step(
     for (const key of ['F2', 'F4', 'F8']) await bar.getByText(key, { exact: true }).waitFor();
     await page.keyboard.press('F2');
     await page.keyboard.type(String(created));
+    // F4 receives the highlighted result: wait for the list to show the order, as a person would.
+    await page.getByText(`#${created}`, { exact: true }).first().waitFor();
     await page.keyboard.press('F4');
     const dialog = page.getByRole('dialog', { name: new RegExp(`Receber · #${created}`) });
     await dialog.waitFor();

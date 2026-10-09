@@ -2,26 +2,27 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções e regras de trabalho em duas máquinas), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-08** (noite), no Surface, **com o projeto dentro do WSL** (`~/projetos/GastroHub_v2`). A `feat/dashboard` foi validada e integrada na `main`.
+> Atualizado em **2026-10-09**, no Surface, **com o projeto dentro do WSL** (`~/projetos/GastroHub_v2`). A `feat/redesign` foi aprovada, validada e integrada na `main`.
 
 ## Estado atual
 
-- `main` tem tudo até o **dashboard e relatórios** (merge da `feat/dashboard`). Todas as branches estão no GitHub. **Frente em andamento:** `feat/redesign` (fases A, B e C aprovadas; D040 feita; mapa único de atalhos aprovado e aplicado; **fase D pronta, aguardando aprovação visual antes do merge**). Ela **alterou o schema** (migration `event_sequence`, D040): no desktop, `pnpm --filter @app/api db:deploy`. Até o merge, só ela altera o schema do Prisma.
+- `main` tem tudo até o **redesign** (merge da `feat/redesign`: D039 tema, componentes, telas de operação, cozinha, login e acessibilidade; D040 ordem pelo banco; mapa único de atalhos). Todas as branches estão no GitHub. **Nenhuma frente em andamento**; qualquer branch nova pode alterar o schema. A `main` ganhou a migration `event_sequence` (D040): no desktop, `pnpm --filter @app/api db:deploy`.
 - **Surface agora trabalha dentro do WSL** (Ubuntu-24.04, `~/projetos/GastroHub_v2`), porque o Smart App Control (ligado; decisão do usuário: **não desligar nem contornar**) bloqueia executáveis do Windows sem assinatura, como o `pnpm-native.exe`. Os programas do Linux não são afetados. `C:\GastroHub_v2` ficou como **cópia antiga, sem uso: não editar nem apagar**. Passo a passo e dicas em docs/SETUP.md ("O projeto inteiro dentro do WSL"). O desktop de casa continua no Windows (`D:\GastroHub_v2`).
-- Validado no WSL antes do merge: `pnpm check` 22/22 (~3,5 min), `pnpm format:check`, e2e 100/100 e **os 9 roteiros visuais com seed limpo antes de cada um** (auth 19, menu 15, orders 18, pos 12, kds 8, delivery 16, digital-menu 11, printing 13, dashboard 12 — tudo PASS, "inesperados: 0"). O painel abre no navegador do Windows por `localhost`.
+- Validado no WSL antes do merge do redesign: `pnpm check` 23/23, `pnpm format:check`, e2e 101/101, **os 10 roteiros visuais** com seed limpo antes de cada um (auth 19, menu 15, orders 18, keyboard 7, pos 12, kds 8, delivery 16, digital-menu 11, printing 13, dashboard 12) e a **checagem de acessibilidade** (48 combinações, sem violação séria ou crítica), com o relógio real e com o simulado (terça 23:50, virando a meia-noite). O painel abre no navegador do Windows por `localhost`.
 - Os roteiros com o seed novo acharam e corrigiram: "a receber" do caixa contava delivery estornado (agora usa a regra da D038: estorno não reabre a dívida); o histórico do seed entregava em bairros fora das áreas ativas; a confirmação de "Desvincular" da página local do agente usava JavaScript inline, bloqueado pela própria CSP (agora é uma página de confirmação); o `kds.mjs` sai da tela cheia antes de redimensionar (Chromium no Linux).
 - `pnpm db:seed` e `pnpm db:reset` passam pelo Turborepo e compilam antes o `@app/shared` (funcionam num clone novo). Os roteiros usam o Edge no Windows e o Chromium do Playwright no Linux (`tools/ui-walkthrough/browser.mjs`).
-- Migrations: `auth_tenancy`, `menu`, `orders`, `tables_pos`, `kds`, `delivery`, `digital_menu`, `printing` e `reports` (preenche o dia de negócio dos pagamentos e pedidos antigos).
+- Migrations: `auth_tenancy`, `menu`, `orders`, `tables_pos`, `kds`, `delivery`, `digital_menu`, `printing`, `reports` (preenche o dia de negócio dos pagamentos e pedidos antigos) e `event_sequence` (D040: `seq` nas tabelas de eventos, numerando as linhas antigas pela ordem de criação).
 - O seed **não** configura impressão; gera **90 dias de histórico** para o dashboard (~20 s no total).
 - **Agente de impressão no Surface:** o serviço `app-print-agent` ficou instalado no Windows (aponta para a API local, não vinculado). Não serve para o teste de reinicialização (o Smart App Control contamina o resultado); pode ser removido em Configurações › Aplicativos quando quiser.
 
 ### Desktop de casa, na próxima sessão
 
 1. `git fetch`, `git checkout main`, `git pull`.
-2. `pnpm install` (novidades desde a última vez no desktop: `apps/print-agent` com `esbuild`, `socket.io-client` e `postject`; `packages/ui` ganhou o `popover`).
-3. `pnpm --filter @app/api db:deploy` (migrations `printing` e `reports`) e `pnpm db:seed` (90 dias de histórico; termina com "✔ Histórico: … pedidos em 90 dias").
+2. `pnpm install` (novidades desde a última vez no desktop: `apps/print-agent` com `esbuild`, `socket.io-client` e `postject`; `packages/ui` ganhou o `popover`). Para os roteiros visuais, `npm install` em `tools/ui-walkthrough` (agora com `@axe-core/playwright`).
+3. `pnpm --filter @app/api db:deploy` (migrations `printing`, `reports` e `event_sequence`) e `pnpm db:seed` (90 dias de histórico; termina com "✔ Histórico: … pedidos em 90 dias").
 4. **Teste de reinicialização do agente de impressão** (reservado para o desktop): `winget install --id JRSoftware.InnoSetup -e --scope user`; `pnpm --filter @app/print-agent package -- --api http://localhost:3333/api`; instalar `apps/print-agent/release/instalar-impressao.exe` (pede administrador); com `pnpm start:lite` rodando, vincular pela página `http://127.0.0.1:9180` (Configurações › Impressão › Adicionar computador) e cadastrar uma impressora virtual; **reiniciar o Windows** e conferir que o serviço sobe sozinho (`(Get-Service app-print-agent).Status` = Running), que a página local mostra "Conectado" e que a página de teste imprime (arquivo em `C:\ProgramData\app-print-agent\impressoes`). Confira também o novo "Desvincular este computador" (abre a confirmação "Sim, desvincular"/"Cancelar"). Se o desktop também tiver o Smart App Control ligado, registre o resultado: reforça a assinatura de código (ROADMAP).
-5. Depois, a proposta da `feat/table-qr` (abaixo).
+5. Conferir o redesign no Windows: `pnpm start:lite --menu`, painel nos dois temas, `npm run a11y` e `npm run keyboard` em `tools/ui-walkthrough` (no Windows os roteiros usam o Edge).
+6. Depois, a proposta da hospedagem (abaixo).
 
 ### Surface, na próxima sessão
 
@@ -44,10 +45,13 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 | `fix/pg-concurrent-queries` | Leituras com várias relações dentro de transação carregam uma relação por vez (`findFirstSequential`); o e2e reprova consultas paralelas na mesma conexão |
 | `feat/printing` | Agente de impressão local (serviço do Windows, executável único, instalador Inno Setup + WinSW, página de vínculo em 127.0.0.1:9180, credencial com DPAPI), vários computadores por unidade com status no painel; impressoras de rede, USB/compartilhadas (spooler RAW) e virtuais; perfis Elgin, Bematech, Epson, Daruma, Tanca e genéricos, "sem acentos" e página de teste com acentos; fila no banco gravada na transação do pedido (comanda por setor com 1–3 vias, "CANCELADO", via de entrega no aceite), confirmação por tentativa, novas tentativas, "POSSÍVEL 2ª VIA", "IMPRESSÃO ATRASADA", retenção com decisão no painel e 2ª via auditada; alertas no topo; pré-conta, fechamento de caixa e acerto direto na impressora do caixa (navegador continua como alternativa); memória medida ~60 MB |
 | `feat/digital-menu` | App `menu` com a marca do restaurante (cor, logo, capa; a nossa só no "feito com"), renderizado no servidor com cache atualizado pela API, SEO e imagem de prévia de link; aberto/fechado com próxima abertura; item com complementos, pizza e combos pelas funções do shared; checkout com área, taxa, mínimo, "grátis acima de", cupom, pagamento na entrega (troco, cartão, PIX), consentimento LGPD e "Não é você?"; limites contra trote (telefone, IP largo, pendentes), honeypot e telefones bloqueados; recusa com motivo para o cliente e nota interna; acompanhamento em tempo real por token não adivinhável com QR do PIX após o aceite e "Já paguei" (visível no kanban, caixa e entregador); configurações em Configurações › Cardápio digital |
+| `feat/redesign` | Tema escuro padrão e claro equivalente (azul como cor principal, fontes embutidas, foco de 3 px, alvos de 44 px), menu lateral, kanban com atraso e "a receber", componentes base com teste de contraste, telas de operação (teclado completo no novo pedido, caixa, mesas, entregador, tablet 1024×768), mapa único de atalhos (F6/F7 impedidos, F9 com trava contra toque duplo), cozinha na paleta nova, login e cadastro, checagem de acessibilidade com axe-core, capturas finais em `docs/screenshots/final/`; D040: ordem de criação pelo banco (`seq`) |
 | `feat/dashboard` | Dashboard do dia em tempo real (faturamento com quebra, ticket alternável, comparação com a semana anterior ou a média de 4 semanas até o mesmo momento, "Atenção agora", canais, mais vendidos, pedidos por hora, conciliação exata com o caixa, visão de rede); relatórios por período (vendas com curva ABC e mapa de calor, pagamentos, garçons, controle de perdas, tempos de preparo) com CSV e impressão A4; gráficos em SVG próprio com tokens do tema; 90 dias de histórico determinístico no seed |
 
 ### Decisões recentes (detalhes em DECISOES.md)
 
+- **D039 Redesign:** escuro como padrão, tema por aparelho, cores e tamanhos só por tokens com contraste testado (cartão, fundo e trilho); mapa único de atalhos (sensíveis sem tecla, F9 com trava de 1 s); checagem de acessibilidade com axe-core (`tools/ui-walkthrough/a11y.mjs`).
+- **D040 Ordem pelo banco:** `seq` (autoincremento) nas tabelas de eventos e desempate estável em toda ordenação por horário; os testes passam com o relógio saltando.
 - **D038 Relatórios:** faturamento = pedidos concluídos no dia de negócio da conclusão; "a receber" à parte (total − tudo o que já foi pago; estorno não reabre a dívida, regra também do "a receber" do caixa); estorno de concluído abatido no dia do estorno; pagamentos guardam o dia de negócio do caixa; conciliação exata testada no e2e; comparação até o mesmo momento do dia.
 - **D035 Agente de impressão:** agente próprio como serviço do Windows (navegador fica como alternativa manual; D012 substituída na impressão automática); vários por unidade; papel `PRINT_AGENT` que só imprime; vínculo por código com os limites do KDS; credencial com DPAPI, sem rotação; só conexões de saída; perfis por marca; meta de memória até 80 MB (medido ~60 MB); Windows 10 1809+ ou 11, 64 bits.
 - **D036 Fila:** outbox na transação do evento com `dedupeKey`; arrendamento de 60 s e confirmação por tentativa; novas tentativas 5 s/15 s/30 s/1 min; lease vencido → "POSSÍVEL 2ª VIA"; mais de 2 min → "IMPRESSÃO ATRASADA"; mais de 30 min (configurável) → retido para imprimir ou descartar; 2ª via auditada; alertas no painel.
@@ -59,7 +63,6 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 - **D030 Saídas e app do entregador:** uma saída aberta por entregador; cada tentativa é uma parada; `DISPATCHED` exige entregador; o entregador (`courier:app`) vê só a própria saída aberta (LGPD); maquininha só a do restaurante (a do entregador está no ROADMAP).
 - **D031 Acerto e remuneração:** o recebido vira pagamento no caixa de quem acerta; falta/sobra corrige a gaveta; remuneração da loja ou do entregador; diária no primeiro acerto do dia; saldo corrente com "pagar agora" (sangria auditada) ou "acumular"; pagamento avulso do saldo também é sangria.
 - Anteriores: D027–D028 (KDS e telas da cozinha), D023–D026 (pagamentos, caixa, divisão, PIX), D019–D022 (pedidos).
-- O **redesign** (dashboard escuro azul-marinho, descrito no ROADMAP) continua planejado para depois das funcionalidades, trocando só o tema.
 
 ### Consultas em paralelo na mesma conexão (corrigido em `fix/pg-concurrent-queries`)
 
@@ -67,31 +70,11 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### Agora: etapa `feat/redesign` — fase D
+### Agora: hospedagem (`chore/hosting`) — apresentar a proposta ANTES de codar
 
-Proposta aprovada em 2026-10-08 (D039): fases A (menu lateral, layout, kanban), B (componentes base, referência, contraste, telas só de tema), C (telas de operação) e D (cozinha, login, acessibilidade automática, capturas finais em `docs/screenshots/final/`, documentação e merge), com aprovação visual ao fim de cada uma.
+Servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações. Mostrar a proposta (opções e custos) ao usuário e esperar a aprovação antes de começar.
 
-- **Fase C (branch `feat/redesign`, enviada):** novo pedido com teclado completo (busca com foco, ↑↓ e Enter, F2/F4/F6/F7/F9; na janela do item, Tab/Espaço, + −, F7, F9 ou Ctrl+Enter; atalhos na tela) e barra de total no celular; caixa (rolagem lateral de 72 px no celular resolvida; pagamento com total/pago/a receber e troco em destaque, formas em blocos de 56 px com ícone); mesas em blocos de 128 px com cor, ícone e texto; app do entregador com endereço e valor em destaque; menu lateral fixo só a partir de 1280 px (tablet na horizontal usa o botão); capturas também em tablet 1024×768. Roteiro novo `keyboard.mjs` (pedido inteiro sem mouse). Achado: o F9 da janela do item também criava o pedido (corrigido).
-- **"A receber" no kanban (decisão do usuário, D039):** a partir de "Pronto" com saldo, ou em qualquer etapa com pagamento parcial (`showsBalanceFlag`).
-- **Validação da fase C:** `pnpm check` 23/23, `format:check`, e2e 100/100, 10 roteiros com o relógio real e com o simulado (terça 23:50). No Surface, o relógio do WSL salta para trás e já derrubou testes que ordenam por horário no e2e (ver SETUP, "Problemas comuns"); repetir resolve.
-- **Capturas** (fora do git): `docs/screenshots/redesign/fase-c/{escuro,claro}/{computador,celular,tablet}`. No Windows: `\\wsl.localhost\Ubuntu-24.04\home\braian\projetos\GastroHub_v2\docs\screenshots\redesign\fase-c`.
-- **Mapa único de atalhos (aprovado em 2026-10-09, aplicado):** cada tecla significa o mesmo em todas as telas (DESIGN.md, "Mapa de atalhos"; fonte `SHORTCUTS` em `lib/hotkeys.ts`, lista com "?"); sangria e outras ações sensíveis sem tecla. F6/F7 testados no Edge e no Chrome do Windows com janela visível: a página consegue impedi-las com `preventDefault` (guarda global em todas as telas). Depois de um F9 que confirma, outro F9 é ignorado por 1 s e enquanto a tela seguinte abre (`confirmOnce`); a barra de cada tela diz o que o F9 faz ali. `keyboard.mjs` cobre o toque duplo (um pedido, um pagamento); `pos.mjs` confere que o F9 não abre a sangria. Validado: 10 roteiros com o relógio real e com o simulado.
-- **Fase D (branch `feat/redesign`, enviada):** cozinha com as colunas do kanban, ícone e faixa do tipo, tempo com ícone, sem tickets esmaecidos; login e cadastro com o painel da marca na superfície do menu lateral e o formulário em cartão; **checagem de acessibilidade** `tools/ui-walkthrough/a11y.mjs` (axe-core, 48 combinações, sem violação séria ou crítica). Ela achou e corrigiu: texto colorido sobre o fundo da página abaixo de 4,5 : 1 (tons do claro mais escuros, azul do escuro mais claro; o teste de contraste mede também fundo e trilho), `aria-controls` inválido nas abas de filtro, gráficos que rolam sem teclado, seletor sem nome, cores do claro dentro da cozinha escura e produto indisponível esmaecido no cardápio digital. Capturas finais versionadas em `docs/screenshots/final/` (8 telas, dois temas, computador).
-- **Capturas da fase D** (fora do git): `docs/screenshots/redesign/fase-d/{escuro,claro}/{computador,celular,tablet}`. No Windows: `\\wsl.localhost\Ubuntu-24.04\home\braian\projetos\GastroHub_v2\docs\screenshots\redesign\fase-d`. Finais: `\\wsl.localhost\Ubuntu-24.04\home\braian\projetos\GastroHub_v2\docs\screenshots\final`.
-- **Próximo passo:** com a aprovação da fase D, merge `--no-ff` da `feat/redesign` na `main`, push, ROADMAP com o redesign ✅ e o HANDOFF apontando para a hospedagem.
-- **Fase A (aprovada em 2026-10-09):** tema escuro padrão, azul como cor principal, fontes embutidas, foco global, 44 px, menu lateral e cabeçalho, kanban.
-- **Pedidos do usuário antes da fase B (feitos):**
-  - **Atraso no cartão** (`orderDeadline`/`deadlineState`): "Prazo em X min" (atenção, 5 min ou menos) e "Atrasado X min" (crítico), pela estimativa que o pedido já tem (retirada: `estimatedReadyAt` até ficar pronto; delivery: tempo da área a partir do aceite, até entregar). Mesa e delivery sem tempo de área não mudam.
-  - **"A receber R$ X"** (`openBalanceCents`) no cartão e na lista de finalizados. Rodadas ficaram fora do cartão.
-  - **Roteiros em qualquer horário:** o seed ajusta os horários da unidade demo ao momento em que roda (aberta e no mesmo dia de negócio por 3 h); testado com o relógio simulado (`tools/ui-walkthrough/fake-clock.sh`): 9/9 numa terça às 23:37 e às 23:55 atravessando a meia-noite. Defeitos reais achados e corrigidos: "Caixas do dia" e relatório de entregadores na data do calendário (agora dia de negócio); o seed não atualizava o cache do cardápio digital; no `pnpm dev`, painel e cardápio não liam o `.env` da raiz.
-  - **Tablet revogado:** o 403 vira "Dispositivo desvinculado" na página de vínculo; o roteiro aceita a corrida.
-- **Fase B (aprovada em 2026-10-09):** no `@app/ui`: tabela que vira cartões no celular, `Notice`, `Segmented`, `OrderStatusBadge` com ícone, `EmptyState`/`ListSkeleton`/`LoadingArea`, `PageHeader`, `Kbd`; itens de menu e seletor com 44 px no toque; teste de contraste com 80 pares nos dois temas (`packages/ui/src/styles/contrast.test.ts`); `/referencia-visual` completa; telas só de tema (usuários, cupons, relatório de entregadores, áreas, cardápio digital, entregadores, editor de produto). DESIGN.md com "Componentes base".
-- **Validação:** `pnpm check` 23/23, `format:check`, e2e 100/100, 9 roteiros com o relógio real e com o simulado.
-- **Capturas** (fora do git): `docs/screenshots/redesign/{antes,fase-a,fase-b}`. No Windows: `\\wsl.localhost\Ubuntu-24.04\home\braian\projetos\GastroHub_v2\docs\screenshots\redesign\fase-b`.
-
-### Semana que vem, logo depois do redesign: hospedagem
-
-Servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações. Apresentar a proposta antes de começar.
+O redesign terminou em 2026-10-09 (detalhes em DECISOES.md, D039 e D040; tema e regras em DESIGN.md). Capturas finais versionadas em `docs/screenshots/final/`; as das fases ficaram fora do git em `docs/screenshots/redesign/` (no Windows: `\\wsl.localhost\Ubuntu-24.04\home\braian\projetos\GastroHub_v2\docs\screenshots\redesign`).
 
 ### Antes do lançamento (não é etapa de código agora)
 
@@ -109,7 +92,7 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-- Aprovar a fase D (cozinha, login e cadastro, cores ajustadas pela checagem de acessibilidade) para o merge do redesign.
+- Nenhuma no momento. Próxima: aprovar a proposta da hospedagem quando for apresentada.
 
 ## Lembretes de ambiente
 

@@ -390,6 +390,9 @@ function Composer() {
   }
 
   async function submit() {
+    // After a success the screen stays busy until the next one opens: a slow navigation must
+    // not let another F9 (or click) send the same cart again with a new idempotency key.
+    let leaving = false;
     setErrors({});
     if (order) {
       if (!cart.length) return toast.error('Adicione pelo menos um item');
@@ -405,10 +408,11 @@ function Composer() {
           sendNow ? 'Itens enviados para a produção' : 'Itens lançados na conta',
         );
         router.push(back as never);
+        leaving = true;
       } catch {
         // Toast already shown; on 409 the order reloads with the new version.
       } finally {
-        setBusy(false);
+        if (!leaving) setBusy(false);
       }
       return;
     }
@@ -442,13 +446,14 @@ function Composer() {
       await invalidate();
       toast.success(`Pedido #${created.number} criado`);
       router.push(back as never);
+      leaving = true;
     } catch (error) {
       if (error instanceof ApiError && Object.keys(error.fieldErrors).length) {
         setErrors(error.fieldErrors);
       }
       toast.error(errorMessage(error));
     } finally {
-      setBusy(false);
+      if (!leaving) setBusy(false);
     }
   }
 
