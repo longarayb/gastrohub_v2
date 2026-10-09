@@ -250,6 +250,13 @@ describe('Reports: day dashboard, reconciliation, period, losses, times and netw
       productsCents: Math.round(19_500 / 6),
     });
     expect(day.receivable).toEqual({ orders: 1, cents: 3200 });
+    // The cash screen uses the same rule: the refunded delivery is not "a receber".
+    const receivables = (await get(owner, '/api/orders?receivable=true').expect(200)).body as {
+      id: string;
+    }[];
+    const listed = receivables.map((r) => r.id);
+    expect(listed).toContain(o.receivable!.id);
+    expect(listed).not.toContain(o.refunded!.id);
     expect(day.canceled).toEqual({ orders: 1, totalCents: 2500 });
     expect(day.open.orders).toBe(1);
     expect(day.reconciliation).toMatchObject({

@@ -361,6 +361,17 @@ export class OrdersService {
       orderBy: { createdAt: 'desc' },
       take: 300,
     });
+    if (query.receivable && orders.length) {
+      // A refund does not reopen the debt (D038): receivable only while the total is above
+      // everything ever paid on the order, refunded payments included.
+      const paid = await this.db.payment.groupBy({
+        by: ['orderId'],
+        where: { orderId: { in: orders.map((o) => o.id) } },
+        _sum: { amountCents: true },
+      });
+      const gross = new Map(paid.map((p) => [p.orderId, p._sum.amountCents ?? 0]));
+      return orders.filter((o) => o.totalCents > (gross.get(o.id) ?? 0)).map(toOrderSummary);
+    }
     return orders.map(toOrderSummary);
   }
 

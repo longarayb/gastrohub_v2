@@ -168,6 +168,8 @@ describe('agent loop', () => {
     const html = await home.text();
     expect(html).toContain('Código de vínculo');
     expect(html).not.toContain('cred');
+    // Its own CSP blocks inline JavaScript: the page must not depend on it.
+    expect(html).not.toMatch(/\son[a-z]+=/);
 
     // DNS rebinding: another host name pointing to 127.0.0.1 is refused.
     const { request } = await import('node:http');
@@ -185,6 +187,16 @@ describe('agent loop', () => {
       redirect: 'manual',
     });
     expect(post.status).toBe(403);
+
+    // Paired: unpairing asks for confirmation on its own page (no inline JavaScript).
+    agent.state = 'ONLINE';
+    const paired = await (await fetch(`${base}/`)).text();
+    expect(paired).toContain('href="/?confirmar=desvincular"');
+    expect(paired).not.toContain('action="/unpair"');
+    const confirm = await (await fetch(`${base}/?confirmar=desvincular`)).text();
+    expect(confirm).toContain('Sim, desvincular');
+    expect(confirm).toContain('action="/unpair"');
+    for (const html of [paired, confirm]) expect(html).not.toMatch(/son[a-z]+=/);
     agent.stop();
   });
 });

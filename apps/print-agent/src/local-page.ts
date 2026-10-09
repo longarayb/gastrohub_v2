@@ -29,7 +29,12 @@ const time = (iso: string) =>
     minute: '2-digit',
   }).format(new Date(iso));
 
-function page(agent: PrintAgent, csrf: string, message: string | null): string {
+function page(
+  agent: PrintAgent,
+  csrf: string,
+  message: string | null,
+  confirmUnpair = false,
+): string {
   const paired = agent.state !== 'UNPAIRED';
   const printers = agent.printers
     .map((p) => {
@@ -57,10 +62,15 @@ function page(agent: PrintAgent, csrf: string, message: string | null): string {
       ${printers ? `<ul>${printers}</ul>` : '<p>Nenhuma impressora cadastrada para este computador. Cadastre no painel, em Configurações › Impressão.</p>'}
       <h2>Últimas impressões</h2>
       ${recent ? `<ul>${recent}</ul>` : '<p>Nenhuma impressão desde que o agente iniciou.</p>'}
-      <form method="post" action="/unpair" onsubmit="return confirm('Desvincular este computador? Ele para de imprimir até ser vinculado de novo.')">
-        <input type="hidden" name="csrf" value="${csrf}">
-        <button class="secondary">Desvincular este computador</button>
-      </form>`
+      ${
+        confirmUnpair
+          ? `<div class="msg"><p><b>Desvincular este computador?</b> Ele para de imprimir até ser vinculado de novo com um código do painel.</p>
+        <form method="post" action="/unpair">
+          <input type="hidden" name="csrf" value="${csrf}">
+          <button>Sim, desvincular</button> <a href="/">Cancelar</a>
+        </form></div>`
+          : '<p><a class="button secondary" href="/?confirmar=desvincular">Desvincular este computador</a></p>'
+      }`
     : `${agent.lastError ? `<p class="bad">${escape(agent.lastError)}</p>` : ''}
       <p>No painel, abra <b>Configurações › Impressão</b>, clique em <b>Adicionar computador</b> e digite aqui os códigos mostrados.</p>
       <form method="post" action="/pair">
@@ -79,7 +89,8 @@ body{font-family:system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:0
 h1{font-size:1.4rem}h2{font-size:1.05rem;margin-top:1.5rem}
 label{display:block;margin:.8rem 0;font-weight:600}input{display:block;width:100%;box-sizing:border-box;padding:.55rem;font-size:1rem;margin-top:.3rem;border:1px solid #8c959f;border-radius:6px}
 button{padding:.6rem 1.2rem;font-size:1rem;border:0;border-radius:6px;background:${BRAND.colors.primaryHex};color:#fff;cursor:pointer}
-button.secondary{background:#eaeef2;color:#1f2328;margin-top:1.5rem}
+button.secondary,a.button{display:inline-block;padding:.6rem 1.2rem;border-radius:6px;text-decoration:none}
+a.secondary{background:#eaeef2;color:#1f2328;margin-top:1.5rem}
 .state{font-weight:700}.online{color:#1a7f37}.offline,.bad{color:#cf222e}.connecting{color:#9a6700}
 .msg{background:#ddf4ff;padding:.6rem;border-radius:6px}small{color:#59636e}
 </style></head><body>
@@ -127,7 +138,7 @@ export function startLocalPage(agent: PrintAgent, port: number): Promise<Server>
         'content-type': 'text/html; charset=utf-8',
         'cache-control': 'no-store',
       });
-      res.end(page(agent, csrf, message));
+      res.end(page(agent, csrf, message, url.searchParams.get('confirmar') === 'desvincular'));
       message = null;
       return;
     }

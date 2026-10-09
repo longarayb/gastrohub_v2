@@ -18,6 +18,7 @@ import {
   calculateOrderTotals,
   currentBusinessDay,
   defaultServiceFeeBps,
+  normalizePlace,
   priceMenuItem,
   routeItem,
   timeToMinutes,
@@ -232,6 +233,16 @@ export async function seedHistory(
     prisma.deliveryArea.findMany({ where: { tenantId } }),
     prisma.productionSector.findMany({ where: { tenantId } }),
   ]);
+  const activeAreas = areas.filter((a) => !a.pausedUntil && !a.pausedReason);
+  const areaOf = (neighborhood: string) =>
+    activeAreas.find((a) =>
+      a.neighborhoods.some((n) => normalizePlace(n) === normalizePlace(neighborhood)),
+    ) ?? null;
+  const deliverable = customers.filter(
+    (c) => c.addresses[0] && areaOf(c.addresses[0].neighborhood),
+  );
+  if (!deliverable.length)
+    throw new Error('Seed: nenhum cliente com endereço dentro de uma área ativa');
   const prepMinutes = (sectorId: string) => {
     const name = sectors.find((s) => s.id === sectorId)?.name ?? '';
     if (/bar/i.test(name)) return r.triangular(1, 3, 7);
@@ -370,11 +381,15 @@ export async function seedHistory(
       });
 
       const orderId = id('o');
-      const customer = type === 'DINE_IN' ? null : r.chance(0.7) ? r.pick(customers) : null;
-      const address =
+      // Deliveries go to customers inside an active area (a real order outside every area
+      // needs a manual choice); takeout customers are any.
+      const customer =
         type === 'DELIVERY'
-          ? (customer?.addresses[0] ?? customers.find((c) => c.addresses.length)?.addresses[0])
-          : null;
+          ? r.pick(deliverable)
+          : type === 'DINE_IN' || !r.chance(0.7)
+            ? null
+            : r.pick(customers);
+      const address = type === 'DELIVERY' ? (customer?.addresses[0] ?? null) : null;
       const waiter =
         type === 'DINE_IN' ? (r.chance(0.7) ? users.waiterId : users.managerId) : users.cashierId;
       // One cashier cancels more, and more often after production (for the losses report).
@@ -687,7 +702,7 @@ export async function seedHistory(
           dispatchedAt: order.dispatchedAt,
           deliveredAt: delivered,
         });
-        const area = areas.length ? r.pick(areas) : null;
+        const area = address ? areaOf(address.neighborhood) : null;
         deliveries.push({
           id: id('od'),
           tenantId,
