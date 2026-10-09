@@ -67,11 +67,19 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### 1. Antes do lançamento (não é etapa de código agora)
+### Agora: etapa `feat/redesign` — proposta aguardando aprovação
+
+Aplicar o tema do docs/DESIGN.md em todo o painel (lógica, API e regras de negócio não mudam). A proposta foi apresentada em 2026-10-08 e começa por um conjunto pequeno (menu lateral, layout geral e o kanban de pedidos) para o usuário aprovar o visual antes de seguir para o resto.
+
+### Semana que vem, logo depois do redesign: hospedagem
+
+Servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações. Apresentar a proposta antes de começar.
+
+### Antes do lançamento (não é etapa de código agora)
 
 **Assinatura de código agora é requisito obrigatório** (Smart App Control do Windows 11; ver ROADMAP, com a pesquisa do serviço de assinatura da Microsoft no Azure para empresas no Brasil). Certificado de assinatura de código para o `instalar-impressao.exe` e o `print-agent.exe` (ROADMAP, "Antes do lançamento"). O instalador já é gerado por `pnpm --filter @app/print-agent package -- --api <url>` (Inno Setup instalado no Surface por winget, por usuário; WinSW baixado da release oficial com SHA-256 fixado) e foi testado neste computador: instalação, serviço automático como LocalSystem, vínculo pela página local, impressão virtual, atualização por cima mantendo o vínculo e desinstalação limpa (serviço, programa e `C:\ProgramData\app-print-agent` com a credencial removidos). Reinício automático em falha testado em 2026-10-08 (agente morto: volta em 10 s; serviço morto: volta em 19 s, depois da correção `fix/print-agent-orphan`, em que o agente sai junto com o serviço e espera a porta liberar). O serviço ficou instalado no Surface, mas o teste de reinicialização ficou **reservado para o desktop de casa** (passo 4 acima). Falta: esse teste e uma impressora térmica física (rede e USB). No desktop de casa, para gerar o instalador: `winget install --id JRSoftware.InnoSetup -e --scope user`.
 
-### 2. Etapa `feat/table-qr` — apresentar a proposta ANTES de codar
+### Etapa `feat/table-qr` — apresentar a proposta ANTES de codar
 
 QR Code na mesa: o cliente sentado no salão faz o pedido pelo celular e os itens viram rodadas na conta da mesa (sessão). Decidido na `feat/digital-menu`: etapa própria, logo depois, reaproveitando os componentes do `apps/menu` (cardápio, montagem de item, carrinho, preço pelo shared).
 

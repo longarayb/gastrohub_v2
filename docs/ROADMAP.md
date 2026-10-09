@@ -16,10 +16,14 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Cardápio digital (app `menu`: marca do restaurante, carrinho com complementos/pizza/combos, entrega ou retirada, pagamento na entrega, limites contra trote, acompanhamento em tempo real com PIX e "Já paguei", LGPD, SEO e prévia de link) | `feat/digital-menu` | ✅ |
 | Impressão (agente local no Windows, vários por unidade; comanda por setor automática com vias, "CANCELADO", via de entrega, pré-conta, fechamento de caixa e acerto; perfis Elgin, Bematech, Epson, Daruma e Tanca; fila com confirmação, atraso, retenção e 2ª via; alertas no painel) — sem cupom fiscal | `feat/printing` | ✅ |
 | Dashboard e relatórios (dashboard do dia em tempo real com comparação e "Atenção agora"; vendas com curva ABC e mapa de calor; controle de perdas; tempos do KDS; rede para o dono; CSV e impressão; conciliação exata com o caixa; 90 dias de histórico no seed) | `feat/dashboard` | ✅ |
+| Redesign do painel (tema do [DESIGN.md](DESIGN.md) em todas as telas, escuro como padrão e claro equivalente; componentes base; KDS com a mesma paleta) | `feat/redesign` | 🚧 proposta aguardando aprovação |
+| Hospedagem (servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações) | `chore/hosting` | ⏳ semana que vem, logo depois do redesign |
 | QR Code na mesa (pedido pelo celular no salão, rodadas na conta da mesa) | `feat/table-qr` | ⏳ |
 | Seed de demonstração e documentação | `chore/seed-docs` | ⏳ |
 
 Ordem combinada (2026-10-07): fechar o escopo do MVP primeiro — impressão, depois dashboard e só então o QR Code na mesa. A NFC-e (cupom fiscal) fica para a etapa fiscal (Fase 2, `FiscalProvider`).
+
+Atualização (2026-10-08): depois do dashboard, o **redesign** do painel vem agora; a **hospedagem** fica para a semana que vem, logo depois do redesign.
 
 ## Antes do lançamento (importante)
 
@@ -29,7 +33,7 @@ Ordem combinada (2026-10-07): fechar o escopo do MVP primeiro — impressão, de
   - Testar o instalador assinado num Windows 11 com o Smart App Control ligado antes de distribuir.
 - Publicar o instalador num endereço fixo (`NEXT_PUBLIC_PRINT_AGENT_DOWNLOAD_URL` mostra o botão "Baixar instalador") e atualização automática do agente.
 
-## Redesign visual (planejado)
+## Redesign visual (`feat/redesign`, em proposta)
 
 Especificação validada em [DESIGN.md](DESIGN.md) (2026-10-08); os componentes do dashboard já seguem a estrutura. O layout será refeito trocando o tema (`packages/ui/src/styles/globals.css`), sem reescrever as telas. Referência pedida pelo usuário (imagem não versionada, pois contém dados reais): dashboard escuro em azul-marinho, cards de KPI com borda lateral colorida, gráficos de barras e de rosca, tipografia limpa e bastante espaço entre os blocos. As telas usam apenas tokens do tema (`bg-card`, `text-muted-foreground`, `status-*`, `w-kanban-column`, raios de `--radius`).
 
