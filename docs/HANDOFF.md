@@ -2,7 +2,7 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções e regras de trabalho em duas máquinas), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-09**, no Surface, **com o projeto dentro do WSL** (`~/projetos/GastroHub_v2`). A `feat/redesign` foi aprovada, validada e integrada na `main`.
+> Atualizado em **2026-10-10**, no **desktop de casa** (`D:\GastroHub_v2`, Windows): ambiente atualizado e **teste de reinicialização do agente de impressão concluído**. Antes disso (2026-10-09, Surface, no WSL), a `feat/redesign` foi aprovada, validada e integrada na `main`.
 
 ## Estado atual
 
@@ -15,7 +15,19 @@
 - O seed **não** configura impressão; gera **90 dias de histórico** para o dashboard (~20 s no total).
 - **Agente de impressão no Surface:** o serviço `app-print-agent` ficou instalado no Windows (aponta para a API local, não vinculado). Não serve para o teste de reinicialização (o Smart App Control contamina o resultado); pode ser removido em Configurações › Aplicativos quando quiser.
 
-### Desktop de casa, na próxima sessão
+### Desktop de casa (atualizado em 2026-10-10)
+
+Feito nesta sessão (passos 1 a 4 do roteiro abaixo):
+
+- `main` em dia; `.env` recriado a partir do `.env.example` atual (o anterior era da etapa de pedidos; portas padrão, Postgres na 5432; cópia antiga em `.env.bak-2026-10-04`, fora do git). `pnpm install`, `npm install` em `tools/ui-walkthrough`, migrations até `event_sequence` e seed novo (5834 pedidos em 90 dias).
+- Validação igual à do Surface: `pnpm check` 23/23, `pnpm format:check` e e2e 101/101.
+- **Smart App Control desligado neste desktop** (Windows 11 Pro, hostname `BRAIAN`): nada foi bloqueado. O teste daqui, portanto, não diz nada sobre o bloqueio; a assinatura de código continua obrigatória (ROADMAP).
+- **Teste de reinicialização do agente de impressão: concluído, aprovado.** Instalador gerado aqui (Inno Setup 6.7.3 por usuário), instalado em modo silencioso, vinculado à unidade `demo` e com uma impressora virtual. Depois de **reiniciar o Windows** (conferido pelo horário do boot e pelo evento 1074, "reiniciar"): o serviço `app-print-agent` subiu sozinho, com processos novos, **antes do login**; parou de forma limpa no desligamento ("Agente de impressão parando"); sem a API no ar, a página local mostrou "Sem conexão com o sistema" sem pedir novo vínculo; quando a API subiu, voltou **online sozinho em ~9 s**, com a impressora carregada; o painel mostrou o computador online; uma nova página de teste imprimiu com acentos certos, em uma tentativa; "Desvincular este computador" abre a confirmação "Sim, desvincular"/"Cancelar" (só aberta, não usada). Memória: 42–48 MB. O Docker Desktop **não** abre sozinho no login deste computador.
+- **O agente de teste continua instalado e vinculado neste desktop** (computador "Desktop de casa (teste)", impressora "Virtual teste", unidade `demo` do banco local; impressões em `C:\ProgramData\app-print-agent\impressoes`). Um `pnpm db:seed` recria a unidade `demo` e apaga esse vínculo do banco: aí o agente fica sem acesso e é preciso vincular de novo pela página `http://127.0.0.1:9180` (ou desinstalar em Configurações › Aplicativos).
+- **A investigar (item novo):** depois do reinício, o agente ficou "online" na página local às 14:17:20, mas o **canal de tempo real só conectou às 14:17:35 (~15 s depois)**; a página de teste pedida nesse intervalo esperou e só saiu quando o canal conectou (sem perda nem duplicação). Ver por que a reconexão do Socket.IO do agente demora mais que a sessão HTTP (espera de reconexão acumulada enquanto a API estava fora?) e se um trabalho pendente deveria sair pela consulta HTTP sem esperar o canal.
+- Não feito (fica para outra sessão no desktop): o passo 5, conferir o redesign no Windows (`npm run a11y` e `npm run keyboard` com o Edge).
+
+Roteiro original (referência):
 
 1. `git fetch`, `git checkout main`, `git pull`.
 2. `pnpm install` (novidades desde a última vez no desktop: `apps/print-agent` com `esbuild`, `socket.io-client` e `postject`; `packages/ui` ganhou o `popover`). Para os roteiros visuais, `npm install` em `tools/ui-walkthrough` (agora com `@axe-core/playwright`).
@@ -70,7 +82,11 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### Agora: hospedagem (`chore/hosting`) — apresentar a proposta ANTES de codar
+### Agora: aguardar a mensagem do Braian com a proposta da `feat/platform-admin`
+
+**Aguardar a mensagem do Braian com a proposta da `feat/platform-admin` (painel admin da plataforma), que vem antes da hospedagem.** Não começar nenhuma etapa antes dessa mensagem; quando ela chegar, seguir o de sempre (modelo e regras apresentados e aprovados antes de codar).
+
+### Depois: hospedagem (`chore/hosting`) — apresentar a proposta ANTES de codar
 
 Servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações. Mostrar a proposta (opções e custos) ao usuário e esperar a aprovação antes de começar.
 
@@ -78,7 +94,7 @@ O redesign terminou em 2026-10-09 (detalhes em DECISOES.md, D039 e D040; tema e 
 
 ### Antes do lançamento (não é etapa de código agora)
 
-**Assinatura de código agora é requisito obrigatório** (Smart App Control do Windows 11; ver ROADMAP, com a pesquisa do serviço de assinatura da Microsoft no Azure para empresas no Brasil). Certificado de assinatura de código para o `instalar-impressao.exe` e o `print-agent.exe` (ROADMAP, "Antes do lançamento"). O instalador já é gerado por `pnpm --filter @app/print-agent package -- --api <url>` (Inno Setup instalado no Surface por winget, por usuário; WinSW baixado da release oficial com SHA-256 fixado) e foi testado neste computador: instalação, serviço automático como LocalSystem, vínculo pela página local, impressão virtual, atualização por cima mantendo o vínculo e desinstalação limpa (serviço, programa e `C:\ProgramData\app-print-agent` com a credencial removidos). Reinício automático em falha testado em 2026-10-08 (agente morto: volta em 10 s; serviço morto: volta em 19 s, depois da correção `fix/print-agent-orphan`, em que o agente sai junto com o serviço e espera a porta liberar). O serviço ficou instalado no Surface, mas o teste de reinicialização ficou **reservado para o desktop de casa** (passo 4 acima). Falta: esse teste e uma impressora térmica física (rede e USB). No desktop de casa, para gerar o instalador: `winget install --id JRSoftware.InnoSetup -e --scope user`.
+**Assinatura de código agora é requisito obrigatório** (Smart App Control do Windows 11; ver ROADMAP, com a pesquisa do serviço de assinatura da Microsoft no Azure para empresas no Brasil). Certificado de assinatura de código para o `instalar-impressao.exe` e o `print-agent.exe` (ROADMAP, "Antes do lançamento"). O instalador já é gerado por `pnpm --filter @app/print-agent package -- --api <url>` (Inno Setup instalado no Surface por winget, por usuário; WinSW baixado da release oficial com SHA-256 fixado) e foi testado neste computador: instalação, serviço automático como LocalSystem, vínculo pela página local, impressão virtual, atualização por cima mantendo o vínculo e desinstalação limpa (serviço, programa e `C:\ProgramData\app-print-agent` com a credencial removidos). Reinício automático em falha testado em 2026-10-08 (agente morto: volta em 10 s; serviço morto: volta em 19 s, depois da correção `fix/print-agent-orphan`, em que o agente sai junto com o serviço e espera a porta liberar). O serviço ficou instalado no Surface; o **teste de reinicialização foi feito e aprovado no desktop de casa em 2026-10-10** (detalhes acima). Falta: uma impressora térmica física (rede e USB) e investigar o atraso de ~15 s do canal de tempo real do agente depois de um reinício. No desktop de casa, para gerar o instalador: `winget install --id JRSoftware.InnoSetup -e --scope user`.
 
 ### Etapa `feat/table-qr` — apresentar a proposta ANTES de codar
 
@@ -92,7 +108,7 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-- Nenhuma no momento. Próxima: aprovar a proposta da hospedagem quando for apresentada.
+- Nenhuma no momento. Próxima: a mensagem do Braian com a proposta da `feat/platform-admin`; depois, aprovar a proposta da hospedagem quando for apresentada.
 
 ## Lembretes de ambiente
 

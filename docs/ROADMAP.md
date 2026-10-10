@@ -17,7 +17,8 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Impressão (agente local no Windows, vários por unidade; comanda por setor automática com vias, "CANCELADO", via de entrega, pré-conta, fechamento de caixa e acerto; perfis Elgin, Bematech, Epson, Daruma e Tanca; fila com confirmação, atraso, retenção e 2ª via; alertas no painel) — sem cupom fiscal | `feat/printing` | ✅ |
 | Dashboard e relatórios (dashboard do dia em tempo real com comparação e "Atenção agora"; vendas com curva ABC e mapa de calor; controle de perdas; tempos do KDS; rede para o dono; CSV e impressão; conciliação exata com o caixa; 90 dias de histórico no seed) | `feat/dashboard` | ✅ |
 | Redesign do painel (tema do [DESIGN.md](DESIGN.md) em todas as telas, escuro como padrão e claro equivalente; componentes base; KDS com a mesma paleta) | `feat/redesign` | ✅ concluído (2026-10-09; D039, D040) |
-| Hospedagem (servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações) | `chore/hosting` | ⏳ próxima etapa (apresentar a proposta antes) |
+| Painel admin da plataforma (proposta a ser enviada pelo Braian) | `feat/platform-admin` | ⏳ próxima etapa (aguardando a proposta; vem antes da hospedagem) |
+| Hospedagem (servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações) | `chore/hosting` | ⏳ depois da `feat/platform-admin` (apresentar a proposta antes) |
 | QR Code na mesa (pedido pelo celular no salão, rodadas na conta da mesa) | `feat/table-qr` | ⏳ |
 | Seed de demonstração e documentação | `chore/seed-docs` | ⏳ |
 
@@ -31,6 +32,9 @@ Atualização (2026-10-08): depois do dashboard, o **redesign** do painel vem ag
   - **Serviço de assinatura da Microsoft no Azure** (Trusted Signing, renomeado para Artifact Signing): verificar **se está disponível para empresas no Brasil** (no início era restrito a EUA, Canadá, UE e Reino Unido para organizações), o **custo mensal**, as exigências de validação da empresa (tempo de existência, documentos) e, principalmente, **se a assinatura dá reputação imediata no Smart App Control** (ou se ainda depende de reputação acumulada).
   - **Certificados OV e EV** de autoridades e revendedores (Sectigo, Certum, SSL.com, DigiCert e revendas brasileiras): custo anual, exigência de token físico ou HSM na nuvem (obrigatória desde 2023) e efeito no Smart App Control (EV historicamente dava reputação imediata no SmartScreen; confirmar para o Smart App Control).
   - Testar o instalador assinado num Windows 11 com o Smart App Control ligado antes de distribuir.
+- ✅ **Teste de reinicialização do agente de impressão** (2026-10-10, desktop de casa, Smart App Control desligado): depois de reiniciar o Windows, o serviço subiu sozinho antes do login, voltou online sem novo vínculo quando a API ficou disponível e imprimiu a página de teste. Detalhes no HANDOFF.
+- **A investigar:** depois do reinício, o canal de tempo real do agente conectou ~15 s depois de ele aparecer online; trabalho pedido nesse intervalo espera o canal (sem perda nem duplicação).
+- Teste com impressora térmica física (rede e USB).
 - Publicar o instalador num endereço fixo (`NEXT_PUBLIC_PRINT_AGENT_DOWNLOAD_URL` mostra o botão "Baixar instalador") e atualização automática do agente.
 
 ## Redesign visual (`feat/redesign`, D039)
