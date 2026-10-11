@@ -30,21 +30,27 @@ import {
 import { Kbd } from '@app/ui/components/states';
 import { BrandMark } from '@/components/brand';
 import { PrintAlerts } from '@/components/printing/alerts';
+import { moduleAvailable, useStoreNotices } from '@/lib/platform';
 import { errorMessage } from '@/lib/api';
 import { useAuth, useSession } from '@/lib/auth';
 import { SHORTCUTS, lockConfirm, useBrowserKeyGuard, useHotkeys } from '@/lib/hotkeys';
 import { NAV } from './nav';
+import { PlatformNotices } from './platform-notices';
 
 /** Menu items (docs/DESIGN.md): 46 px, radius 12, thin Lucide icons, active with a 4 px bar. */
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const session = useSession();
   const pathname = usePathname();
+  // Plan modules (D042): what the plan does not include stays out of the menu.
+  const { data: notices } = useStoreNotices();
 
   return (
     <nav aria-label="Menu principal" className="flex flex-col gap-5">
       {NAV.map((group) => {
         const items = group.items.filter(
-          (item) => !item.permissions?.length || hasAnyPermission(session.role, item.permissions),
+          (item) =>
+            (!item.permissions?.length || hasAnyPermission(session.role, item.permissions)) &&
+            moduleAvailable(notices?.modules, item.module),
         );
         if (!items.length) return null;
         return (
@@ -324,6 +330,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <ThemeSwitcher />
           <UserCard compact />
         </header>
+        <PlatformNotices />
         <main className="flex-1">{children}</main>
       </div>
       <ShortcutsDialog />

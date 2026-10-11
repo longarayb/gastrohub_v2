@@ -40,6 +40,30 @@ export function setDeviceSession(token: string | null, renew?: () => Promise<boo
   renewDevice = token ? (renew ?? renewDevice) : null;
 }
 
+// ---- Platform support session (D041): one tab, no refresh, ends at a fixed time ----
+export const SUPPORT_TOKEN_KEY = 'platform-support-token';
+let supportSession = false;
+
+/** Support token opened from the platform admin (kept in this tab only). */
+export function setSupportSession(token: string | null): void {
+  supportSession = !!token;
+  accessToken = token;
+}
+
+export const isSupportSession = () => supportSession;
+
+/** The support session ended (time limit or closed by the admin). */
+export function endSupportSession(): void {
+  try {
+    sessionStorage.removeItem(SUPPORT_TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+  supportSession = false;
+  accessToken = null;
+  window.location.replace('/suporte?encerrado=1');
+}
+
 export function getAccessToken(): string | null {
   return deviceToken ?? accessToken;
 }
@@ -55,6 +79,8 @@ let refreshing: Promise<AuthSession | null> | null = null;
 
 /** Exchanges the httpOnly refresh cookie for a new session. Single-flight. */
 export function refreshSession(): Promise<AuthSession | null> {
+  // A support session has no refresh cookie: it simply ends.
+  if (supportSession) return Promise.resolve(null);
   refreshing ??= fetch(`${API_URL}/api/auth/refresh`, { method: 'POST', credentials: 'include' })
     .then(async (res) => {
       if (!res.ok) return null;
@@ -111,6 +137,7 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
     throw new ApiError(0, { message: 'Sem conexão com o servidor. Verifique sua internet.' });
   }
 
+  if (res.status === 401 && supportSession) endSupportSession();
   if (res.status === 401 && !noRetry && deviceToken && renewDevice) {
     if (await renewDevice()) res = await doFetch();
   } else if (res.status === 401 && !noRetry && accessToken) {

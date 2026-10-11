@@ -9,7 +9,24 @@ import {
 } from '@app/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { api, refreshSession, setAccessToken, setSessionHandlers } from './api';
+import {
+  SUPPORT_TOKEN_KEY,
+  api,
+  endSupportSession,
+  refreshSession,
+  setAccessToken,
+  setSessionHandlers,
+  setSupportSession,
+} from './api';
+
+/** Support token saved by /suporte in this tab (D041), if any. */
+function storedSupportToken(): string | null {
+  try {
+    return sessionStorage.getItem(SUPPORT_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
 
 type Status = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -45,13 +62,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         queryClient.clear();
       },
     });
+    const supportToken = storedSupportToken();
+    if (supportToken) {
+      // Platform support tab: the session comes from the support token, never from a cookie.
+      setSupportSession(supportToken);
+      void api<AuthSession>('/support/session', { noRetry: true })
+        .then((s) => {
+          setSupportSession(s.accessToken);
+          setSessionState(s);
+          setStatus('authenticated');
+        })
+        .catch(() => endSupportSession());
+      return;
+    }
     // Restore the session from the refresh cookie on first load.
     void refreshSession().then((s) => setSession(s));
   }, [queryClient, setSession]);
 
-  // Renew the access token shortly before it expires.
+  // Renew the access token shortly before it expires (a support session just ends).
   useEffect(() => {
     if (!session) return;
+    if (session.support) {
+      const timer = setTimeout(endSupportSession, Math.max(0, session.expiresIn * 1000));
+      return () => clearTimeout(timer);
+    }
     const ms = Math.max(30_000, (session.expiresIn - 60) * 1000);
     const timer = setTimeout(() => void refreshSession(), ms);
     return () => clearTimeout(timer);
@@ -86,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    if (storedSupportToken()) return endSupportSession();
     await api('/auth/logout', { method: 'POST', noRetry: true }).catch(() => undefined);
     // Full navigation: drops all in-memory state and avoids the protected layout
     // redirecting to /login?next=<current page>, which the next user may not access.

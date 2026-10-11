@@ -8,8 +8,11 @@ import { useRouter } from 'next/navigation';
 import { MaskedField, TextField, applyApiErrors, useZodForm } from '@/components/form';
 import { errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useSignupStatus } from '@/lib/platform';
+import { Notice } from '@app/ui/components/notice';
+import { FullPageSpinner } from '@/components/page';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const { register } = useAuth();
   const router = useRouter();
   const form = useZodForm(registerSchema, {
@@ -91,6 +94,40 @@ export default function RegisterPage() {
           Entrar
         </Link>
       </p>
+    </div>
+  );
+}
+
+/**
+ * Public signup (D043): only when the platform admin opened it, with a trial period. By default
+ * new restaurants come by invitation.
+ */
+export default function RegisterPage() {
+  const { data, isLoading } = useSignupStatus();
+  if (isLoading) return <FullPageSpinner />;
+  if (data?.mode !== 'OPEN_TRIAL') {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-extrabold">Cadastro por convite</h1>
+        <Notice tone="info" title="O cadastro de novos restaurantes é feito pela nossa equipe">
+          Fale com a gente para conhecer o sistema. Quem já recebeu o convite por e-mail define a
+          senha pelo link do convite.
+        </Notice>
+        <p className="text-sm text-muted-foreground">
+          Já tem acesso?{' '}
+          <Link href="/login" className="text-primary hover:underline">
+            Entrar
+          </Link>
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <Notice tone="info" title={`${data.trialDays} dias de teste`}>
+        Experimente sem compromisso. Antes do fim do teste avisamos no painel.
+      </Notice>
+      <RegisterForm />
     </div>
   );
 }

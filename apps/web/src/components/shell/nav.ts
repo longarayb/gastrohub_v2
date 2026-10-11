@@ -1,4 +1,4 @@
-import { Permission } from '@app/shared';
+import { Permission, type PlatformModule } from '@app/shared';
 import {
   BarChart3,
   Bike,
@@ -31,6 +31,8 @@ export interface NavItem {
   permissions?: Permission[];
   /** Keyboard shortcut hint shown in the menu. */
   shortcut?: string;
+  /** Plan module (D042): hidden when the organization's plan does not include it. */
+  module?: PlatformModule;
 }
 
 export interface NavGroup {
@@ -69,6 +71,7 @@ export const NAV: NavGroup[] = [
       {
         // Opens the kitchen display (its own full-screen layout, outside the shell).
         href: '/kds',
+        module: 'KDS',
         label: 'Tela da cozinha',
         icon: MonitorPlay,
         permissions: [Permission.KDS_OPERATE],
@@ -76,18 +79,21 @@ export const NAV: NavGroup[] = [
       {
         // Courier app (phone): only the courier's own route (LGPD).
         href: '/entregas',
+        module: 'DELIVERY',
         label: 'Minhas entregas',
         icon: Navigation,
         permissions: [Permission.COURIER_APP],
       },
       {
         href: '/entregadores',
+        module: 'DELIVERY',
         label: 'Entregadores',
         icon: Bike,
         permissions: [Permission.DELIVERY_OPERATE],
       },
       {
         href: '/areas-entrega',
+        module: 'DELIVERY',
         label: 'Áreas de entrega',
         icon: MapPinned,
         permissions: [Permission.DELIVERY_OPERATE],
@@ -157,12 +163,14 @@ export const NAV: NavGroup[] = [
       },
       {
         href: '/configuracoes/cardapio-digital',
+        module: 'DIGITAL_MENU',
         label: 'Cardápio digital',
         icon: Smartphone,
         permissions: [Permission.STORE_MANAGE],
       },
       {
         href: '/configuracoes/impressao',
+        module: 'PRINTING',
         label: 'Impressão',
         icon: Printer,
         permissions: [Permission.PRINTERS_MANAGE],

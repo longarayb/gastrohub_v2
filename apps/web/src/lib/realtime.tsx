@@ -4,6 +4,7 @@ import { type OrderEvent, REALTIME_EVENTS } from '@app/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { type Socket, io } from 'socket.io-client';
+import { platformKeys } from './platform';
 import { API_URL, getAccessToken, refreshSession } from './api';
 import { useAuth } from './auth';
 import { cashKeys } from './cash';
@@ -106,6 +107,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     // Agents, printers or the print queue (alerts badge, settings screen).
     socket.on(REALTIME_EVENTS.PRINTING_UPDATED, () => {
       void queryClient.invalidateQueries({ queryKey: printKeys.all });
+    });
+    socket.on(REALTIME_EVENTS.NOTICES_UPDATED, () => {
+      void queryClient.invalidateQueries({ queryKey: platformKeys.notices });
     });
     socket.on(REALTIME_EVENTS.TABLES_UPDATED, () => {
       void queryClient.invalidateQueries({ queryKey: orderKeys.tables });
