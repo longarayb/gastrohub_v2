@@ -16,6 +16,13 @@ import { seedHistory } from './history.js';
 import { DEMO_HOURS, demoHoursAround } from './hours.js';
 import { seedDigitalMenu } from './digital-menu.js';
 import { seedOrders } from './orders.js';
+import {
+  EXAMPLE_CUSTOMERS,
+  EXAMPLE_PASSWORD,
+  PLATFORM_DEMO,
+  seedPlatform,
+  wipePlatform,
+} from './platform.js';
 
 expand(
   loadEnv({ path: path.join(import.meta.dirname, '..', '..', '..', '..', '.env'), quiet: true }),
@@ -88,6 +95,17 @@ async function deleteTenantRows(
   }
 }
 
+/** Removes one store with all its tenant rows (and its organization when left empty). */
+async function wipeStore(prisma: PrismaClient, slug: string): Promise<void> {
+  const store = await prisma.store.findUnique({ where: { slug } });
+  if (!store) return;
+  await deleteTenantRows((sql, ...values) => prisma.$executeRawUnsafe(sql, ...values), store.id);
+  await prisma.store.delete({ where: { id: store.id } });
+  if (!(await prisma.store.count({ where: { organizationId: store.organizationId } }))) {
+    await prisma.organization.delete({ where: { id: store.organizationId } });
+  }
+}
+
 async function wipeDemo(prisma: PrismaClient): Promise<void> {
   const store = await prisma.store.findUnique({ where: { slug: DEMO_SLUG } });
   if (!store) return;
@@ -120,6 +138,8 @@ async function main(): Promise<void> {
   };
   try {
     let t = Date.now();
+    // Platform data first (subscriptions point to the organizations).
+    await wipePlatform(prisma, (slug) => wipeStore(prisma, slug));
     await wipeDemo(prisma);
     timing('limpeza', t);
     t = Date.now();
@@ -197,6 +217,14 @@ async function main(): Promise<void> {
       Number(process.env.HISTORY_DAYS) || 90,
     );
     timing('histórico', t);
+    t = Date.now();
+    const platform = await seedPlatform(prisma, {
+      organizationId: org.id,
+      storeId: store.id,
+      ownerId: userIds.OWNER!,
+      storeName: store.tradeName,
+    });
+    timing('plataforma', t);
 
     console.log(`\n✔ Unidade "${store.tradeName}" (slug: ${store.slug})`);
     console.log(`✔ ${DEMO_USERS.length} usuários — senha de demonstração: ${DEMO_PASSWORD}`);
@@ -221,6 +249,15 @@ async function main(): Promise<void> {
     );
     console.log(
       `✔ Cozinha: ${orders.kitchenTasks} tarefas de produção · tela "TV da cozinha" aguardando vínculo (Setores)\n`,
+    );
+    console.log(
+      `✔ Plataforma: ${platform.customers} clientes (${EXAMPLE_CUSTOMERS.map((x) => x.slug).join(', ')} + demo) · ${platform.invoices} mensalidades`,
+    );
+    console.log(
+      `    Admin da plataforma (http://localhost:3002): ${PLATFORM_DEMO.email} · senha ${PLATFORM_DEMO.password} · 2FA com a chave ${PLATFORM_DEMO.totpSecret}`,
+    );
+    console.log(
+      `    Donos de exemplo (senha ${EXAMPLE_PASSWORD}): ${EXAMPLE_CUSTOMERS.map((x) => x.owner.email).join(', ')}\n`,
     );
     await refreshDigitalMenu(store.slug);
   } finally {
