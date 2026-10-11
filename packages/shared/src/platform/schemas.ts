@@ -242,10 +242,4 @@ export const acceptTermsSchema = z.object({
   privacyVersion: z.string().min(1),
 });
 
-/** First password of an invited user (same token flow as the password reset). */
-export const acceptInviteSchema = z.object({
-  token: z.string().min(20, 'Convite inválido'),
-  password: zPassword,
-});
-
 export const platformAdminPasswordSchema = z.object({ password: zPassword });
