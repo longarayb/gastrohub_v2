@@ -17,7 +17,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Impressão (agente local no Windows, vários por unidade; comanda por setor automática com vias, "CANCELADO", via de entrega, pré-conta, fechamento de caixa e acerto; perfis Elgin, Bematech, Epson, Daruma e Tanca; fila com confirmação, atraso, retenção e 2ª via; alertas no painel) — sem cupom fiscal | `feat/printing` | ✅ |
 | Dashboard e relatórios (dashboard do dia em tempo real com comparação e "Atenção agora"; vendas com curva ABC e mapa de calor; controle de perdas; tempos do KDS; rede para o dono; CSV e impressão; conciliação exata com o caixa; 90 dias de histórico no seed) | `feat/dashboard` | ✅ |
 | Redesign do painel (tema do [DESIGN.md](DESIGN.md) em todas as telas, escuro como padrão e claro equivalente; componentes base; KDS com a mesma paleta) | `feat/redesign` | ✅ concluído (2026-10-09; D039, D040) |
-| Painel admin da plataforma (proposta a ser enviada pelo Braian) | `feat/platform-admin` | ⏳ próxima etapa (aguardando a proposta; vem antes da hospedagem) |
+| Painel admin da plataforma (app `admin` com login e 2FA próprios, clientes, planos, assinaturas, mensalidades manuais, inadimplência com somente leitura fora do expediente, acesso de suporte, aceite dos termos) | `feat/platform-admin` | 🚧 em andamento (proposta aprovada em 2026-10-11) |
 | Hospedagem (servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações; decisões já tomadas em "Hospedagem: decisões") | `chore/hosting` | ⏳ depois da `feat/platform-admin` (apresentar a proposta antes) |
 | Integração iFood (API própria) | `feat/ifood` | ⏳ depois da hospedagem (ver "Integrações com marketplaces") |
 | Adaptador Open Delivery (padrão da Abrasel; 99Food e Keeta) | `feat/open-delivery` | ⏳ depois do iFood |
@@ -49,6 +49,7 @@ Entram pelo ponto de extensão `MarketplaceAdapter` (pedidos com `source` e cód
 
 - **Desenvolvimento** pode ser feito localmente, por **polling**, contra as lojas de teste de cada plataforma (sem precisar expor a máquina de desenvolvimento).
 - **Homologação e produção exigem o sistema hospedado** (endereço público com HTTPS) e o **cadastro como parceiro** em cada plataforma (provavelmente com **CNPJ**). Por isso as integrações vêm depois da hospedagem.
+- **Organização em somente leitura** (inadimplência, `feat/platform-admin`): quando as integrações existirem, todas as unidades dela devem aparecer como **loja fechada** nas plataformas (sem receber pedidos novos), pelo mesmo horário em que o painel passa a somente leitura.
 
 ## Antes do lançamento (importante)
 
@@ -86,3 +87,6 @@ Especificação validada em [DESIGN.md](DESIGN.md) (2026-10-08); os componentes 
 - Cardápio: cardápio compartilhado da rede (matriz define, unidades ajustam preço/disponibilidade)
 - Cardápio: preço por canal (`ProductChannelPrice`), promoção com período, frações desiguais na pizza
 - Fiscal: dados fiscais de produtos e opções (NCM, CFOP, CEST, origem) em tabela separada, quando a NFC-e entrar
+- Plataforma: **emissão da nota fiscal de serviço (NFS-e)** das mensalidades dos clientes (o cadastro do cliente já guarda CNPJ/CPF, razão social, endereço, inscrição municipal e e-mail para nota desde a `feat/platform-admin`)
+- Plataforma: cobrança automática por um serviço brasileiro (Asaas, Mercado Pago ou Pagar.me) com PIX e boleto recorrentes, pela interface `BillingProvider` da `feat/platform-admin`
+- Plataforma: **encerramento de um cliente pela LGPD** — exportação dos dados pelo próprio cliente (cardápio, pedidos, clientes, financeiro, em formatos abertos), prazo de retenção depois do cancelamento (somente leitura e exportação disponíveis), e depois exclusão ou anonimização dos dados pessoais (clientes finais, usuários), mantendo só o que a lei obriga a guardar (dados fiscais e financeiros pelo prazo legal); tudo registrado na auditoria da plataforma
