@@ -161,6 +161,7 @@ Outros modos:
 | Comando | Quando usar |
 |---|---|
 | `pnpm start:lite` | Navegar e testar telas gastando pouca memória (API 3333 + painel 3000) |
+| `pnpm start:lite --admin` | Idem, com o painel da plataforma (3002); combina com `--menu` |
 | `pnpm dev:lite` | Desenvolver com hot reload só da API e do painel (sem o cardápio digital); rode `pnpm infra:up` antes |
 | `pnpm dev` | Tudo em modo watch (API, painel e cardápio digital); o mais pesado |
 
@@ -174,7 +175,8 @@ Para parar: **Ctrl+C** no terminal. Para desligar os containers sem apagar dados
 | API (Swagger) | http://localhost:3333/docs |
 | Health check da API | http://localhost:3333/api/health |
 | Mailpit (e-mails de desenvolvimento, ex.: recuperação de senha) | http://localhost:8025 |
-| Cardápio digital (só com `pnpm dev`; por enquanto só a página inicial, a rota `/demo` vem na etapa `feat/digital-menu`) | http://localhost:3001 |
+| Cardápio digital (`pnpm start:lite --menu`) | http://localhost:3001/demo |
+| Painel da plataforma (`pnpm start:lite --admin`) | http://localhost:3002 |
 
 ## Credenciais de demonstração
 
@@ -198,6 +200,29 @@ Entregas: 4 áreas ("Pinheiros" suspensa por chuva), o Gustavo (usuário `entreg
 Cardápio digital: `pnpm start:lite --menu` e abra http://localhost:3001/demo (de preferência no celular ou com a janela estreita). A loja demo tem a cor própria, um telefone bloqueado, um pedido recusado com motivo e o PIX "já pago" da Juliana na rota do Gustavo. Os horários do seed podem deixar a loja fechada: ajuste em Configurações › Horários. As variáveis `MENU_INTERNAL_URL`, `MENU_REVALIDATE_SECRET` e `TRUST_PROXY` estão no `.env.example`.
 
 Tela da cozinha: abra http://localhost:3000/kds com o login da **Cozinha** (ou de qualquer papel com acesso ao KDS), ou vincule um tablet sem senha: em **Cardápio › Setores de produção › Telas da cozinha**, gere o código da "TV da cozinha" e digite-o em http://localhost:3000/kds/vincular (código da unidade: `demo`).
+
+### Painel da plataforma (D041–D044)
+
+`pnpm start:lite --admin` e abra http://localhost:3002. **Apenas para desenvolvimento:** o seed cria o admin com um segredo de 2FA conhecido.
+
+| Campo | Valor |
+|---|---|
+| E-mail | `admin@plataforma.local` |
+| Senha | `Plataforma123` |
+| 2FA | cadastre no aplicativo autenticador o segredo `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP` (ou use um código de recuperação de `RECUP-00001` a `RECUP-00010`, cada um vale uma vez) |
+
+Clientes de exemplo (dono com senha `Demo1234`): **Pizzaria Bella Massa** em teste (convite pendente de um gerente), **Lanchonete do Zé** atrasada há 4 dias, **Bar do Porto** em somente leitura e **Café Central** cancelado; a **Demo** está em dia no plano Completo, com os termos aceitos. O cadastro público começa **só por convite** (Configurações do painel da plataforma); os roteiros que testam o cadastro abrem e fecham o modo sozinhos. Os convites e os avisos de suporte chegam no Mailpit.
+
+**Chave do 2FA (`PLATFORM_SECRETS_KEY`), importante em produção:** ela cifra os segredos do 2FA dos admins e só existe no `.env` do servidor. **Guarde uma cópia fora do servidor** (gerenciador de senhas ou cofre, nunca no git). Se ela se perder ou for trocada, nenhum código do aplicativo autenticador é aceito: os dados dos clientes não se perdem, mas **todo admin precisa refazer o 2FA** com o comando de emergência, rodado no servidor (não existe rota na API para isso; fica registrado na auditoria da plataforma):
+
+```bash
+# no servidor (container da API)
+node dist/cli/platform-admin.js reset-2fa --email admin@exemplo.com --reason "chave perdida" --operator "Nome de quem roda"
+# criar um admin (imprime a senha temporária uma vez)
+node dist/cli/platform-admin.js create --email admin@exemplo.com --name "Nome"
+```
+
+Em desenvolvimento: `pnpm --filter @app/api build` e `pnpm --filter @app/api platform:admin -- reset-2fa --email ... --reason ...`.
 
 ## Testar no celular (mesma rede Wi-Fi)
 
