@@ -634,9 +634,12 @@ export async function seedHistory(
 
       // Payments (tables sometimes split in two), into the day's register.
       const split = type === 'DINE_IN' && totals.totalCents > 6000 && r.chance(0.25);
-      const parts = split
-        ? [Math.floor(totals.totalCents / 2), Math.ceil(totals.totalCents / 2)]
-        : [totals.totalCents];
+      // Every item canceled (total zero): nothing to pay (payments must be positive).
+      const parts = (
+        split
+          ? [Math.floor(totals.totalCents / 2), Math.ceil(totals.totalCents / 2)]
+          : [totals.totalCents]
+      ).filter((amount) => amount > 0);
       let paid = 0;
       for (const amount of parts) {
         const method = r.weighted(PAYMENT_MIX);
