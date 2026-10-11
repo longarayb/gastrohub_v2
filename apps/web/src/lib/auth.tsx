@@ -10,6 +10,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  ApiError,
   SUPPORT_TOKEN_KEY,
   api,
   endSupportSession,
@@ -72,7 +73,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSessionState(s);
           setStatus('authenticated');
         })
-        .catch(() => endSupportSession());
+        .catch((err) => {
+          // Only a refused token ends the session. A request aborted by a navigation (the
+          // /suporte entry page moving on to /painel) must not erase the token of the tab.
+          if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+            endSupportSession();
+          }
+        });
       return;
     }
     // Restore the session from the refresh cookie on first load.
