@@ -2,7 +2,7 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções e regras de trabalho em duas máquinas), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-10**, no **desktop de casa** (`D:\GastroHub_v2`, Windows): ambiente atualizado e **teste de reinicialização do agente de impressão concluído**. Antes disso (2026-10-09, Surface, no WSL), a `feat/redesign` foi aprovada, validada e integrada na `main`.
+> Atualizado em **2026-10-11**, no **desktop de casa**: decisões da hospedagem e plano dos marketplaces registrados; proposta da `feat/platform-admin` em preparação. Em 2026-10-10, no desktop de casa (`D:\GastroHub_v2`, Windows): ambiente atualizado e **teste de reinicialização do agente de impressão concluído**. Antes disso (2026-10-09, Surface, no WSL), a `feat/redesign` foi aprovada, validada e integrada na `main`.
 
 ## Estado atual
 
@@ -82,13 +82,19 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### Agora: aguardar a mensagem do Braian com a proposta da `feat/platform-admin`
+### Agora: `feat/platform-admin` — proposta em preparação, aguardar aprovação
 
-**Aguardar a mensagem do Braian com a proposta da `feat/platform-admin` (painel admin da plataforma), que vem antes da hospedagem.** Não começar nenhuma etapa antes dessa mensagem; quando ela chegar, seguir o de sempre (modelo e regras apresentados e aprovados antes de codar).
+Em 2026-10-11 o Braian mandou os requisitos do **painel admin da plataforma** (app próprio `apps/admin`, login separado com dois fatores obrigatório e auditoria; clientes = organização + primeira unidade + dono com convite; planos, assinaturas e mensalidades com controle manual e interface para um serviço de cobrança; inadimplência com avisos, tolerância e "somente leitura" nunca no meio do expediente; cadastro aberto configurável; acesso de suporte com motivo, prazo e aviso ao cliente; visão geral; seed com administrador e clientes em situações diferentes). A proposta (modelo e regras) é apresentada antes de codar; **não começar a codar antes da aprovação**. Vem antes da hospedagem.
 
 ### Depois: hospedagem (`chore/hosting`) — apresentar a proposta ANTES de codar
 
-Servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações. Mostrar a proposta (opções e custos) ao usuário e esperar a aprovação antes de começar.
+Servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações. Mostrar a proposta ao usuário e esperar a aprovação antes de começar.
+
+**Decisões já tomadas (2026-10-11; detalhes no ROADMAP, "Hospedagem: decisões"):** VM na **Contabo**, região **EUA (East)**, ~**US$ 20/mês**, configurada pelo Braian do zero com **Docker Compose**; primeiro uso como **demonstração, só com dados fictícios**; domínio ainda não definido, então a proposta deve funcionar com um **domínio provisório ou sslip.io** e permitir trocar depois; **backups diários do Postgres enviados para fora da VM** (ex.: Backblaze B2 ou Cloudflare R2).
+
+### Depois da hospedagem: integrações com marketplaces
+
+Primeiro o **iFood** (API própria), depois um **adaptador Open Delivery** (padrão da Abrasel, adotado pela 99Food e pela Keeta); **Aiqfome a verificar**. O desenvolvimento pode ser local, por **polling**, contra as lojas de teste; a **homologação e a produção exigem o sistema hospedado** e o **cadastro como parceiro** em cada plataforma (provavelmente com CNPJ). Detalhes no ROADMAP, "Integrações com marketplaces".
 
 O redesign terminou em 2026-10-09 (detalhes em DECISOES.md, D039 e D040; tema e regras em DESIGN.md). Capturas finais versionadas em `docs/screenshots/final/`; as das fases ficaram fora do git em `docs/screenshots/redesign/` (no Windows: `\\wsl.localhost\Ubuntu-24.04\home\braian\projetos\GastroHub_v2\docs\screenshots\redesign`).
 
@@ -108,7 +114,7 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-- Nenhuma no momento. Próxima: a mensagem do Braian com a proposta da `feat/platform-admin`; depois, aprovar a proposta da hospedagem quando for apresentada.
+- **Aprovar a proposta da `feat/platform-admin`** (apresentada em 2026-10-11). Depois: aprovar a proposta da hospedagem quando for apresentada.
 
 ## Lembretes de ambiente
 

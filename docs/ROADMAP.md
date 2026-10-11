@@ -18,13 +18,37 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Dashboard e relatórios (dashboard do dia em tempo real com comparação e "Atenção agora"; vendas com curva ABC e mapa de calor; controle de perdas; tempos do KDS; rede para o dono; CSV e impressão; conciliação exata com o caixa; 90 dias de histórico no seed) | `feat/dashboard` | ✅ |
 | Redesign do painel (tema do [DESIGN.md](DESIGN.md) em todas as telas, escuro como padrão e claro equivalente; componentes base; KDS com a mesma paleta) | `feat/redesign` | ✅ concluído (2026-10-09; D039, D040) |
 | Painel admin da plataforma (proposta a ser enviada pelo Braian) | `feat/platform-admin` | ⏳ próxima etapa (aguardando a proposta; vem antes da hospedagem) |
-| Hospedagem (servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações) | `chore/hosting` | ⏳ depois da `feat/platform-admin` (apresentar a proposta antes) |
+| Hospedagem (servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações; decisões já tomadas em "Hospedagem: decisões") | `chore/hosting` | ⏳ depois da `feat/platform-admin` (apresentar a proposta antes) |
+| Integração iFood (API própria) | `feat/ifood` | ⏳ depois da hospedagem (ver "Integrações com marketplaces") |
+| Adaptador Open Delivery (padrão da Abrasel; 99Food e Keeta) | `feat/open-delivery` | ⏳ depois do iFood |
+| Aiqfome | — | ⏳ a verificar (forma de integração ainda não levantada) |
 | QR Code na mesa (pedido pelo celular no salão, rodadas na conta da mesa) | `feat/table-qr` | ⏳ |
 | Seed de demonstração e documentação | `chore/seed-docs` | ⏳ |
 
 Ordem combinada (2026-10-07): fechar o escopo do MVP primeiro — impressão, depois dashboard e só então o QR Code na mesa. A NFC-e (cupom fiscal) fica para a etapa fiscal (Fase 2, `FiscalProvider`).
 
 Atualização (2026-10-08): depois do dashboard, o **redesign** do painel vem agora; a **hospedagem** fica para a semana que vem, logo depois do redesign.
+
+Atualização (2026-10-11): o **painel admin da plataforma** (`feat/platform-admin`) vem antes da hospedagem; depois da hospedagem, as **integrações com marketplaces** (iFood, depois Open Delivery). A posição do QR Code na mesa em relação aos marketplaces ainda será combinada.
+
+## Hospedagem: decisões (2026-10-11, para a proposta da `chore/hosting`)
+
+- **Servidor:** VM na **Contabo**, região **EUA (East)**, na faixa de **US$ 20 por mês**, configurada pelo Braian do zero, com os serviços em **Docker Compose**.
+- **Primeiro uso: demonstração**, só com **dados fictícios** (nada de dados reais de restaurantes até haver uma decisão nova).
+- **Domínio ainda não definido:** a proposta precisa funcionar com um domínio provisório ou com **sslip.io** (nomes derivados do IP, com HTTPS) e permitir **trocar o domínio depois** sem refazer o servidor (URLs públicas e cookies só por variáveis de ambiente).
+- **Backups diários do Postgres enviados para fora da VM** (ex.: Backblaze B2 ou Cloudflare R2), com retenção e um teste de restauração documentado.
+- Ainda a propor na etapa: HTTPS (proxy reverso), monitoramento e alertas, publicação de atualizações e onde ficam os uploads.
+
+## Integrações com marketplaces (depois da hospedagem)
+
+Entram pelo ponto de extensão `MarketplaceAdapter` (pedidos com `source` e código externo, já previstos em `Order`; pagamento `ONLINE` sem caixa, D023).
+
+1. **iFood** (`feat/ifood`): API própria do iFood.
+2. **Open Delivery** (`feat/open-delivery`): um adaptador para o padrão da Abrasel, já adotado pela **99Food** e pela **Keeta**; um mesmo adaptador atende as plataformas que seguem o padrão.
+3. **Aiqfome:** a verificar (API própria ou Open Delivery).
+
+- **Desenvolvimento** pode ser feito localmente, por **polling**, contra as lojas de teste de cada plataforma (sem precisar expor a máquina de desenvolvimento).
+- **Homologação e produção exigem o sistema hospedado** (endereço público com HTTPS) e o **cadastro como parceiro** em cada plataforma (provavelmente com **CNPJ**). Por isso as integrações vêm depois da hospedagem.
 
 ## Antes do lançamento (importante)
 
@@ -43,7 +67,7 @@ Especificação validada em [DESIGN.md](DESIGN.md) (2026-10-08); os componentes 
 
 ## Fase 2+ (arquitetura preparada, não implementado)
 
-- Integrações com marketplaces (iFood, 99Food, Aiqfome, Open Delivery) via `MarketplaceAdapter`
+- Integrações com marketplaces: planejadas como etapas logo depois da hospedagem (ver "Integrações com marketplaces" acima)
 - Emissão fiscal NFC-e/NF-e via `FiscalProvider`
 - Pagamento online (PIX dinâmico, cartão) via `PaymentGateway`; TEF via `TefProvider`
 - Impressão: atualização automática do agente, impressoras Bluetooth/Android (garçom e entregador), logo do restaurante na pré-conta, agente para macOS/Linux
