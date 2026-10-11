@@ -37,6 +37,7 @@ import {
   storeOpenState,
   trackingTimeline,
 } from '@app/shared';
+import { BillingAccessService } from '../platform/billing-access.service.js';
 import { AppConfig } from '../../core/config/app-config.service.js';
 import { ConflictError, NotFoundError, ValidationError } from '../../core/errors/domain-error.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';
@@ -76,6 +77,7 @@ export class PublicMenuService {
     private readonly deliveryPricing: DeliveryPricingService,
     private readonly orders: OrdersService,
     @InjectStorage() private readonly storage: StorageProvider,
+    private readonly billing: BillingAccessService,
   ) {}
 
   private async storeRow(): Promise<Store> {
@@ -129,7 +131,9 @@ export class PublicMenuService {
       hours,
       serverTime: now.toISOString(),
       openState: storeOpenState(hours, now, store.timezone),
-      accepting: store.digitalMenuEnabled,
+      // Read-only mode (overdue, D042): the menu shows "not accepting orders", no billing words.
+      accepting:
+        store.digitalMenuEnabled && !(await this.billing.forStore(store.id)).access?.readOnly,
       takeoutEtaMinutes: store.takeoutEtaMinutes,
       delivers: areas > 0,
       minimumOrderCents: store.deliveryMinimumCents,
@@ -284,7 +288,7 @@ export class PublicMenuService {
     const open = storeOpenState(hours, now, store.timezone);
 
     let blockingMessage: string | null = null;
-    if (!store.digitalMenuEnabled) {
+    if (!store.digitalMenuEnabled || (await this.billing.forStore(store.id)).access?.readOnly) {
       blockingMessage = 'O restaurante não está recebendo pedidos pelo cardápio agora.';
     } else if (!open.open) {
       blockingMessage = open.nextOpening

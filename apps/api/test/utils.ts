@@ -41,6 +41,32 @@ export async function resetDatabase(prisma: PrismaService): Promise<void> {
   if (tables.length === 0) return;
   const list = tables.map((t) => `"public"."${t.tablename}"`).join(', ');
   await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
+  await openSignupForTests(prisma);
+}
+
+export const TEST_PLAN_ID = 'plan-test-all-modules';
+
+/**
+ * The platform default is "signup by invitation only" (D043). The suites create restaurants
+ * through the public signup, so the test database opens it with a plan that includes every
+ * module (the stores start in trial, like a real open signup).
+ */
+export async function openSignupForTests(prisma: PrismaService): Promise<void> {
+  await prisma.plan.create({
+    data: {
+      id: TEST_PLAN_ID,
+      name: 'Plano de testes',
+      priceCents: 19_900,
+      interval: 'MONTHLY',
+      trialDays: 14,
+      storeLimit: 10,
+      extraStorePriceCents: 4_900,
+      modules: ['DIGITAL_MENU', 'DELIVERY', 'KDS', 'PRINTING', 'MARKETPLACES'],
+    },
+  });
+  await prisma.platformSettings.create({
+    data: { id: 'default', signupMode: 'OPEN_TRIAL', signupPlanId: TEST_PLAN_ID, trialDays: 14 },
+  });
 }
 
 let counter = 0;

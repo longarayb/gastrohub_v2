@@ -7,6 +7,10 @@ import {
   type RegisterInput,
   type ResetPasswordInput,
   type Role,
+  type SignupStatusDto,
+  addDaysToDate,
+  billingDate,
+  onlyDigits,
   slugify,
 } from '@app/shared';
 import { AppConfig } from '../../core/config/app-config.service.js';
@@ -35,9 +39,13 @@ export interface SessionWithRefresh {
 
 const INVALID_CREDENTIALS = 'E-mail ou senha inválidos';
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+/** Invited users (platform admin, D041) have 7 days to set their first password. */
+export const INVITE_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** Password hash that never matches: invited users cannot sign in before accepting. */
+export const UNUSABLE_PASSWORD = '!invite-pending';
 
 /** Default opening hours for new stores: every day 11:00–23:00. */
-const DEFAULT_HOURS = Array.from({ length: 7 }, (_, weekday) => ({
+export const DEFAULT_HOURS = Array.from({ length: 7 }, (_, weekday) => ({
   weekday,
   opensAt: '11:00',
   closesAt: '23:00',
@@ -56,7 +64,22 @@ export class AuthService {
     private readonly config: AppConfig,
   ) {}
 
+  /** Public signup availability (D043): invite only by default; open with trial if configured. */
+  async signupStatus(): Promise<SignupStatusDto> {
+    const settings = await this.prisma.platformSettings.findUnique({ where: { id: 'default' } });
+    return { mode: settings?.signupMode ?? 'INVITE_ONLY', trialDays: settings?.trialDays ?? 14 };
+  }
+
   async register(input: RegisterInput & { cnpj: string; phone: string }, meta: RequestMeta) {
+    const settings = await this.prisma.platformSettings.findUnique({ where: { id: 'default' } });
+    const plan = settings?.signupPlanId
+      ? await this.prisma.plan.findFirst({ where: { id: settings.signupPlanId, isActive: true } })
+      : null;
+    if (settings?.signupMode !== 'OPEN_TRIAL' || !plan) {
+      throw new ForbiddenError(
+        'O cadastro de novos restaurantes é feito por convite. Fale com a nossa equipe.',
+      );
+    }
     const email = input.email.toLowerCase();
     if (await this.prisma.user.findUnique({ where: { email } })) {
       throw new ConflictError('Já existe uma conta com este e-mail');
@@ -65,7 +88,40 @@ export class AuthService {
     const passwordHash = await this.passwords.hash(input.password);
 
     const user = await this.prisma.$transaction(async (tx) => {
-      const org = await tx.organization.create({ data: { name: input.legalName } });
+      const org = await tx.organization.create({
+        data: {
+          name: input.tradeName,
+          createdVia: 'SIGNUP',
+          documentType: 'CNPJ',
+          document: onlyDigits(input.cnpj),
+          legalName: input.legalName,
+          invoiceEmail: email,
+          contactName: input.ownerName,
+          contactEmail: email,
+          contactPhone: input.phone,
+        },
+      });
+      // Open signup starts the trial of the configured plan (D043).
+      const today = billingDate(new Date());
+      const trialEndsOn = addDaysToDate(today, settings.trialDays);
+      const subscription = await tx.subscription.create({
+        data: {
+          organizationId: org.id,
+          planId: plan.id,
+          priceCents: plan.priceCents,
+          interval: plan.interval,
+          trialEndsOn,
+          billingStart: trialEndsOn,
+        },
+      });
+      await tx.subscriptionChange.create({
+        data: {
+          subscriptionId: subscription.id,
+          kind: 'CREATED',
+          toPlanId: plan.id,
+          after: { trialEndsOn, priceCents: plan.priceCents, via: 'signup' },
+        },
+      });
       const store = await tx.store.create({
         data: {
           organizationId: org.id,
@@ -142,11 +198,51 @@ export class AuthService {
     await this.mail.sendPasswordReset(user.email, user.name, link);
   }
 
+  /** Invitation e-mail with the link to set the first password (7 days). */
+  async sendInvite(userId: string, storeName: string): Promise<void> {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    const token = randomBytes(32).toString('base64url');
+    // A new invitation replaces the previous links.
+    await this.prisma.passwordResetToken.updateMany({
+      where: { userId, purpose: 'INVITE', usedAt: null },
+      data: { expiresAt: new Date() },
+    });
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId,
+        purpose: 'INVITE',
+        tokenHash: sha256(token),
+        expiresAt: new Date(Date.now() + INVITE_TOKEN_TTL_MS),
+      },
+    });
+    const link = `${this.config.get('WEB_PUBLIC_URL')}/convite?token=${token}`;
+    await this.mail.sendInvite(user.email, user.name, storeName, link);
+  }
+
+  /** The invited user sets the first password and signs in. */
+  async acceptInvite(input: ResetPasswordInput, meta: RequestMeta): Promise<SessionWithRefresh> {
+    const stored = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash: sha256(input.token) },
+    });
+    if (!stored || stored.purpose !== 'INVITE' || stored.usedAt || stored.expiresAt < new Date()) {
+      throw new ValidationError('Convite inválido ou expirado. Peça um novo convite.');
+    }
+    const passwordHash = await this.passwords.hash(input.password);
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: stored.userId }, data: { passwordHash } }),
+      this.prisma.passwordResetToken.update({
+        where: { id: stored.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+    return this.startSession(stored.userId, undefined, meta);
+  }
+
   async resetPassword(input: ResetPasswordInput): Promise<void> {
     const stored = await this.prisma.passwordResetToken.findUnique({
       where: { tokenHash: sha256(input.token) },
     });
-    if (!stored || stored.usedAt || stored.expiresAt < new Date()) {
+    if (!stored || stored.purpose !== 'RESET' || stored.usedAt || stored.expiresAt < new Date()) {
       throw new ValidationError('Link de redefinição inválido ou expirado. Solicite um novo.');
     }
     const passwordHash = await this.passwords.hash(input.password);
@@ -197,7 +293,7 @@ export class AuthService {
       where: { id: userId },
       include: {
         memberships: {
-          where: { isActive: true, store: { isActive: true } },
+          where: { isActive: true, store: { isActive: true, organization: { isActive: true } } },
           include: { store: true },
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         },

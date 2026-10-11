@@ -37,6 +37,7 @@ export * from './reports/types.js';
 export * from './domain/printing.js';
 export * from './printing/documents.js';
 export * from './printing/schemas.js';
+export * from './platform/legal.js';
 export * from './platform/schemas.js';
 export * from './platform/types.js';
 export * from './printing/types.js';

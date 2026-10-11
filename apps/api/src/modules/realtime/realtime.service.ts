@@ -61,6 +61,11 @@ export class RealtimeService {
     this.gateway.emit(tenantRoom(tenantId), REALTIME_EVENTS.PRINTING_UPDATED, {});
   }
 
+  /** Billing banner, read-only mode, modules or support session of a store changed (D042). */
+  noticesUpdated(tenantId: string): void {
+    this.gateway.emit(tenantRoom(tenantId), REALTIME_EVENTS.NOTICES_UPDATED, {});
+  }
+
   /** The manager revoked a print agent: its socket is dropped (HTTP calls get 401). */
   printAgentRevoked(agentId: string): void {
     this.gateway.emit(printAgentRoom(agentId), REALTIME_EVENTS.DEVICE_REVOKED, {});

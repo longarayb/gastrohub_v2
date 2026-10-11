@@ -9,6 +9,9 @@ export interface AppClsStore extends ClsStore {
   /** Paired device (KDS screen or print agent) instead of a user. */
   deviceId?: string;
   role?: ActorRole;
+  /** Platform support session acting in this store (D041). */
+  supportSessionId?: string;
+  supportMode?: 'READ_ONLY' | 'READ_WRITE';
   /** Print jobs were queued in this request: nudge the agents after the commit. */
   printQueued?: boolean;
 }
@@ -37,12 +40,29 @@ export class TenantContext {
     return this.cls.isActive() ? this.cls.get('deviceId') : undefined;
   }
 
+  get supportSessionId(): string | undefined {
+    return this.cls.isActive() ? this.cls.get('supportSessionId') : undefined;
+  }
+
+  get supportMode(): 'READ_ONLY' | 'READ_WRITE' | undefined {
+    return this.cls.isActive() ? this.cls.get('supportMode') : undefined;
+  }
+
   get role(): ActorRole | undefined {
     return this.cls.isActive() ? this.cls.get('role') : undefined;
   }
 
-  set(values: { tenantId: string; userId?: string; deviceId?: string; role?: ActorRole }): void {
+  set(values: {
+    tenantId: string;
+    userId?: string;
+    deviceId?: string;
+    role?: ActorRole;
+    supportSessionId?: string;
+    supportMode?: 'READ_ONLY' | 'READ_WRITE';
+  }): void {
     this.cls.set('tenantId', values.tenantId);
+    if (values.supportSessionId) this.cls.set('supportSessionId', values.supportSessionId);
+    if (values.supportMode) this.cls.set('supportMode', values.supportMode);
     if (values.userId) this.cls.set('userId', values.userId);
     if (values.deviceId) this.cls.set('deviceId', values.deviceId);
     if (values.role) this.cls.set('role', values.role);

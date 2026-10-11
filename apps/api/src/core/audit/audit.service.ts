@@ -52,6 +52,9 @@ export const AuditAction = {
   PRINT_SETTINGS_UPDATED: 'printing.settings_updated',
   PRINT_REPRINT: 'printing.reprint',
   PRINT_JOB_DISCARDED: 'printing.job_discarded',
+  SUPPORT_STARTED: 'support.started',
+  SUPPORT_ENDED: 'support.ended',
+  TERMS_ACCEPTED: 'platform.terms_accepted',
 } as const;
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 
@@ -82,6 +85,7 @@ export class AuditService {
       data: {
         tenantId: this.ctx.tenantId,
         userId: this.ctx.userId ?? null,
+        supportSessionId: this.ctx.supportSessionId ?? null,
         action: entry.action,
         entity: entry.entity,
         entityId: entry.entityId ?? null,

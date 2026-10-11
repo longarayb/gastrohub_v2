@@ -5,6 +5,7 @@ import {
   type UpdateUserInput,
   assignableRoles,
   isDeviceRole,
+  PLATFORM_SUPPORT_ROLE,
 } from '@app/shared';
 import { AuditAction, AuditService } from '../../core/audit/audit.service.js';
 import {
@@ -160,7 +161,8 @@ export class UsersService {
   }
 
   private assertCanAssign(role: Role): void {
-    const current = this.ctx.role;
+    // Platform support works with the manager's rules (D041).
+    const current = this.ctx.role === PLATFORM_SUPPORT_ROLE ? 'MANAGER' : this.ctx.role;
     if (!current || isDeviceRole(current) || !assignableRoles(current).includes(role)) {
       throw new ForbiddenError('Você não pode atribuir este papel');
     }
