@@ -57,7 +57,7 @@ Entram pelo ponto de extensão `MarketplaceAdapter` (pedidos com `source` e cód
   - **Certificados OV e EV** de autoridades e revendedores (Sectigo, Certum, SSL.com, DigiCert e revendas brasileiras): custo anual, exigência de token físico ou HSM na nuvem (obrigatória desde 2023) e efeito no Smart App Control (EV historicamente dava reputação imediata no SmartScreen; confirmar para o Smart App Control).
   - Testar o instalador assinado num Windows 11 com o Smart App Control ligado antes de distribuir.
 - ✅ **Teste de reinicialização do agente de impressão** (2026-10-10, desktop de casa, Smart App Control desligado): depois de reiniciar o Windows, o serviço subiu sozinho antes do login, voltou online sem novo vínculo quando a API ficou disponível e imprimiu a página de teste. Detalhes no HANDOFF.
-- **A investigar:** depois do reinício, o canal de tempo real do agente conectou ~15 s depois de ele aparecer online; trabalho pedido nesse intervalo espera o canal (sem perda nem duplicação).
+- ✅ **Atraso do canal de tempo real do agente depois do reinício** (~15 s): corrigido em 2026-10-11 (`fix/print-agent-realtime-reconnect`; o heartbeat que volta a ter contato reabre o canal na hora e o teto entre tentativas caiu de 30 s para 10 s; medido: 4 s em vez de 17 s).
 - Teste com impressora térmica física (rede e USB).
 - Publicar o instalador num endereço fixo (`NEXT_PUBLIC_PRINT_AGENT_DOWNLOAD_URL` mostra o botão "Baixar instalador") e atualização automática do agente.
 
