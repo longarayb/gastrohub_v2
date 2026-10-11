@@ -112,7 +112,8 @@ export const createCustomerSchema = z.object({
   owner: z.object({
     name: z.string().trim().min(2, 'Informe o nome do dono').max(120),
     email: zEmail,
-    phone: zPhone.optional(),
+    // Optional: an empty field is "no phone".
+    phone: z.preprocess((v) => (v === '' ? undefined : v), zPhone.optional()),
   }),
   subscription: z.object({
     planId: z.string().min(1, 'Escolha o plano'),

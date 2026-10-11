@@ -60,4 +60,13 @@ describe('customer data schema', () => {
     );
     expect(customerDataSchema.safeParse({ ...base, contactEmail: 'x' }).success).toBe(false);
   });
+
+  it('accepts an empty optional owner phone', async () => {
+    const { createCustomerSchema } = await import('../platform/schemas.js');
+    const owner = createCustomerSchema.shape.owner;
+    const base = { name: 'Dona', email: 'dona@cliente.test' };
+    expect(owner.parse({ ...base, phone: '' }).phone).toBeUndefined();
+    expect(owner.parse({ ...base, phone: '11987654321' }).phone).toBe('11987654321');
+    expect(owner.safeParse({ ...base, phone: '123' }).success).toBe(false);
+  });
 });
