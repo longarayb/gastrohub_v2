@@ -41,6 +41,11 @@ export interface RecentPrint {
 /** Windows printers change rarely: listed every few minutes, not on every heartbeat. */
 const WINDOWS_PRINTERS_EVERY_MS = 5 * 60_000;
 const RECENT_LIMIT = 15;
+/**
+ * Longest wait between realtime reconnection attempts (Socket.IO doubles it from 1 s, with
+ * jitter). 30 s left the channel down for up to half a minute after the API came back.
+ */
+export const SOCKET_RETRY_MAX_MS = 10_000;
 
 export const memoryMb = () => Math.round((process.memoryUsage().rss / 1_048_576) * 10) / 10;
 
@@ -167,11 +172,18 @@ export class PrintAgent {
     this.scheduleHeartbeat(0);
   }
 
+  /** Socket factory (overridden in tests). */
+  protected createSocket(url: string, options: Parameters<typeof io>[1]): Socket {
+    return io(url, options);
+  }
+
   private openSocket(): void {
     this.socket?.disconnect();
-    const socket = io(`${this.api.origin}/realtime`, {
+    const socket = this.createSocket(`${this.api.origin}/realtime`, {
       transports: ['websocket'],
-      reconnectionDelayMax: 30_000,
+      // A fresh manager every time: a reopened channel never inherits a pending backoff.
+      forceNew: true,
+      reconnectionDelayMax: SOCKET_RETRY_MAX_MS,
       // A fresh token on every (re)connection attempt.
       auth: (cb) => {
         this.api
@@ -193,6 +205,17 @@ export class PrintAgent {
       }
     });
     this.socket = socket;
+  }
+
+  /**
+   * The HTTP heartbeat got through while the realtime channel is still waiting out its
+   * reconnection backoff (the API was down for a while, e.g. after a restart): reopen it now,
+   * so "new jobs" nudges are not delayed until the next attempt.
+   */
+  private reopenSocketIfDown(): void {
+    if (this.stopped || !this.socket || this.socket.connected) return;
+    this.log.info('Sistema disponível: reabrindo o canal de tempo real');
+    this.openSocket();
   }
 
   private scheduleHeartbeat(delay = AGENT_HEARTBEAT_MS): void {
@@ -221,6 +244,7 @@ export class PrintAgent {
       this.state = 'ONLINE';
       this.lastError = null;
       this.lastContactAt = new Date().toISOString();
+      this.reopenSocketIfDown();
       if (res.pendingJobs > 0) void this.lease();
     } catch (error) {
       if (error instanceof UnpairedError) return this.revoked();

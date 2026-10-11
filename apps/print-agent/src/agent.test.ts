@@ -200,3 +200,77 @@ describe('agent loop', () => {
     agent.stop();
   });
 });
+
+describe('realtime channel after the API comes back', () => {
+  /** Records every socket the agent opens instead of connecting for real. */
+  class RecordingAgent extends PrintAgent {
+    readonly opened: { url: string; options: Record<string, unknown>; socket: FakeSocket }[] = [];
+    protected override createSocket(url: string, options: Record<string, unknown> = {}) {
+      const socket = new FakeSocket();
+      this.opened.push({ url, options, socket });
+      return socket as never;
+    }
+  }
+  class FakeSocket {
+    connected = false;
+    on = vi.fn(() => this);
+    connect = vi.fn(() => this);
+    disconnect = vi.fn(() => {
+      this.connected = false;
+      return this;
+    });
+  }
+
+  async function setup() {
+    const fetchImpl = vi.fn(async (url: string | URL | Request) => {
+      const path = String(url).replace('http://api.test/api', '');
+      if (path === '/print-agent/session') {
+        return json(200, {
+          accessToken: 'a',
+          expiresIn: 900,
+          agent: { id: 'ag', name: 'PC do caixa' },
+          store: { id: 's', name: 'Cantina', slug: 'cantina' },
+          printers: [printer],
+        });
+      }
+      if (path === '/print-agent/heartbeat')
+        return json(200, { printers: [printer], pendingJobs: 0 });
+      return json(404, {});
+    });
+    const dataDir = await mkdtemp(join(tmpdir(), 'agent-'));
+    return new RecordingAgent(
+      { apiUrl: 'http://api.test/api', dataDir, port: 0, virtual: false },
+      new MemoryCredential('cred'),
+      new Logger(null),
+      { network: vi.fn(), spooler: vi.fn(), virtual: vi.fn(), windowsPrinters: async () => [] },
+      fetchImpl as typeof fetch,
+    );
+  }
+
+  it('reopens a channel still waiting to reconnect as soon as a heartbeat gets through', async () => {
+    vi.useFakeTimers();
+    try {
+      const agent = await setup();
+      await agent.start();
+      expect(agent.opened).toHaveLength(1);
+      expect(agent.opened[0]!.options).toMatchObject({
+        forceNew: true,
+        reconnectionDelayMax: 10_000,
+      });
+
+      // The channel is down (backoff after the API was unreachable): the heartbeat reopens it.
+      await agent.heartbeat();
+      expect(agent.state).toBe('ONLINE');
+      expect(agent.opened).toHaveLength(2);
+      expect(agent.opened[0]!.socket.disconnect).toHaveBeenCalled();
+
+      // Once connected, heartbeats leave it alone.
+      agent.opened[1]!.socket.connected = true;
+      await agent.heartbeat();
+      expect(agent.opened).toHaveLength(2);
+      agent.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
