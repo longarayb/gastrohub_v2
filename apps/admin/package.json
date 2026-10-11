@@ -1,0 +1,43 @@
+{
+  "name": "@app/admin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../scripts/sync-brand-assets.mjs && next dev --port 3002",
+    "build": "node ../../scripts/sync-brand-assets.mjs && next build",
+    "start": "next start --port 3002",
+    "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rimraf .next .turbo"
+  },
+  "dependencies": {
+    "@app/shared": "workspace:*",
+    "@app/ui": "workspace:*",
+    "@hookform/resolvers": "^5.9.1",
+    "@tanstack/react-query": "^5.104.1",
+    "lucide-react": "^1.52.0",
+    "next": "^16.3.8",
+    "next-themes": "^0.4.6",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-hook-form": "^7.89.0",
+    "zod": "^4.3.3"
+  },
+  "devDependencies": {
+    "@app/config": "workspace:*",
+    "@next/env": "^16.3.8",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24.9.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^10.12.0",
+    "rimraf": "^6.0.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.5"
+  }
+}
