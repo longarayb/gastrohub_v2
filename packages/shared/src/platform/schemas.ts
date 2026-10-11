@@ -93,7 +93,8 @@ export const customerDataSchema = z.object({
   municipalRegistration: zText(30),
   invoiceEmail: zEmail,
   contactName: z.string().trim().min(2, 'Informe o nome do contato').max(120),
-  contactEmail: zEmail.optional().nullable(),
+  // Optional: an empty field is "no e-mail", not an invalid one.
+  contactEmail: z.preprocess((v) => (v === '' ? null : v), zEmail.nullable().optional()),
   contactPhone: zPhone,
   address: customerAddressSchema,
   notes: zText(1000),

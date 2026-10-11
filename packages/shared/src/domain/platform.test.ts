@@ -34,3 +34,30 @@ describe('platform rules', () => {
     expect(isReadOnlyMethod('POST')).toBe(false);
   });
 });
+
+describe('customer data schema', () => {
+  it('accepts an empty optional contact e-mail', async () => {
+    const { customerDataSchema } = await import('../platform/schemas.js');
+    const base = {
+      name: 'Cliente',
+      document: '11222333000181',
+      legalName: 'Cliente LTDA',
+      invoiceEmail: 'nota@cliente.test',
+      contactName: 'Contato',
+      contactPhone: '11987654321',
+      address: {
+        cep: '01310100',
+        street: 'Rua',
+        number: '1',
+        neighborhood: 'Centro',
+        city: 'São Paulo',
+        state: 'SP',
+      },
+    };
+    expect(customerDataSchema.parse({ ...base, contactEmail: '' }).contactEmail).toBeNull();
+    expect(customerDataSchema.parse({ ...base, contactEmail: 'a@b.com' }).contactEmail).toBe(
+      'a@b.com',
+    );
+    expect(customerDataSchema.safeParse({ ...base, contactEmail: 'x' }).success).toBe(false);
+  });
+});
