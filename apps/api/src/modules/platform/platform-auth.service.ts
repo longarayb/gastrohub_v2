@@ -236,6 +236,38 @@ export class PlatformAuthService {
     });
   }
 
+  /** Changes the admin's password; every other session is signed out. */
+  async changePassword(
+    adminId: string,
+    sessionId: string,
+    input: { currentPassword: string; newPassword: string },
+    actor: PlatformActor,
+  ): Promise<void> {
+    const admin = await this.prisma.platformAdmin.findUniqueOrThrow({ where: { id: adminId } });
+    if (!(await this.passwords.verify(admin.passwordHash, input.currentPassword))) {
+      throw new ValidationError('Senha atual incorreta');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.platformAdmin.update({
+        where: { id: adminId },
+        data: { passwordHash: await this.passwords.hash(input.newPassword) },
+      });
+      await tx.platformSession.updateMany({
+        where: { adminId, revokedAt: null, id: { not: sessionId } },
+        data: { revokedAt: new Date() },
+      });
+      await this.audit.log(
+        {
+          action: PlatformAuditAction.PASSWORD_CHANGED,
+          entity: 'PlatformAdmin',
+          entityId: adminId,
+        },
+        actor,
+        tx,
+      );
+    });
+  }
+
   // ---- Sessions ----
 
   async refresh(token: string | undefined): Promise<IssuedPlatformSession> {

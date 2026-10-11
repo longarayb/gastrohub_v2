@@ -200,6 +200,31 @@ describe('Platform admin (e2e)', () => {
     });
   });
 
+  describe('admin password', () => {
+    it('changes the password with the current one and keeps this session', async () => {
+      await admin('post', '/auth/password', {
+        currentPassword: 'errada',
+        newPassword: 'NovaSenha123',
+        confirmPassword: 'NovaSenha123',
+      }).expect(400);
+      await admin('post', '/auth/password', {
+        currentPassword: ADMIN.password,
+        newPassword: 'NovaSenha123',
+        confirmPassword: 'NovaSenha123',
+      }).expect(204);
+      await admin('get', '/auth/me').expect(200);
+      const login = await ctx
+        .http()
+        .post('/api/platform/auth/login')
+        .send({ email: ADMIN.email, password: 'NovaSenha123' })
+        .expect(200);
+      expect(login.body.step).toBe('TOTP');
+      expect(
+        await ctx.prisma.platformAuditLog.count({ where: { action: 'auth.password_changed' } }),
+      ).toBe(1);
+    });
+  });
+
   describe('customers, invoices and read-only mode', () => {
     let customerId: string;
     let storeId: string;

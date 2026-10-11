@@ -242,4 +242,14 @@ export const acceptTermsSchema = z.object({
   privacyVersion: z.string().min(1),
 });
 
-export const platformAdminPasswordSchema = z.object({ password: zPassword });
+export const platformChangePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Informe a senha atual'),
+    newPassword: zPassword,
+    confirmPassword: z.string(),
+  })
+  .refine((v) => v.newPassword === v.confirmPassword, {
+    message: 'As senhas não conferem',
+    path: ['confirmPassword'],
+  });
+export type PlatformChangePasswordInput = z.input<typeof platformChangePasswordSchema>;

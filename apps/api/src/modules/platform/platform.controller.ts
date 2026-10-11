@@ -1,15 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Param,
-  Post,
-  Put,
-  Query,
-  Req,
-  Res,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Put, Query, Req, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import {
@@ -25,6 +14,7 @@ import {
   invoiceListQuerySchema,
   markInvoicePaidSchema,
   planSchema,
+  platformChangePasswordSchema,
   platformEnrollStartSchema,
   platformLoginSchema,
   platformRecoverySchema,
@@ -158,6 +148,17 @@ export class PlatformAuthController {
   @Get('me')
   me(@Req() req: PlatformRequest) {
     return this.auth.me(req.admin!.id);
+  }
+
+  @Post('password')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Troca a senha do administrador (as outras sessões são encerradas)' })
+  @ApiZodBody(platformChangePasswordSchema)
+  async changePassword(
+    @ZBody(platformChangePasswordSchema) body: z.output<typeof platformChangePasswordSchema>,
+    @Req() req: PlatformRequest,
+  ): Promise<void> {
+    await this.auth.changePassword(req.admin!.id, req.admin!.sessionId, body, actorOf(req));
   }
 
   @Post('recovery-codes')

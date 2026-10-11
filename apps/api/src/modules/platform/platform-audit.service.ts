@@ -13,6 +13,7 @@ export const PlatformAuditAction = {
   TOTP_ENROLLED: 'auth.totp_enrolled',
   TOTP_RESET_EMERGENCY: 'auth.totp_reset_emergency',
   RECOVERY_CODES_REGENERATED: 'auth.recovery_codes_regenerated',
+  PASSWORD_CHANGED: 'auth.password_changed',
   ADMIN_CREATED: 'admin.created',
   CUSTOMER_CREATED: 'customer.created',
   CUSTOMER_UPDATED: 'customer.updated',
