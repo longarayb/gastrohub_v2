@@ -2,8 +2,12 @@
 /**
  * Platform admin commands, run ON THE SERVER, never through the HTTP API (D041):
  *
- *   create     creates an administrator (prints a temporary password once)
- *              --email <e-mail> --name "<name>"
+ *   create          creates an administrator with a temporary password (printed once; expires
+ *                   unused after 24 h; changed right after the first 2FA step)
+ *                   --email <e-mail> --name "<name>"
+ *   reset-password  new temporary password (forgotten, or the first one expired); sessions end,
+ *                   the 2FA stays. Recorded in the platform audit.
+ *                   --email <e-mail> --reason "<why>" [--operator "<who runs it>"]
  *   reset-2fa  emergency: erases an admin's authenticator, recovery codes and sessions; the next
  *              login enrolls the 2FA again. Recorded in the platform audit.
  *              --email <e-mail> --reason "<why>" [--operator "<who runs it>"]
@@ -12,6 +16,7 @@
  * Production (container): node dist/cli/platform-admin.js <command> ...
  */
 import { randomBytes } from 'node:crypto';
+import { PLATFORM_TEMP_PASSWORD_HOURS } from '@app/shared';
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
@@ -42,6 +47,7 @@ function usage(message?: string): never {
   if (message) console.error(`Erro: ${message}\n`);
   console.error(`Uso:
   platform-admin create --email <e-mail> --name "<nome>"
+  platform-admin reset-password --email <e-mail> --reason "<motivo>" [--operator "<quem executa>"]
   platform-admin reset-2fa --email <e-mail> --reason "<motivo>" [--operator "<quem executa>"]`);
   process.exit(1);
 }
@@ -49,7 +55,7 @@ function usage(message?: string): never {
 async function main(): Promise<void> {
   // `pnpm ... platform:admin -- create` passes the "--" through: skip it.
   const command = process.argv.slice(2).find((arg) => arg !== '--');
-  if (command !== 'create' && command !== 'reset-2fa') usage();
+  if (command !== 'create' && command !== 'reset-password' && command !== 'reset-2fa') usage();
   const email = arg('email')?.trim().toLowerCase();
   if (!email) usage('informe --email');
 
@@ -65,13 +71,21 @@ async function main(): Promise<void> {
     if (command === 'create') {
       const name = arg('name')?.trim();
       if (!name) usage('informe --name');
-      const password = randomBytes(12).toString('base64url');
-      await auth.createAdmin({ email, name, password }, actor);
+      const password = temporaryPassword();
+      await auth.createAdmin({ email, name, password, temporary: true }, actor);
       console.log(`\nAdministrador criado: ${email}`);
-      console.log(`Senha temporária (mostrada só agora): ${password}`);
+      printTemporaryPassword(password);
       console.log(
-        'No primeiro acesso, o painel pede para cadastrar o aplicativo autenticador (2FA).\n',
+        'No primeiro acesso: cadastrar o aplicativo autenticador (2FA) e trocar esta senha.\n',
       );
+    } else if (command === 'reset-password') {
+      const reason = arg('reason')?.trim();
+      if (!reason || reason.length < 5) usage('informe --reason (mínimo de 5 caracteres)');
+      const password = temporaryPassword();
+      await auth.resetPassword(email, password, reason, actor);
+      console.log(`\nNova senha temporária para ${email} (sessões encerradas; o 2FA continua).`);
+      printTemporaryPassword(password);
+      console.log('Registrado na auditoria da plataforma (auth.password_reset_server).\n');
     } else {
       const reason = arg('reason')?.trim();
       if (!reason || reason.length < 5) usage('informe --reason (mínimo de 5 caracteres)');
@@ -85,6 +99,17 @@ async function main(): Promise<void> {
   } finally {
     await app.close();
   }
+}
+
+function temporaryPassword(): string {
+  return randomBytes(12).toString('base64url');
+}
+
+function printTemporaryPassword(password: string): void {
+  console.log(`Senha temporária (mostrada só agora): ${password}`);
+  console.log(
+    `Vale por ${PLATFORM_TEMP_PASSWORD_HOURS} h se não for usada e precisa ser trocada logo depois do 2FA.`,
+  );
 }
 
 main().catch((error: unknown) => {

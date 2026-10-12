@@ -6,6 +6,7 @@ import type { Request } from 'express';
  */
 export const IS_PLATFORM_KEY = 'isPlatformRoute';
 export const IS_PLATFORM_PUBLIC_KEY = 'isPlatformPublic';
+export const ALLOWS_PENDING_PASSWORD_KEY = 'platformAllowsPendingPassword';
 
 export interface PlatformActor {
   adminId: string | null;

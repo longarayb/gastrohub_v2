@@ -62,6 +62,12 @@ export function needsTermsAcceptance(
 }
 
 // ---------------------------------------------------------------------------
+// Platform admins created on the server
+
+/** A temporary password (command `create` or `reset-password`) works for this long, unused. */
+export const PLATFORM_TEMP_PASSWORD_HOURS = 24;
+
+// ---------------------------------------------------------------------------
 // Support sessions (platform admin inside a customer's panel)
 
 export const SUPPORT_SESSION_MINUTES = { min: 15, max: 60, default: 30 } as const;

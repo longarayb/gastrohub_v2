@@ -10,6 +10,8 @@ const LABELS: Record<string, string> = {
   'auth.totp_reset_emergency': '2FA redefinido no servidor (emergência)',
   'auth.recovery_codes_regenerated': 'Novos códigos de recuperação',
   'auth.password_changed': 'Senha alterada',
+  'auth.password_reset_server': 'Senha temporária gerada no servidor',
+  'auth.temporary_password_expired': 'Senha temporária expirada',
   'admin.created': 'Administrador criado',
   'customer.created': 'Cliente cadastrado',
   'customer.updated': 'Dados do cliente alterados',

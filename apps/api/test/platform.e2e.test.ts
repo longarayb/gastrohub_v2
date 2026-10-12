@@ -225,6 +225,178 @@ describe('Platform admin (e2e)', () => {
     });
   });
 
+  describe('temporary password (server commands)', () => {
+    const TEMP = { email: 'novo@plataforma.test', name: 'Novo Admin', password: 'Temporaria123' };
+    let tempSecret: string;
+    let tempRecovery: string[];
+
+    const loginWith = (email: string, password: string) =>
+      ctx.http().post('/api/platform/auth/login').send({ email, password });
+
+    it('must be changed right after the 2FA step, before any other screen', async () => {
+      await ctx.app
+        .get(PlatformAuthService)
+        .createAdmin({ ...TEMP, temporary: true }, { ...ACTOR, email: 'cli:teste' });
+      const stored = await ctx.prisma.platformAdmin.findUniqueOrThrow({
+        where: { email: TEMP.email },
+      });
+      expect(stored.passwordChangeRequired).toBe(true);
+      const hours = (stored.temporaryPasswordExpiresAt!.getTime() - Date.now()) / 3_600_000;
+      expect(hours).toBeGreaterThan(23.9);
+      expect(hours).toBeLessThanOrEqual(24);
+
+      // The 2FA comes first: enrollment works as usual.
+      const login = await loginWith(TEMP.email, TEMP.password).expect(200);
+      expect(login.body.step).toBe('ENROLL');
+      const enroll = await ctx
+        .http()
+        .post('/api/platform/auth/2fa/enroll/start')
+        .send({ challenge: login.body.challenge })
+        .expect(200);
+      tempSecret = enroll.body.secret;
+      const confirmed = await ctx
+        .http()
+        .post('/api/platform/auth/2fa/enroll/confirm')
+        .send({ challenge: login.body.challenge, code: totp(tempSecret) })
+        .expect(200);
+      expect(confirmed.body.admin.passwordChangeRequired).toBe(true);
+      tempRecovery = confirmed.body.recoveryCodes;
+      const token = confirmed.body.accessToken as string;
+      const cookie = cookieOf(confirmed.headers['set-cookie'], PLATFORM_REFRESH_COOKIE);
+      const as = (method: 'get' | 'post', path: string) =>
+        ctx.http()[method](`/api/platform${path}`).set(bearer(token));
+
+      // Nothing else until the password is changed (a refreshed token changes nothing).
+      for (const path of ['/overview', '/customers', '/plans', '/audit', '/settings']) {
+        const blocked = await as('get', path).expect(403);
+        expect(blocked.body.code).toBe('PASSWORD_CHANGE_REQUIRED');
+      }
+      await as('post', '/auth/recovery-codes').send({ code: '000000' }).expect(403);
+      const refreshed = await ctx
+        .http()
+        .post('/api/platform/auth/refresh')
+        .set('Cookie', cookie)
+        .expect(200);
+      expect(refreshed.body.admin.passwordChangeRequired).toBe(true);
+      await ctx
+        .http()
+        .get('/api/platform/overview')
+        .set(bearer(refreshed.body.accessToken))
+        .expect(403);
+      const me = await as('get', '/auth/me').expect(200);
+      expect(me.body.passwordChangeRequired).toBe(true);
+
+      // The new password must differ from the temporary one.
+      const same = await as('post', '/auth/password')
+        .send({
+          currentPassword: TEMP.password,
+          newPassword: TEMP.password,
+          confirmPassword: TEMP.password,
+        })
+        .expect(400);
+      expect(same.body.details).toEqual([expect.objectContaining({ path: 'newPassword' })]);
+      await as('post', '/auth/password')
+        .send({
+          currentPassword: TEMP.password,
+          newPassword: 'DefinitivaNova1',
+          confirmPassword: 'DefinitivaNova1',
+        })
+        .expect(204);
+
+      await as('get', '/overview').expect(200);
+      expect((await as('get', '/auth/me').expect(200)).body.passwordChangeRequired).toBe(false);
+      const after = await ctx.prisma.platformAdmin.findUniqueOrThrow({
+        where: { email: TEMP.email },
+      });
+      expect(after).toMatchObject({
+        passwordChangeRequired: false,
+        temporaryPasswordExpiresAt: null,
+      });
+      const changed = await ctx.prisma.platformAuditLog.findFirst({
+        where: { action: 'auth.password_changed', adminId: after.id },
+      });
+      expect(changed?.after).toEqual({ temporary: true });
+    });
+
+    it('expires unused after 24 hours; a new one comes from the server command', async () => {
+      const late = {
+        email: 'atrasado@plataforma.test',
+        name: 'Admin Atrasado',
+        password: 'Temporaria456',
+      };
+      const service = ctx.app.get(PlatformAuthService);
+      await service.createAdmin({ ...late, temporary: true }, { ...ACTOR, email: 'cli:teste' });
+      // Created 25 hours ago and never used.
+      await ctx.prisma.platformAdmin.update({
+        where: { email: late.email },
+        data: { temporaryPasswordExpiresAt: new Date(Date.now() - 3_600_000) },
+      });
+      const expired = await loginWith(late.email, late.password).expect(401);
+      expect(expired.body.message).toMatch(/senha temporária expirou/);
+      // The right password, so it does not count as a failed attempt.
+      const stored = await ctx.prisma.platformAdmin.findUniqueOrThrow({
+        where: { email: late.email },
+      });
+      expect(stored.failedLogins).toBe(0);
+      expect(
+        await ctx.prisma.platformAuditLog.count({
+          where: { action: 'auth.temporary_password_expired', adminId: stored.id },
+        }),
+      ).toBe(1);
+
+      await service.resetPassword(late.email, 'OutraTemporaria7', 'Senha expirou sem uso', {
+        ...ACTOR,
+        email: 'cli:teste',
+      });
+      await loginWith(late.email, late.password).expect(401);
+      const login = await loginWith(late.email, 'OutraTemporaria7').expect(200);
+      expect(login.body.step).toBe('ENROLL');
+      const reset = await ctx.prisma.platformAuditLog.findFirst({
+        where: { action: 'auth.password_reset_server', entityId: stored.id },
+      });
+      expect(reset).toMatchObject({ actorEmail: 'cli:teste', reason: 'Senha expirou sem uso' });
+    });
+
+    it('a new temporary password ends the sessions, keeps the 2FA and asks for the change', async () => {
+      const login = await loginWith(TEMP.email, 'DefinitivaNova1').expect(200);
+      const session = await ctx
+        .http()
+        .post('/api/platform/auth/2fa/verify')
+        .send({
+          challenge: login.body.challenge,
+          code: totp(tempSecret, new Date(Date.now() + 30_000)),
+        })
+        .expect(200);
+      const cookie = cookieOf(session.headers['set-cookie'], PLATFORM_REFRESH_COOKIE);
+
+      await ctx.app
+        .get(PlatformAuthService)
+        .resetPassword(TEMP.email, 'Esquecida9999', 'Esqueceu a senha', ACTOR);
+      await ctx.http().post('/api/platform/auth/refresh').set('Cookie', cookie).expect(401);
+      await ctx
+        .http()
+        .get('/api/platform/overview')
+        .set(bearer(session.body.accessToken))
+        .expect(401);
+
+      const again = await loginWith(TEMP.email, 'Esquecida9999').expect(200);
+      expect(again.body.step).toBe('TOTP');
+      // The 2FA was kept: a recovery code (the TOTP windows were used above) signs in, and the
+      // password change is required again.
+      const verified = await ctx
+        .http()
+        .post('/api/platform/auth/2fa/recover')
+        .send({ challenge: again.body.challenge, recoveryCode: tempRecovery[0] })
+        .expect(200);
+      expect(verified.body.admin.passwordChangeRequired).toBe(true);
+      await ctx
+        .http()
+        .get('/api/platform/overview')
+        .set(bearer(verified.body.accessToken))
+        .expect(403);
+    });
+  });
+
   describe('customers, invoices and read-only mode', () => {
     let customerId: string;
     let storeId: string;

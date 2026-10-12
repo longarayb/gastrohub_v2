@@ -14,6 +14,8 @@ export const PlatformAuditAction = {
   TOTP_RESET_EMERGENCY: 'auth.totp_reset_emergency',
   RECOVERY_CODES_REGENERATED: 'auth.recovery_codes_regenerated',
   PASSWORD_CHANGED: 'auth.password_changed',
+  PASSWORD_RESET_SERVER: 'auth.password_reset_server',
+  LOGIN_TEMP_PASSWORD_EXPIRED: 'auth.temporary_password_expired',
   ADMIN_CREATED: 'admin.created',
   CUSTOMER_CREATED: 'customer.created',
   CUSTOMER_UPDATED: 'customer.updated',

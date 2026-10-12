@@ -218,11 +218,13 @@ Clientes de exemplo (dono com senha `Demo1234`): **Pizzaria Bella Massa** em tes
 ```bash
 # no servidor (container da API)
 node dist/cli/platform-admin.js reset-2fa --email admin@exemplo.com --reason "chave perdida" --operator "Nome de quem roda"
-# criar um admin (imprime a senha temporária uma vez)
+# criar um admin: senha temporária impressa uma vez, vale 24 h sem uso e é trocada logo depois do 2FA
 node dist/cli/platform-admin.js create --email admin@exemplo.com --name "Nome"
+# nova senha temporária (esquecida, ou a primeira venceu); encerra as sessões e mantém o 2FA
+node dist/cli/platform-admin.js reset-password --email admin@exemplo.com --reason "esqueceu a senha"
 ```
 
-Em desenvolvimento: `pnpm --filter @app/api build` e `pnpm --filter @app/api platform:admin -- reset-2fa --email ... --reason ...`.
+Em desenvolvimento: `pnpm --filter @app/api build` e `pnpm --filter @app/api platform:admin -- <comando> ...` (ex.: `pnpm --filter @app/api platform:admin -- create --email voce@exemplo.com --name "Seu Nome"`). Para testar pelo celular: `pnpm start:lite --admin --lan` e abra o endereço `http://<IP>:3002` que ele mostra (firewall em "Testar no celular").
 
 ## Testar no celular (mesma rede Wi-Fi)
 

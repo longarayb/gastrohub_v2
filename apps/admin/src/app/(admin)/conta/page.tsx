@@ -1,13 +1,14 @@
 'use client';
 
-import { formatDateTime, platformChangePasswordSchema } from '@app/shared';
+import { formatDateTime } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@app/ui/components/card';
 import { Input } from '@app/ui/components/input';
 import { Notice } from '@app/ui/components/notice';
 import { toast } from '@app/ui/components/sonner';
 import { useId, useState } from 'react';
-import { Field, TextField, applyApiErrors, useZodForm } from '@/components/form';
+import { ChangePasswordForm } from '@/components/change-password-form';
+import { Field } from '@/components/form';
 import { Page } from '@/components/page';
 import { apiPost, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -19,22 +20,6 @@ export default function AccountPage() {
   const [code, setCode] = useState('');
   const [codes, setCodes] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
-  const form = useZodForm(platformChangePasswordSchema, {
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-
-  const onPassword = form.handleSubmit(async (values) => {
-    try {
-      await apiPost('/auth/password', values);
-      form.reset();
-      toast.success('Senha alterada. As outras sessões foram encerradas.');
-    } catch (error) {
-      if (!applyApiErrors(form, error)) toast.error(errorMessage(error));
-    }
-  });
-
   async function regenerate(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -59,33 +44,11 @@ export default function AccountPage() {
             <CardTitle>Trocar senha</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={onPassword} className="space-y-4" noValidate>
-              <TextField
-                control={form.control}
-                name="currentPassword"
-                label="Senha atual"
-                type="password"
-                autoComplete="current-password"
-              />
-              <TextField
-                control={form.control}
-                name="newPassword"
-                label="Nova senha"
-                type="password"
-                autoComplete="new-password"
-                hint="Mínimo de 8 caracteres, com letras e números"
-              />
-              <TextField
-                control={form.control}
-                name="confirmPassword"
-                label="Confirme a nova senha"
-                type="password"
-                autoComplete="new-password"
-              />
-              <Button type="submit" loading={form.formState.isSubmitting}>
-                Trocar senha
-              </Button>
-            </form>
+            <ChangePasswordForm
+              onChanged={() => {
+                toast.success('Senha alterada. As outras sessões foram encerradas.');
+              }}
+            />
           </CardContent>
         </Card>
 

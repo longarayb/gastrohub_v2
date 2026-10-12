@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import {
   ErrorCode,
+  PLATFORM_TEMP_PASSWORD_HOURS,
   type PlatformAdminDto,
   type PlatformEnrollment,
   type PlatformLoginStep,
@@ -50,6 +51,8 @@ export interface IssuedPlatformSession {
 }
 
 const LOGIN_FAILED = 'E-mail ou senha incorretos';
+const TEMP_PASSWORD_EXPIRED =
+  'A senha temporária expirou. Peça uma nova a quem administra o servidor.';
 const CODE_FAILED = 'Código inválido. Confira o horário do celular e tente de novo.';
 
 /**
@@ -87,6 +90,17 @@ export class PlatformAuthService {
     if (!(await this.passwords.verify(admin.passwordHash, password))) {
       await this.registerFailure(admin, PlatformAuditAction.LOGIN_PASSWORD_FAILED, actor);
       throw new UnauthorizedError(LOGIN_FAILED);
+    }
+    if (temporaryPasswordExpired(admin)) {
+      await this.audit.log(
+        {
+          action: PlatformAuditAction.LOGIN_TEMP_PASSWORD_EXPIRED,
+          entity: 'PlatformAdmin',
+          entityId: admin.id,
+        },
+        { ...actor, adminId: admin.id },
+      );
+      throw new UnauthorizedError(TEMP_PASSWORD_EXPIRED);
     }
     const step = admin.totpEnabledAt ? 'TOTP' : 'ENROLL';
     const challenge = await this.jwt.signAsync({ sub: admin.id, step } satisfies ChallengePayload, {
@@ -247,10 +261,19 @@ export class PlatformAuthService {
     if (!(await this.passwords.verify(admin.passwordHash, input.currentPassword))) {
       throw new ValidationError('Senha atual incorreta');
     }
+    if (input.newPassword === input.currentPassword) {
+      throw new ValidationError('A nova senha precisa ser diferente da atual', [
+        { path: 'newPassword', message: 'Escolha uma senha diferente da atual' },
+      ]);
+    }
     await this.prisma.$transaction(async (tx) => {
       await tx.platformAdmin.update({
         where: { id: adminId },
-        data: { passwordHash: await this.passwords.hash(input.newPassword) },
+        data: {
+          passwordHash: await this.passwords.hash(input.newPassword),
+          passwordChangeRequired: false,
+          temporaryPasswordExpiresAt: null,
+        },
       });
       await tx.platformSession.updateMany({
         where: { adminId, revokedAt: null, id: { not: sessionId } },
@@ -261,6 +284,7 @@ export class PlatformAuthService {
           action: PlatformAuditAction.PASSWORD_CHANGED,
           entity: 'PlatformAdmin',
           entityId: adminId,
+          after: { temporary: admin.passwordChangeRequired },
         },
         actor,
         tx,
@@ -320,9 +344,19 @@ export class PlatformAuthService {
 
   // ---- Server-side commands (scripts, never the HTTP API) ----
 
-  /** Creates an admin (seed and the `platform:create-admin` command). */
+  /**
+   * Creates an admin (seed and the `create` command). From the command the password is
+   * temporary: it expires unused after PLATFORM_TEMP_PASSWORD_HOURS and must be changed right
+   * after the first 2FA step.
+   */
   async createAdmin(
-    input: { email: string; name: string; password: string; totpSecret?: string },
+    input: {
+      email: string;
+      name: string;
+      password: string;
+      temporary?: boolean;
+      totpSecret?: string;
+    },
     actor: PlatformActor,
   ): Promise<PlatformAdmin> {
     const admin = await this.prisma.platformAdmin.create({
@@ -330,6 +364,7 @@ export class PlatformAuthService {
         email: input.email.toLowerCase(),
         name: input.name,
         passwordHash: await this.passwords.hash(input.password),
+        ...(input.temporary ? temporaryPasswordState() : {}),
         // Seed only: a known secret so the demo and the walkthroughs can sign in.
         ...(input.totpSecret
           ? {
@@ -344,11 +379,53 @@ export class PlatformAuthService {
         action: PlatformAuditAction.ADMIN_CREATED,
         entity: 'PlatformAdmin',
         entityId: admin.id,
-        after: { email: admin.email, name: admin.name },
+        after: { email: admin.email, name: admin.name, temporaryPassword: !!input.temporary },
       },
       actor,
     );
     return admin;
+  }
+
+  /**
+   * New temporary password for an admin (`reset-password`, run on the server): for a forgotten
+   * password or one that expired unused. Every session is signed out; the 2FA stays.
+   */
+  async resetPassword(
+    email: string,
+    password: string,
+    reason: string,
+    actor: PlatformActor,
+  ): Promise<void> {
+    const admin = await this.prisma.platformAdmin.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+    if (!admin) throw new ValidationError(`Administrador não encontrado: ${email}`);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.platformAdmin.update({
+        where: { id: admin.id },
+        data: {
+          passwordHash: await this.passwords.hash(password),
+          ...temporaryPasswordState(),
+          failedLogins: 0,
+          lockedUntil: null,
+        },
+      });
+      await tx.platformSession.updateMany({
+        where: { adminId: admin.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      await this.audit.log(
+        {
+          action: PlatformAuditAction.PASSWORD_RESET_SERVER,
+          entity: 'PlatformAdmin',
+          entityId: admin.id,
+          reason,
+          after: { email: admin.email },
+        },
+        actor,
+        tx,
+      );
+    });
   }
 
   /**
@@ -531,8 +608,23 @@ export class PlatformAuthService {
       email: admin.email,
       role: admin.role,
       totpEnabled: !!admin.totpEnabledAt,
+      passwordChangeRequired: admin.passwordChangeRequired,
       recoveryCodesLeft,
       lastLoginAt: admin.lastLoginAt?.toISOString() ?? null,
     };
   }
 }
+
+const temporaryPasswordState = () => ({
+  passwordChangeRequired: true,
+  temporaryPasswordExpiresAt: new Date(Date.now() + PLATFORM_TEMP_PASSWORD_HOURS * 3_600_000),
+});
+
+/** An unused temporary password stops working after its deadline. */
+export const temporaryPasswordExpired = (
+  admin: Pick<PlatformAdmin, 'passwordChangeRequired' | 'temporaryPasswordExpiresAt'>,
+  now = new Date(),
+): boolean =>
+  admin.passwordChangeRequired &&
+  !!admin.temporaryPasswordExpiresAt &&
+  admin.temporaryPasswordExpiresAt <= now;
