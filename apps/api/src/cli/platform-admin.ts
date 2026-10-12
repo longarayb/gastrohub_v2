@@ -47,7 +47,8 @@ function usage(message?: string): never {
 }
 
 async function main(): Promise<void> {
-  const command = process.argv[2];
+  // `pnpm ... platform:admin -- create` passes the "--" through: skip it.
+  const command = process.argv.slice(2).find((arg) => arg !== '--');
   if (command !== 'create' && command !== 'reset-2fa') usage();
   const email = arg('email')?.trim().toLowerCase();
   if (!email) usage('informe --email');
