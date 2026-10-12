@@ -115,7 +115,7 @@ export default function RegisterPage() {
         </Notice>
         <p className="text-sm text-muted-foreground">
           Já tem acesso?{' '}
-          <Link href="/login" className="text-primary hover:underline">
+          <Link href="/login" className="text-primary underline underline-offset-4">
             Entrar
           </Link>
         </p>

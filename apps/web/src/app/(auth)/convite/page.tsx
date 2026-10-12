@@ -44,7 +44,7 @@ function InviteForm() {
     return (
       <p className="text-sm text-muted-foreground">
         Convite inválido. Peça um novo convite a quem cadastrou o restaurante, ou{' '}
-        <Link href="/login" className="text-primary hover:underline">
+        <Link href="/login" className="text-primary underline underline-offset-4">
           entre
         </Link>{' '}
         se já tiver senha.
