@@ -2,12 +2,24 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções e regras de trabalho em duas máquinas), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-12**, no **desktop de casa**: **`feat/platform-admin` concluída e integrada na `main`** (D041–D044). Em 2026-10-11, decisões da hospedagem e plano dos marketplaces registrados. Em 2026-10-10, no desktop de casa (`D:\GastroHub_v2`, Windows): ambiente atualizado e **teste de reinicialização do agente de impressão concluído**. Antes disso (2026-10-09, Surface, no WSL), a `feat/redesign` foi aprovada, validada e integrada na `main`.
+> Atualizado em **2026-10-12**, no **desktop de casa**: **`feat/platform-admin` concluída e integrada na `main`** (D041–D044), depois a `fix/lan-admin` (painel da plataforma no celular; senha temporária do admin com troca obrigatória e validade de 24 h) e a **proposta da hospedagem salva em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), aguardando aprovação**. A próxima sessão é no **Surface**. Em 2026-10-11, decisões da hospedagem e plano dos marketplaces registrados. Em 2026-10-10, no desktop de casa (`D:\GastroHub_v2`, Windows): ambiente atualizado e **teste de reinicialização do agente de impressão concluído**. Antes disso (2026-10-09, Surface, no WSL), a `feat/redesign` foi aprovada, validada e integrada na `main`.
 
 ## Estado atual
 
 - `main` tem tudo até o **painel da plataforma** (merge da `feat/platform-admin`, D041–D044) e o redesign (D039–D040). Todas as branches estão no GitHub. **Nenhuma frente em andamento**; qualquer branch nova pode alterar o schema.
-- **No Surface, antes de rodar:** `git pull`, `pnpm install` (app novo `apps/admin`), `pnpm --filter @app/api db:deploy` (migration `platform_admin`), `pnpm db:seed` e **acrescentar ao `.env` as variáveis novas do `.env.example`** (bloco "Platform admin": `PLATFORM_JWT_SECRET`, `PLATFORM_SECRETS_KEY`, `ADMIN_PUBLIC_URL`, `PLATFORM_LOGIN_RATE_LIMIT_PER_MINUTE`, `PLATFORM_ALLOWED_IPS`; e `http://localhost:3002` no fim do `API_CORS_ORIGINS`). Sem a `PLATFORM_SECRETS_KEY` do `.env.example`, o 2FA de demonstração não funciona.
+- **No Surface, antes de rodar** (a última `main` usada lá é a de antes do painel da plataforma):
+  1. `git fetch`, `git checkout main`, `git pull`.
+  2. `pnpm install` (app novo `apps/admin`) e, em `tools/ui-walkthrough`, `npm install`.
+  3. **`.env` do Surface — variáveis novas** (copiar os valores de desenvolvimento do `.env.example`, mantendo `POSTGRES_PORT=5433`, `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1`):
+     - `API_CORS_ORIGINS`: acrescentar `http://localhost:3002` no fim (fica `http://localhost:3000,http://localhost:3001,http://localhost:3002`);
+     - `PLATFORM_JWT_SECRET`;
+     - `PLATFORM_SECRETS_KEY` (precisa ser **igual** à do `.env.example`, senão o 2FA de demonstração do seed não funciona);
+     - `ADMIN_PUBLIC_URL=http://localhost:3002`;
+     - `PLATFORM_LOGIN_RATE_LIMIT_PER_MINUTE=` (vazio);
+     - `PLATFORM_ALLOWED_IPS=` (vazio).
+  4. `pnpm --filter @app/api db:deploy` (migrations `platform_admin` e `platform_admin_temporary_password`) e `pnpm db:seed` (termina com "✔ Plataforma: 5 clientes ...").
+  5. Para conferir: `pnpm start:lite --admin` e o login do admin de demonstração (docs/SETUP.md, "Painel da plataforma").
+- Resumo das variáveis novas, em uma linha: **acrescentar ao `.env` as variáveis novas do `.env.example`** (bloco "Platform admin": `PLATFORM_JWT_SECRET`, `PLATFORM_SECRETS_KEY`, `ADMIN_PUBLIC_URL`, `PLATFORM_LOGIN_RATE_LIMIT_PER_MINUTE`, `PLATFORM_ALLOWED_IPS`; e `http://localhost:3002` no fim do `API_CORS_ORIGINS`). Sem a `PLATFORM_SECRETS_KEY` do `.env.example`, o 2FA de demonstração não funciona.
 
 ### Painel da plataforma (`feat/platform-admin`, 2026-10-11)
 
@@ -96,9 +108,20 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### Agora: hospedagem (`chore/hosting`) — apresentar a proposta ANTES de codar
+### Agora: revisar a proposta da hospedagem (`chore/hosting`) com a mudança do banco fora do Docker e aguardar a aprovação do Braian
 
-Servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações, incluindo o `apps/admin` (acesso restrito: considerar `PLATFORM_ALLOWED_IPS` ou um endereço separado) e a **cópia da `PLATFORM_SECRETS_KEY` fora do servidor**. Mostrar a proposta ao usuário e esperar a aprovação antes de começar.
+A proposta completa está em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md) (**aguardando aprovação; nada implementado**). Na retomada, revisá-la com a seção "Pontos a revisar na retomada" do mesmo arquivo:
+
+1. **Postgres de produção instalado direto na VM**, fora do Docker, como cluster próprio em `/mnt/dados` (Postgres 17 pelo PGDG, acesso dos containers pela rede do Docker com `listen_addresses` e `pg_hba.conf` restritos, 5432 nunca exposta, memória ajustada, atualizações, e o que muda em backup, restore, migrations e `compose.prod.yml`; verificar se `/mnt/dados` é disco separado ou pasta);
+2. imagens no GHCR públicas ou privadas (e a autenticação do servidor, se privadas);
+3. **modo demonstração** da unidade Demo (credenciais públicas: bloqueios e faixa "Ambiente de demonstração, restaurado toda noite");
+4. botão "copiar link do convite" (**aprovado**);
+5. snapshots da Contabo no DEPLOY.md;
+6. servidor em UTC e agendamentos no horário de Brasília;
+7. senha do Dozzle pelo `gen-secrets.sh`;
+8. execução no servidor provavelmente pelo Claude por SSH, com aprovação a cada passo, e o DEPLOY.md funcionando sozinho.
+
+Apresentar a proposta revisada e **não começar a codar antes da aprovação**.
 
 **Decisões já tomadas (2026-10-11; detalhes no ROADMAP, "Hospedagem: decisões"):** VM na **Contabo**, região **EUA (East)**, ~**US$ 20/mês**, configurada pelo Braian do zero com **Docker Compose**; primeiro uso como **demonstração, só com dados fictícios**; domínio ainda não definido, então a proposta deve funcionar com um **domínio provisório ou sslip.io** e permitir trocar depois; **backups diários do Postgres enviados para fora da VM** (ex.: Backblaze B2 ou Cloudflare R2).
 
@@ -124,7 +147,7 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-- Aprovar a proposta da hospedagem quando for apresentada.
+- Aprovar a proposta da hospedagem revisada ([PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md)), com as decisões pendentes listadas no arquivo (Actions + deploy manual, B2 ou R2, domínio agora ou depois, imagens públicas ou privadas).
 - Textos dos termos de uso e da privacidade (`packages/shared/src/platform/legal.ts`): provisórios, **revisar com apoio jurídico** antes de clientes reais (mudar o texto exige mudar a versão, e os donos aceitam de novo).
 
 ## Lembretes de ambiente

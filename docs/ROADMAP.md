@@ -18,7 +18,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Dashboard e relatórios (dashboard do dia em tempo real com comparação e "Atenção agora"; vendas com curva ABC e mapa de calor; controle de perdas; tempos do KDS; rede para o dono; CSV e impressão; conciliação exata com o caixa; 90 dias de histórico no seed) | `feat/dashboard` | ✅ |
 | Redesign do painel (tema do [DESIGN.md](DESIGN.md) em todas as telas, escuro como padrão e claro equivalente; componentes base; KDS com a mesma paleta) | `feat/redesign` | ✅ concluído (2026-10-09; D039, D040) |
 | Painel admin da plataforma (app `admin` com login e 2FA próprios, clientes, planos, assinaturas, mensalidades manuais, inadimplência com somente leitura fora do expediente, acesso de suporte, aceite dos termos) | `feat/platform-admin` | ✅ concluído (2026-10-12; D041–D044) |
-| Hospedagem (servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações; decisões já tomadas em "Hospedagem: decisões") | `chore/hosting` | ⏳ depois da `feat/platform-admin` (apresentar a proposta antes) |
+| Hospedagem (servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações; decisões já tomadas em "Hospedagem: decisões") | `chore/hosting` | 📝 proposta em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), aguardando revisão (Postgres fora do Docker) e aprovação |
 | Integração iFood (API própria) | `feat/ifood` | ⏳ depois da hospedagem (ver "Integrações com marketplaces") |
 | Adaptador Open Delivery (padrão da Abrasel; 99Food e Keeta) | `feat/open-delivery` | ⏳ depois do iFood |
 | Aiqfome | — | ⏳ a verificar (forma de integração ainda não levantada) |
