@@ -205,14 +205,16 @@ await step('checkout: delivery area fee, PIX, privacy consent, order sent', asyn
   await sheet.getByRole('button', { name: /^Enviar pedido/ }).click();
   await sheet.getByText('Aceite o aviso de privacidade para continuar').waitFor();
   await sheet.getByRole('button', { name: 'aviso de privacidade' }).click();
-  await page
-    .getByRole('dialog', { name: 'Aviso de privacidade' })
-    .getByText(/controlador/)
-    .waitFor();
-  await page.keyboard.press('Escape');
+  const notice = page.getByRole('dialog', { name: 'Aviso de privacidade' });
+  await notice.getByText(/controlador/).waitFor();
+  // Close only the notice, by its own button (an Escape could reach the cart sheet below it).
+  await notice.getByRole('button', { name: 'Fechar' }).click();
+  await notice.waitFor({ state: 'detached' });
   await sheet.getByRole('checkbox', { name: /Li e aceito/ }).click();
   await shot(page, '03-checkout');
-  await sheet.getByRole('button', { name: /^Enviar pedido/ }).click();
+  // The order page opens by a client-side navigation; on Edge, Playwright's click sometimes keeps
+  // waiting for it after the page is already there, so wait for the URL instead.
+  await sheet.getByRole('button', { name: /^Enviar pedido/ }).click({ noWaitAfter: true });
   await page.waitForURL(/\/demo\/pedido\//, { timeout: 15_000 });
   trackingUrl = page.url();
   await page.getByRole('status').filter({ hasText: 'Pedido recebido' }).waitFor();
@@ -340,7 +342,7 @@ await step('"Não é você?": clears the data saved on the phone', async () => {
 });
 
 await step('panel: digital menu settings with link, QR and the legal-review warning', async () => {
-  await panel.goto(`${WEB}/login`);
+  // Sign out first: with the old session the login page may redirect before the form is filled.
   await desk.clearCookies();
   await panelLogin('gerente@demo.local');
   await panel.goto(`${WEB}/configuracoes/cardapio-digital`);
