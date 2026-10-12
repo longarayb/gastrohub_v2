@@ -13,6 +13,7 @@ import {
 } from '@app/shared';
 import type { CookieOptions, Request, Response } from 'express';
 import type { z } from 'zod';
+import { RequiresModule } from '../platform/billing.decorators.js';
 import { AppConfig } from '../../core/config/app-config.service.js';
 import { ApiZodBody, ApiZodQuery, ZBody, ZQuery } from '../../core/validation/zod.js';
 import { Public, RequirePermissions } from '../auth/auth.decorators.js';
@@ -23,6 +24,7 @@ export const DEVICE_COOKIE = 'app_device';
 
 @ApiTags('kds')
 @ApiBearerAuth()
+@RequiresModule('KDS')
 @Controller('kds')
 export class KdsController {
   constructor(private readonly kds: KdsService) {}
@@ -110,6 +112,7 @@ export class KdsController {
 
 @ApiTags('kds')
 @ApiBearerAuth()
+@RequiresModule('KDS')
 @Controller('kds/devices')
 export class KdsDevicesController {
   constructor(private readonly devices: KdsDevicesService) {}

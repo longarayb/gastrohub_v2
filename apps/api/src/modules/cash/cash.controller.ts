@@ -12,6 +12,7 @@ import {
   reopenCashSessionSchema,
 } from '@app/shared';
 import type { z } from 'zod';
+import { CreatesSale } from '../platform/billing.decorators.js';
 import { ApiZodBody, ApiZodQuery, ZBody, ZQuery } from '../../core/validation/zod.js';
 import { RequirePermissions } from '../auth/auth.decorators.js';
 import { CashService } from './cash.service.js';
@@ -46,6 +47,7 @@ export class CashSessionsController {
     return this.cash.get(id);
   }
 
+  @CreatesSale()
   @Post()
   @RequirePermissions(Permission.CASH_OPERATE)
   @ApiOperation({ summary: 'Abre o caixa do usuário com o troco inicial' })

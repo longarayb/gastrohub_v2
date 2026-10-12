@@ -15,7 +15,8 @@
     "dashboard": "node dashboard.mjs",
     "screens": "node screens.mjs",
     "keyboard": "node keyboard.mjs",
-    "a11y": "node a11y.mjs"
+    "a11y": "node a11y.mjs",
+    "platform-admin": "node platform-admin.mjs"
   },
   "dependencies": {
     "@axe-core/playwright": "^4.13.0",

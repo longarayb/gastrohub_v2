@@ -154,6 +154,8 @@ export const REALTIME_EVENTS = {
   PRINT_JOBS: 'print.jobs',
   /** Agents, printers or the print queue changed (panel status and alerts). */
   PRINTING_UPDATED: 'printing.updated',
+  /** Billing banner, read-only mode, plan modules or a support session changed (D042). */
+  NOTICES_UPDATED: 'notices.updated',
 } as const;
 
 export interface AreaDto {

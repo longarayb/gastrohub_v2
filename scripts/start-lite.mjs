@@ -1,6 +1,6 @@
 // `pnpm start:lite`: lightest way to use the app on a low-memory machine.
 // Production builds (no watchers, no hot reload): API (3333) + admin panel (3000).
-// `pnpm start:lite --menu` also starts the digital menu (3001).
+// `pnpm start:lite --menu` also starts the digital menu (3001); `--admin` the platform admin (3002).
 // `--lan` makes them reachable from a phone on the same Wi-Fi (build with the machine IP,
 // servers on 0.0.0.0); `pnpm lan:links` prints the links.
 // Rebuilds only what changed (Turborepo cache). Stop with Ctrl+C.
@@ -20,6 +20,7 @@ import {
 } from './lib.mjs';
 
 const withMenu = process.argv.includes('--menu');
+const withAdmin = process.argv.includes('--admin');
 const lan = process.argv.includes('--lan');
 
 const ip = lan ? applyLanEnv() : null;
@@ -32,7 +33,9 @@ infraUp();
 log('Aplicando migrations pendentes...');
 run('pnpm', ['--filter', '@app/api', 'db:deploy']);
 
-log(`Compilando API, painel${withMenu ? ' e cardápio digital' : ''} (só o que mudou)...`);
+log(
+  `Compilando API, painel${withMenu ? ', cardápio digital' : ''}${withAdmin ? ', admin da plataforma' : ''} (só o que mudou)...`,
+);
 run('pnpm', [
   'turbo',
   'run',
@@ -40,6 +43,7 @@ run('pnpm', [
   '--filter=@app/api',
   '--filter=@app/web',
   ...(withMenu ? ['--filter=@app/menu'] : []),
+  ...(withAdmin ? ['--filter=@app/admin'] : []),
   '--concurrency=2',
 ]);
 
@@ -81,9 +85,10 @@ const children = [
   }),
   next('web', 3000),
   ...(withMenu ? [next('menu', 3001)] : []),
+  ...(withAdmin ? [next('admin', 3002)] : []),
 ];
 log(
-  `Painel: http://localhost:3000${withMenu ? ' · Cardápio: http://localhost:3001/demo' : ''} · API: http://localhost:3333/docs · E-mails: http://localhost:8025`,
+  `Painel: http://localhost:3000${withMenu ? ' · Cardápio: http://localhost:3001/demo' : ''}${withAdmin ? ' · Admin da plataforma: http://localhost:3002' : ''} · API: http://localhost:3333/docs · E-mails: http://localhost:8025`,
 );
 if (ip) logLanLinks(ip, withMenu);
 

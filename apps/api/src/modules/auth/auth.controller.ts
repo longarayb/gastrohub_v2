@@ -19,6 +19,7 @@ import type { CookieOptions, Request, Response } from 'express';
 import { AppConfig } from '../../core/config/app-config.service.js';
 import { ApiZodBody, ZBody } from '../../core/validation/zod.js';
 import { type AuthUser, CurrentUser, Public } from './auth.decorators.js';
+import { DenySupport } from '../platform/billing.decorators.js';
 import { AuthService, type RequestMeta, type SessionWithRefresh } from './auth.service.js';
 
 export const REFRESH_COOKIE = 'app_refresh';
@@ -36,6 +37,27 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly config: AppConfig,
   ) {}
+
+  @Public()
+  @Get('signup-status')
+  @ApiOperation({ summary: 'Se o cadastro aberto está disponível (ou só por convite)' })
+  signupStatus() {
+    return this.auth.signupStatus();
+  }
+
+  @Public()
+  @Post('accept-invite')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Define a primeira senha a partir do convite e entra' })
+  @ApiZodBody(resetPasswordSchema)
+  async acceptInvite(
+    @ZBody(resetPasswordSchema) body: ResetPasswordInput,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthSession> {
+    return this.respond(res, await this.auth.acceptInvite(body, meta(req)));
+  }
 
   @Public()
   @Post('register')
@@ -110,6 +132,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @DenySupport()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Dados da sessão atual' })
   me(@CurrentUser() user: AuthUser) {
@@ -117,6 +140,7 @@ export class AuthController {
   }
 
   @Post('switch-store')
+  @DenySupport()
   @HttpCode(200)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Troca a unidade ativa' })
@@ -129,6 +153,7 @@ export class AuthController {
   }
 
   @Post('change-password')
+  @DenySupport()
   @HttpCode(204)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Altera a senha do usuário logado' })

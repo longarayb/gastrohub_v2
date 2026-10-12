@@ -66,6 +66,7 @@ O usuário alterna o projeto entre dois computadores, **um por vez**: o **Surfac
 - `apps/web`: Next.js (App Router) — painel admin, PDV, gestão de pedidos, mesas, KDS, relatórios.
 - `apps/print-agent`: agente de impressão local (serviço do Windows, ESC/POS), empacotado como executável único com instalador.
 - `apps/menu`: Next.js — cardápio digital público (`/{slug}`).
+- `apps/admin`: Next.js — painel da plataforma (clientes, planos, mensalidades, suporte), porta 3002.
 - `packages/shared`: schemas Zod, enums, tipos, utils (dinheiro, CPF/CNPJ, telefone, CEP) e **domínio puro** de cálculo.
 - `packages/ui`: componentes shadcn/ui compartilhados.
 - `packages/config`: tsconfig, eslint, prettier, tailwind preset.
@@ -82,6 +83,7 @@ pnpm bootstrap                # .env + docker + migrations + seed (primeira vez)
 pnpm dev                      # sobe docker (postgres, redis, mailpit) + todas as apps
 pnpm start:lite               # modo leve: builds de produção da API (3333) e do painel (3000), sem watchers
 pnpm start:lite --menu        # idem, com o cardápio digital (3001; demo em http://localhost:3001/demo)
+pnpm start:lite --admin       # idem, com o painel da plataforma (3002; admin e 2FA de demonstração em docs/SETUP.md)
 pnpm start:lite --menu --lan  # idem, acessível pelo celular na mesma rede (pnpm lan:links mostra os links)
 pnpm dev --lan                # desenvolvimento acessível pelo celular (o pnpm dev comum compila com localhost)
 pnpm tunnel:menu              # túnel HTTPS temporário (30 min) só para testar a prévia do link no WhatsApp
@@ -153,6 +155,7 @@ Validação completa antes de merge: `pnpm check` (imports versionados + build +
 - **Rotas tipadas do Next:** ao criar uma página nova, rode `npx next typegen` em `apps/web` antes do `tsc`, senão `href="/nova-rota"` não compila.
 - **Roteiros visuais:** feche um diálogo de cada vez esperando a animação (`closeDialog`/`closeAll` em `pos.mjs`); dois `Escape` seguidos perdem o segundo. O limite de login vem de `LOGIN_RATE_LIMIT_PER_MINUTE` (produção: 10, o padrão; o `.env` de desenvolvimento usa 300 para os roteiros rodarem em sequência). O `kds.mjs` instrumenta o `AudioContext` para conferir os sons.
 - **Ordem dos eventos (D040):** listas na ordem dos acontecimentos ordenam pela coluna `seq` (sequência do Postgres) das tabelas de eventos; pedidos por `businessDate` + `number`; nunca só por um horário gravado pela aplicação (o Prisma preenche `now()` com o relógio do Node). Tabela de eventos nova ganha `seq BigInt @default(autoincrement())`; lista de cadastro por `createdAt` desempata por `id`.
+- **Plataforma (D041–D044):** módulo `modules/platform` (global), tabelas **fora** do tenant. Controllers do admin com `@PlatformController()` (guarda própria; `@PlatformPublic()` no login, `aud: platform`, `PLATFORM_JWT_SECRET`); tudo o que o admin faz passa por `PlatformAuditService.log` (tabela só de inclusão). Dados de vários restaurantes só pelo `PlatformDirectoryService`; o resto da API importa só `billing-access.service`, `billing.decorators`, `platform.keys` e `platform.module` (ESLint e `isolation.test.ts` recusam o resto). Rota que cria venda leva `@CreatesSale()` (somente leitura → 403 `READ_ONLY_MODE`); rota de módulo do plano, `@RequiresModule(...)` (403 `PLAN_LIMIT`); rota que o suporte não pode usar, `@DenySupport()`. Regras de cobrança e prazos só em `shared/domain/billing.ts` (datas de cobrança sempre em America/Sao_Paulo; somente leitura começa por `readOnlyStartsAt`, nunca no meio do expediente). Mudança de cobrança chama `CustomersService.notify` (limpa o cache de 30 s, emite `notices.updated` e atualiza o cardápio). Comandos de emergência só pela CLI `dist/cli/platform-admin.js` (`create`, `reset-2fa`), nunca por rota. Nos e2e, o cadastro público é aberto por `openSignupForTests` (o padrão é só por convite); nos roteiros visuais, por `setSignupMode` (`platform-api.mjs`). O seed da plataforma (`prisma/seed/platform.ts`) apaga e recria as tabelas da plataforma e os clientes de exemplo.
 - **Imagens:** sempre via `ImageService` (WebP); o banco guarda chaves (`imageKey`), nunca URLs.
 - **Seed:** `apps/api/prisma/seed` (re-executável; usa o client raw com `tenantId` explícito). Ao criar uma tabela de tenant nova, inclua-a em `TENANT_TABLES` do seed. `pnpm db:seed` e `pnpm db:reset` passam pelo Turborepo e compilam antes os pacotes de que a API depende (`dependsOn: ["^build"]`): funcionam num clone novo.
 - **.gitignore:** regras de pastas genéricas devem ser ancoradas na raiz (`/storage/`); `pnpm check` falha se um arquivo versionado importar um arquivo não versionado (`scripts/check-tracked-imports.mjs`).
@@ -162,7 +165,7 @@ Validação completa antes de merge: `pnpm check` (imports versionados + build +
 ## Estrutura
 
 ```
-apps/api      apps/web      apps/menu
+apps/api      apps/web      apps/menu      apps/admin
 packages/shared  packages/ui  packages/config
 docs/ARQUITETURA.md  docs/DECISOES.md  docs/ROADMAP.md  docs/DESIGN.md
 scripts/      docker/       docker-compose.yml

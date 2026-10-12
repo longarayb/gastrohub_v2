@@ -38,6 +38,20 @@ export const envSchema = z.object({
   JWT_ACCESS_TTL: z.string().default('15m'),
   JWT_REFRESH_TTL_DAYS: z.coerce.number().int().positive().default(30),
 
+  /** Platform admin (D041): own token secret, never the restaurants' one. */
+  PLATFORM_JWT_SECRET: z.string().min(32),
+  /** 32 bytes (base64url) encrypting the admins' 2FA secrets (AES-256-GCM). */
+  PLATFORM_SECRETS_KEY: z
+    .string()
+    .refine((v) => Buffer.from(v, 'base64url').length === 32, 'precisa ter 32 bytes em base64url'),
+  ADMIN_PUBLIC_URL: z.url().default('http://localhost:3002'),
+  PLATFORM_LOGIN_RATE_LIMIT_PER_MINUTE: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.coerce.number().int().min(1).default(5),
+  ),
+  /** IPs allowed on the admin API; empty = any. */
+  PLATFORM_ALLOWED_IPS: csv,
+
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().int().default(1025),
   MAIL_FROM_ADDRESS: z.email().default('nao-responda@app.local'),

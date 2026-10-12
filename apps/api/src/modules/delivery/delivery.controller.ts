@@ -16,6 +16,7 @@ import {
   settlementSchema,
 } from '@app/shared';
 import { z } from 'zod';
+import { RequiresModule } from '../platform/billing.decorators.js';
 import { ApiZodBody, ApiZodQuery, ZBody, ZQuery } from '../../core/validation/zod.js';
 import { RequirePermissions } from '../auth/auth.decorators.js';
 import { DeliveryPricingService } from '../orders/delivery-pricing.service.js';
@@ -30,6 +31,7 @@ const optionalCourierQuery = z.object({ courierId: z.string().optional() });
 
 @ApiTags('delivery')
 @ApiBearerAuth()
+@RequiresModule('DELIVERY')
 @Controller('delivery')
 export class DeliveryController {
   constructor(
@@ -215,6 +217,7 @@ export class DeliveryController {
 /** Courier app: only the signed-in courier's own open route (LGPD). */
 @ApiTags('courier')
 @ApiBearerAuth()
+@RequiresModule('DELIVERY')
 @Controller('courier')
 export class CourierAppController {
   constructor(private readonly app: CourierAppService) {}

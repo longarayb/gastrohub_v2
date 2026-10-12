@@ -37,6 +37,7 @@ import {
   transferOrderSchema,
 } from '@app/shared';
 import { z } from 'zod';
+import { CreatesSale } from '../platform/billing.decorators.js';
 import { ValidationError } from '../../core/errors/domain-error.js';
 import { ApiZodBody, ApiZodQuery, ZBody, ZQuery } from '../../core/validation/zod.js';
 import { RequirePermissions } from '../auth/auth.decorators.js';
@@ -73,6 +74,7 @@ export class OrdersController {
     return this.orders.list(query);
   }
 
+  @CreatesSale()
   @Post()
   @RequirePermissions(Permission.ORDERS_CREATE)
   @ApiOperation({ summary: 'Lança um pedido (balcão, delivery ou conta de mesa)' })
@@ -100,6 +102,7 @@ export class OrdersController {
     return this.orders.get(id);
   }
 
+  @CreatesSale()
   @Post(':id/items')
   @RequirePermissions(Permission.ORDERS_CREATE)
   @ApiOperation({ summary: 'Adiciona uma rodada de itens a uma conta de mesa' })

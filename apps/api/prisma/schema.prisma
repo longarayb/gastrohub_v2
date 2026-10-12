@@ -44,7 +44,32 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stores Store[]
+  // ---- Platform customer data (feat/platform-admin, D041) ----
+  /// Disabled by the platform admin: nobody of the organization can sign in.
+  isActive              Boolean               @default(true)
+  createdVia            OrganizationOrigin    @default(SIGNUP)
+  /// Billing / invoice (NFS-e) data: CNPJ or CPF digits.
+  documentType          CustomerDocumentType?
+  document              String?
+  legalName             String?
+  municipalRegistration String?
+  invoiceEmail          String?
+  contactName           String?
+  contactEmail          String?
+  contactPhone          String?
+  addressCep            String?
+  addressStreet         String?
+  addressNumber         String?
+  addressComplement     String?
+  addressNeighborhood   String?
+  addressCity           String?
+  addressState          String?
+  notes                 String?
+
+  stores           Store[]
+  subscription     Subscription?
+  invoices         PlatformInvoice[]
+  termsAcceptances TermsAcceptance[]
 }
 
 /// A restaurant unit. **This is the tenant.**
@@ -195,12 +220,14 @@ model RefreshToken {
 }
 
 model PasswordResetToken {
-  id        String    @id @default(cuid())
+  id        String               @id @default(cuid())
+  /// RESET (forgot password, 1 h) or INVITE (new user sets the first password, 7 days).
+  purpose   PasswordTokenPurpose @default(RESET)
   userId    String
-  tokenHash String    @unique
+  tokenHash String               @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  createdAt DateTime             @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -209,18 +236,20 @@ model PasswordResetToken {
 
 /// Audit trail for sensitive operations (cancellations, discounts, price changes, permissions).
 model AuditLog {
-  id        String   @id @default(cuid())
+  id               String   @id @default(cuid())
   /// Creation order from the database (D040): lists sort by it, never by a clock.
-  seq       BigInt   @default(autoincrement())
-  tenantId  String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
-  userId    String?
-  action    String
-  entity    String
-  entityId  String?
-  reason    String?
-  before    Json?
-  after     Json?
-  createdAt DateTime @default(now())
+  seq              BigInt   @default(autoincrement())
+  tenantId         String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  userId           String?
+  /// Done by the platform support inside this store (D041).
+  supportSessionId String?
+  action           String
+  entity           String
+  entityId         String?
+  reason           String?
+  before           Json?
+  after            Json?
+  createdAt        DateTime @default(now())
 
   store Store @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -1493,4 +1522,299 @@ model DeliveryQuoteMiss {
   createdAt    DateTime @default(now())
 
   @@index([tenantId, createdAt])
+}
+
+// =============================================================================
+// Platform administration (feat/platform-admin, D041–D044). NOT tenant tables: read and
+// written only by the platform module (apps/api/src/modules/platform), never through the
+// tenant-scoped client. The restaurant side reads only its own organization's billing state
+// (BillingAccessService).
+// =============================================================================
+
+enum OrganizationOrigin {
+  SIGNUP
+  ADMIN
+}
+
+enum CustomerDocumentType {
+  CNPJ
+  CPF
+}
+
+enum PasswordTokenPurpose {
+  RESET
+  INVITE
+}
+
+enum PlatformAdminRole {
+  /// Full access. Room for SUPPORT and FINANCE later.
+  SUPERADMIN
+}
+
+model PlatformAdmin {
+  id                   String            @id @default(cuid())
+  email                String            @unique
+  name                 String
+  passwordHash         String
+  role                 PlatformAdminRole @default(SUPERADMIN)
+  /// TOTP secret encrypted with PLATFORM_SECRETS_KEY (AES-256-GCM).
+  totpSecretEnc        String?
+  /// Secret being enrolled (confirmed with a first code).
+  totpPendingSecretEnc String?
+  totpEnabledAt        DateTime?
+  /// Last accepted TOTP counter: a code is never accepted twice.
+  totpLastCounter      Int?
+  isActive             Boolean           @default(true)
+  failedLogins         Int               @default(0)
+  lockedUntil          DateTime?
+  lastLoginAt          DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  recoveryCodes PlatformRecoveryCode[]
+  sessions      PlatformSession[]
+}
+
+model PlatformRecoveryCode {
+  id        String    @id @default(cuid())
+  adminId   String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  admin PlatformAdmin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
+
+/// Signed-in admin (refresh token rotation; revoking a session signs it out).
+model PlatformSession {
+  id         String    @id @default(cuid())
+  adminId    String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  ip         String?
+  userAgent  String?
+  lastUsedAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+
+  admin PlatformAdmin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
+
+/// Everything the platform admins do. Append-only: a trigger blocks UPDATE and DELETE.
+model PlatformAuditLog {
+  id             String   @id @default(cuid())
+  seq            BigInt   @default(autoincrement())
+  adminId        String?
+  /// E-mail typed on a failed login (no admin id).
+  actorEmail     String?
+  action         String
+  entity         String
+  entityId       String?
+  organizationId String?
+  storeId        String?
+  reason         String?
+  before         Json?
+  after          Json?
+  ip             String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([organizationId, createdAt])
+  @@index([action, createdAt])
+}
+
+enum SignupMode {
+  INVITE_ONLY
+  OPEN_TRIAL
+}
+
+/// Singleton (id = "default").
+model PlatformSettings {
+  id             String     @id @default("default")
+  signupMode     SignupMode @default(INVITE_ONLY)
+  /// Plan of the open signup trial.
+  signupPlanId   String?
+  trialDays      Int        @default(14)
+  graceDays      Int        @default(7)
+  warnDaysBefore Int        @default(5)
+  updatedAt      DateTime   @updatedAt
+}
+
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model Plan {
+  id                   String          @id @default(cuid())
+  name                 String          @unique
+  description          String?
+  /// Price of one period, in cents.
+  priceCents           Int
+  interval             BillingInterval @default(MONTHLY)
+  trialDays            Int             @default(0)
+  /// Stores included in the price.
+  storeLimit           Int             @default(1)
+  /// Per extra store, per period. Null = the limit is hard.
+  extraStorePriceCents Int?
+  /// PlatformModule values (shared/domain/platform.ts).
+  modules              String[]
+  isActive             Boolean         @default(true)
+  sortOrder            Int             @default(0)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  subscriptions Subscription[]
+}
+
+/// One per organization. Price and interval are kept as agreed (plan price changes do not
+/// touch existing customers); limits and modules follow the plan.
+model Subscription {
+  id              String          @id @default(cuid())
+  organizationId  String          @unique
+  planId          String
+  priceCents      Int
+  interval        BillingInterval
+  startedAt       DateTime        @default(now())
+  /// Trial ends at the start of this date (São Paulo); null = no trial.
+  trialEndsOn     String?
+  /// First billed day (YYYY-MM-DD): anchor of every period.
+  billingStart    String
+  /// Customer-specific grace (days); null = platform default.
+  graceDays       Int?
+  suspendedAt     DateTime?
+  suspendedReason String?
+  canceledAt      DateTime?
+  cancelReason    String?
+  version         Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         Plan                 @relation(fields: [planId], references: [id])
+  changes      SubscriptionChange[]
+  invoices     PlatformInvoice[]
+}
+
+enum SubscriptionChangeKind {
+  CREATED
+  PLAN_CHANGED
+  PRICE_CHANGED
+  TRIAL_CHANGED
+  GRACE_CHANGED
+  SUSPENDED
+  REACTIVATED
+  CANCELED
+}
+
+model SubscriptionChange {
+  id             String                 @id @default(cuid())
+  seq            BigInt                 @default(autoincrement())
+  subscriptionId String
+  kind           SubscriptionChangeKind
+  fromPlanId     String?
+  toPlanId       String?
+  before         Json?
+  after          Json?
+  reason         String?
+  adminId        String?
+  createdAt      DateTime               @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, seq])
+}
+
+enum PlatformInvoiceStatus {
+  OPEN
+  PAID
+  CANCELED
+}
+
+enum PlatformPaymentMethod {
+  PIX
+  BOLETO
+  CARD
+  TRANSFER
+  CASH
+  OTHER
+}
+
+/// Monthly fee (manual now; a BillingProvider fills the provider fields later).
+model PlatformInvoice {
+  id             String                 @id @default(cuid())
+  seq            BigInt                 @default(autoincrement())
+  organizationId String
+  subscriptionId String
+  periodStart    String
+  periodEnd      String
+  dueDate        String
+  amountCents    Int
+  /// Breakdown (base, extra stores) at generation time.
+  details        Json?
+  status         PlatformInvoiceStatus  @default(OPEN)
+  paidOn         String?
+  paidAt         DateTime?
+  paymentMethod  PlatformPaymentMethod?
+  paymentNote    String?
+  provider       String                 @default("MANUAL")
+  providerRef    String?
+  providerUrl    String?
+  canceledAt     DateTime?
+  cancelReason   String?
+  createdById    String?
+  version        Int                    @default(0)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, periodStart])
+  @@index([status, dueDate])
+  @@index([organizationId, dueDate])
+}
+
+/// Owner's acceptance of the platform terms of use and privacy policy.
+model TermsAcceptance {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  termsVersion   String
+  privacyVersion String
+  ip             String?
+  userAgent      String?
+  acceptedAt     DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, acceptedAt])
+}
+
+enum SupportAccessMode {
+  READ_ONLY
+  READ_WRITE
+}
+
+/// Platform admin inside a customer's store, with a reason and a time limit.
+model SupportSession {
+  id             String            @id @default(cuid())
+  adminId        String
+  organizationId String
+  storeId        String
+  reason         String
+  mode           SupportAccessMode @default(READ_ONLY)
+  startedAt      DateTime          @default(now())
+  endsAt         DateTime
+  endedAt        DateTime?
+  ip             String?
+
+  @@index([storeId, endsAt])
+  @@index([adminId, startedAt])
 }

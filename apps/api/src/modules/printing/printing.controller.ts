@@ -21,6 +21,7 @@ import {
 } from '@app/shared';
 import type { Request } from 'express';
 import type { z } from 'zod';
+import { RequiresModule } from '../platform/billing.decorators.js';
 import { ApiZodBody, ApiZodQuery, ZBody, ZQuery } from '../../core/validation/zod.js';
 import { Public, RequirePermissions } from '../auth/auth.decorators.js';
 import { PrintAgentsService } from './print-agents.service.js';
@@ -31,6 +32,7 @@ import { PrintersService } from './printers.service.js';
 /** Panel: agents, printers, settings, queue and documents (docs/DECISOES.md D035–D037). */
 @ApiTags('printing')
 @ApiBearerAuth()
+@RequiresModule('PRINTING')
 @Controller('printing')
 export class PrintingController {
   constructor(
@@ -224,6 +226,7 @@ export class PrintingController {
 
 /** The local print agent: pairing, session, heartbeat, lease and acknowledgement. */
 @ApiTags('print-agent')
+@RequiresModule('PRINTING')
 @Controller('print-agent')
 export class PrintAgentController {
   constructor(

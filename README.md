@@ -44,6 +44,7 @@ pnpm dev        # sobe a infraestrutura e todas as apps em modo watch
 |---|---|
 | `pnpm dev` | Sobe Docker (Postgres, Redis, Mailpit), aplica migrations e roda api/web/menu com hot reload |
 | `pnpm start:lite` | Modo leve: builds de produção da API e do painel, sem watchers (recomendado com pouca memória) |
+| `pnpm start:lite --admin` | Idem, com o painel da plataforma em http://localhost:3002 (combina com `--menu`) |
 | `pnpm dev:lite` | Hot reload só da API, do painel e dos pacotes (sem o cardápio digital) |
 | `pnpm infra:up` / `pnpm infra:down` | Sobe/derruba só a infraestrutura Docker |
 | `pnpm build` | Build de todos os pacotes |
@@ -99,6 +100,8 @@ Unidade: **GastroHub Demo** (`${BRAND.name} Demo`, slug `demo`). Senha de todos 
 O seed pode ser rodado de novo: ele apaga e recria apenas a unidade de demonstração. Cardápio incluído: lanches com complementos herdados (e um produto que desliga um grupo herdado), combos com bebida (opção que referencia produto), porções e bebidas por tamanho, pizzas de 1 a 4 sabores com borda com preço por tamanho, sobremesas, almoço executivo só em dias úteis no almoço e um item pausado ("Onion rings"). Caixa e pagamentos: a operadora Caixa já tem o caixa aberto, o caixa do Gerente está fechado com diferença, há um delivery "a receber", um pedido do iFood pago online, uma conta de mesa paga pela metade e uma chave PIX fictícia (`pix@demo.local`). Cozinha: tarefas de produção em todos os estados (o combo leva a bebida para o bar) e uma "TV da cozinha" aguardando vínculo; abra `/kds` com o login da Cozinha.
 
 Pedidos do dia de negócio atual em todos os status (balcão, delivery e mesa): pendentes do cardápio digital e do iFood, uma mesa dupla com duas contas e duas rodadas, uma conta com itens não enviados, um pedido cancelado com motivo e uma conta fechada sem taxa de serviço. Também: 12 mesas em 2 áreas, clientes com endereço, entregadores e os cupons `BEMVINDO10` e `FRETEGRATIS`.
+
+Painel da plataforma (`pnpm start:lite --admin`, http://localhost:3002): `admin@plataforma.local` / `Plataforma123`, com o 2FA de demonstração descrito em [docs/SETUP.md](docs/SETUP.md) ("Painel da plataforma"). O seed também cria clientes de exemplo em teste, atrasado, em somente leitura e cancelado.
 
 ## Documentação
 

@@ -258,3 +258,40 @@ Decidida em 2026-10-09, depois que o relógio do WSL (que salta para trás) inve
 - **Horários continuam** para exibir e para regras de tempo (atraso, "há 12 min"), com a precisão do relógio; não decidem ordem.
 - **Teste:** `test/ordering.e2e.test.ts` volta o relógio da API 10 min e depois mais 5 no meio do fluxo (o segundo item fica com hora anterior ao primeiro) e confere rodadas no KDS, itens, histórico e kanban na ordem certa.
 - **Regra para código novo:** tabela de eventos nova ganha `seq`; lista de eventos ordena por `seq`; nunca ordenar só por um horário gravado pela aplicação.
+
+## D041 — Painel da plataforma: separação, login e acesso entre restaurantes
+
+Aprovada em 2026-10-11 (etapa `feat/platform-admin`).
+
+- **App próprio** `apps/admin` (porta 3002), com o mesmo tema do redesign (D039). Nada do painel do restaurante abre o da plataforma, e vice-versa: segredo de token próprio (`PLATFORM_JWT_SECRET`, `aud: platform`), cookie de refresh próprio (`app_platform_refresh`, só em `/api/platform/auth`, `sameSite: strict`) e tabelas próprias (`PlatformAdmin`, `PlatformSession`...), que **não** são de tenant.
+- **Login em dois passos, 2FA obrigatório:** senha → desafio de 5 min → código TOTP (RFC 6238, janela ±30 s, o mesmo código não vale duas vezes) ou código de recuperação (10, formato `XXXXX-XXXXX`, guardados com hash, cada um vale uma vez). Sem 2FA cadastrado, o primeiro login obriga o cadastro (QR + códigos). Token de acesso de 10 min; sessão de no máximo 12 h, com rotação do refresh. Bloqueio de 15 min depois de 5 falhas seguidas; limite por IP (`PLATFORM_LOGIN_RATE_LIMIT_PER_MINUTE`) e lista opcional de IPs (`PLATFORM_ALLOWED_IPS`).
+- **Segredo do TOTP cifrado** (AES-256-GCM) com `PLATFORM_SECRETS_KEY`, que fica só no servidor. **Precisa de cópia fora do servidor** (SETUP.md): sem ela, nenhum segredo pode ser lido e todos os admins precisam do comando de emergência.
+- **Comando de emergência fora da API:** `platform-admin.js reset-2fa --email ... --reason ...`, rodado no servidor, apaga o autenticador, os códigos e as sessões do admin e grava na auditoria; o próximo login cadastra o 2FA de novo. `create` cria admins (senha temporária impressa uma vez). Não existe rota HTTP para isso.
+- **Auditoria da plataforma** (`PlatformAuditLog`) de tudo: logins (inclusive falhos), cadastros, mudanças de plano, pagamentos, suporte, configurações. Só inclusão: um gatilho no banco recusa `UPDATE` e `DELETE`.
+- **Um papel só** (`PlatformAdminRole.SUPERADMIN`, coluna `role` do `PlatformAdmin`), com espaço para outros papéis no futuro.
+- **Acesso entre restaurantes por um caminho só:** `PlatformDirectoryService` é o único serviço que lê dados de várias organizações (client raw, só leitura de cadastro e contagens). O resto da API continua com o isolamento por tenant (D002). Uma regra do ESLint e um teste de varredura (`isolation.test.ts`) recusam importar o miolo da plataforma fora dos pontos de integração (`billing-access.service`, `billing.decorators`, `platform.keys`, `platform.module`).
+
+## D042 — Cobrança da plataforma e modo somente leitura
+
+- **Cobrança por organização** (não por unidade). O plano tem preço por período (mensal, trimestral ou anual), limite de unidades e, opcional, valor por unidade adicional (sem ele, o limite bloqueia a criação de unidade com mensagem em pt-BR). Módulos do plano: cardápio digital, delivery, cozinha, impressão, marketplaces; o menu do painel esconde os módulos fora do plano e a API responde 403 `PLAN_LIMIT` (`@RequiresModule`).
+- **Assinatura com histórico** (`SubscriptionChange`: plano, preço combinado, suspensão, reativação, cancelamento, sempre com motivo). Mensalidades (`PlatformInvoice`) geradas por período a partir do dia âncora (`addMonthsToDate`, dia 31 vira o último do mês); uma por período (único por assinatura + início).
+- **Pagamento manual** nesta fase (PIX, boleto, cartão, transferência, dinheiro, com observação). A interface `BillingProvider` (implementação `Manual`) é o ponto de extensão para Asaas, Mercado Pago ou Pagar.me (ROADMAP).
+- **Prazos em America/Sao_Paulo**, qualquer que seja o fuso da unidade: aviso **5 dias** antes do vencimento, **7 dias** de tolerância depois (padrões configuráveis; tolerância também por cliente).
+- **Somente leitura nunca no meio do expediente** (`readOnlyStartsAt`): quando a organização fica elegível (tolerância vencida, suspensão ou cancelamento), cada unidade entra em somente leitura ao fim do dia de negócio em andamento; se ainda não abriu, imediatamente; sem horários cadastrados, às 04:00. O painel mostra "agendado" (`SCHEDULED`) com o horário.
+- **O que o somente leitura bloqueia:** só o que cria venda (`@CreatesSale`: criar pedido, lançar itens, abrir caixa, pedido do cardápio digital) → 403 `READ_ONLY_MODE`. Consultas, relatórios, fechar o que já está aberto e receber pagamentos continuam. O cardápio digital aparece fechado para pedidos. Nos marketplaces (futuro), a loja deve aparecer fechada (ROADMAP).
+- **Liberação imediata:** registrar o pagamento invalida o cache de acesso (30 s) e avisa o painel em tempo real (`notices.updated`) e o cardápio digital.
+- **Status do cliente** (`subscriptionStatus`): em teste, ativo, atrasado, suspenso (somente leitura), cancelado. Receita recorrente (MRR) conta ativos e atrasados ainda na tolerância, no equivalente mensal.
+
+## D043 — Cadastro de clientes, convite e termos
+
+- **Cadastro só por convite por padrão.** A plataforma cadastra organização (com dados para nota fiscal: CNPJ/CPF, razão social, endereço, inscrição municipal opcional, e-mail para nota), primeira unidade, dono e assinatura; o dono recebe um convite por e-mail (token `INVITE`, 7 dias) e define a senha em `/convite`. Reenvio pelo painel da plataforma.
+- **Opção "aberto, com período de teste"** (configurações): o cadastro público volta a funcionar e cria a assinatura em teste (padrão 14 dias) no plano escolhido; sem plano, a opção não salva. Fechado, `/cadastro` mostra "Cadastro por convite".
+- **Termos de uso e privacidade:** o dono aceita no primeiro acesso (versão, data, IP, usuário em `TermsAcceptance`); quando a versão muda (`PLATFORM_TERMS_VERSION`/`PLATFORM_PRIVACY_VERSION`), o aceite é pedido de novo. Outros papéis não são bloqueados. Os textos (`shared/platform/legal.ts`) são provisórios e marcados **"revisar com apoio jurídico"**.
+- **Emissão de NFS-e** e **encerramento de cliente pela LGPD** (exportação, retenção, exclusão/anonimização) ficam no ROADMAP.
+
+## D044 — Acesso de suporte ao painel do restaurante
+
+- **Sempre com motivo, prazo e aviso:** o admin escolhe a unidade, escreve o motivo (mínimo de 10 caracteres) e o prazo (30 min por padrão, de 15 a 60); o dono recebe e-mail. **Somente leitura por padrão**; edição exige confirmação explícita.
+- **Como funciona:** a API emite um token de suporte (sessão `SupportSession`, papel interno `PLATFORM_SUPPORT` com as permissões de gerente, usuário global "Suporte da plataforma"). O painel da plataforma abre `/suporte#token=...` numa aba nova (o token vai no fragmento, nunca em log de servidor); a aba guarda o token só no `sessionStorage`, não tem refresh e termina no horário marcado ou quando o admin encerra (a API recusa na hora).
+- **No painel do restaurante:** faixa fixa "Suporte da plataforma conectado", com o modo, o fim e o motivo. Em somente leitura, a API aceita só `GET`; trocar de unidade, mudar senha e `/auth/me` são recusados ao suporte (`@DenySupport`).
+- **Auditoria dos dois lados:** início e fim na auditoria da plataforma; tudo o que o suporte fizer no restaurante vai para o `AuditLog` da unidade com `supportSessionId`.

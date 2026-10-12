@@ -5,6 +5,8 @@ const base = {
   DATABASE_URL: 'postgresql://x',
   JWT_ACCESS_SECRET: 'a'.repeat(32),
   JWT_REFRESH_SECRET: 'b'.repeat(32),
+  PLATFORM_JWT_SECRET: 'c'.repeat(32),
+  PLATFORM_SECRETS_KEY: Buffer.alloc(32, 1).toString('base64url'),
 };
 
 describe('validateEnv', () => {

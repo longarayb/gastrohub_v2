@@ -120,7 +120,14 @@ export const PRINT_AGENT_ROLE = 'PRINT_AGENT' as const;
 export const PRINT_AGENT_PERMISSIONS: readonly Permission[] = [P.PRINT_AGENT];
 
 export type DeviceRole = typeof KDS_DEVICE_ROLE | typeof PRINT_AGENT_ROLE;
-export type ActorRole = Role | DeviceRole;
+
+/**
+ * Internal role of a platform support session inside a store (D041): never a membership. It has
+ * the manager's permissions; a read-only session is further limited to reads by the API.
+ */
+export const PLATFORM_SUPPORT_ROLE = 'PLATFORM_SUPPORT' as const;
+
+export type ActorRole = Role | DeviceRole | typeof PLATFORM_SUPPORT_ROLE;
 
 export function isDeviceRole(role: ActorRole | null | undefined): role is DeviceRole {
   return role === KDS_DEVICE_ROLE || role === PRINT_AGENT_ROLE;
@@ -130,6 +137,7 @@ export function hasPermission(role: ActorRole | null | undefined, permission: Pe
   if (!role) return false;
   if (role === KDS_DEVICE_ROLE) return KDS_DEVICE_PERMISSIONS.includes(permission);
   if (role === PRINT_AGENT_ROLE) return PRINT_AGENT_PERMISSIONS.includes(permission);
+  if (role === PLATFORM_SUPPORT_ROLE) return ROLE_PERMISSIONS.MANAGER.includes(permission);
   return ROLE_PERMISSIONS[role].includes(permission);
 }
 

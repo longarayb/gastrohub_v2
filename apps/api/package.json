@@ -19,7 +19,8 @@
     "db:reset": "prisma migrate reset --force",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "platform:admin": "node dist/cli/platform-admin.js"
   },
   "dependencies": {
     "@app/shared": "workspace:*",

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { BROWSER } from './browser.mjs';
+import { adminToken, setSignupMode } from './platform-api.mjs';
 
 // Screenshots go to ./screenshots (gitignored).
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'screenshots');
@@ -12,6 +13,10 @@ const WEB = 'http://localhost:3000';
 const stamp = Date.now();
 const owner = { email: `dono.ui.${stamp}@teste.com`, password: 'Senha1234' };
 const waiter = { email: `garcom.ui.${stamp}@teste.com`, password: 'Senha1234' };
+
+// The public signup is invite only by default (D043): open it for this walkthrough.
+const platformToken = await adminToken();
+await setSignupMode(platformToken, 'OPEN_TRIAL');
 
 const results = [];
 const step = async (name, fn) => {
@@ -92,6 +97,23 @@ await step('register a restaurant (masks applied)', async () => {
   await page.getByLabel('Senha').fill(owner.password);
   await page.getByRole('button', { name: 'Criar conta' }).click();
   await page.waitForURL('**/configuracoes/empresa', { timeout: 20_000 });
+});
+
+await step('the new owner accepts the platform terms (mandatory dialog)', async () => {
+  const dialog = page.getByRole('dialog', { name: 'Termos de uso e privacidade' });
+  await dialog.waitFor();
+  await dialog.getByText('revisar com apoio jurídico').waitFor();
+  const accept = dialog.getByRole('button', { name: 'Aceitar e continuar' });
+  if (await accept.isEnabled()) throw new Error('accept enabled before the checkbox');
+  await dialog.getByRole('radio', { name: 'Privacidade' }).click();
+  await dialog.getByText('Política de privacidade da plataforma').first().waitFor();
+  await dialog
+    .getByLabel('Li e aceito os termos de uso e a política de privacidade da plataforma.')
+    .click();
+  await shot('03b-termos');
+  await accept.click();
+  await toast('Termos aceitos');
+  await dialog.waitFor({ state: 'detached' });
   await page.getByText('Dados da empresa').first().waitFor();
 });
 
@@ -269,6 +291,7 @@ await step('mobile layout: menu opens in a sheet', async () => {
   await shot('08-mobile');
 });
 
+await setSignupMode(platformToken, 'INVITE_ONLY');
 console.log(results.join('\n'));
 console.log(`\nconsole errors (${consoleErrors.length}):`);
 for (const e of [...new Set(consoleErrors)].slice(0, 15)) console.log(`  - ${e.slice(0, 200)}`);

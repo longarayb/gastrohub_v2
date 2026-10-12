@@ -111,4 +111,6 @@ export interface AuthSession {
   store: SessionStore;
   role: Role;
   memberships: SessionMembership[];
+  /** Platform support session (D041): shown in the banner; no refresh, ends at `endsAt`. */
+  support?: { reason: string; mode: 'READ_ONLY' | 'READ_WRITE'; endsAt: string };
 }

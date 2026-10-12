@@ -7,9 +7,12 @@ import {
   type UpdateStoreInput,
   isOpenAt,
   toLocalTime,
+  ErrorCode,
+  storeLimitError,
 } from '@app/shared';
 import { AuditAction, AuditService } from '../../core/audit/audit.service.js';
-import { ConflictError, NotFoundError } from '../../core/errors/domain-error.js';
+import { BillingAccessService } from '../platform/billing-access.service.js';
+import { ConflictError, NotFoundError, DomainError } from '../../core/errors/domain-error.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';
 import { ImageService, type UploadedImage } from '../../core/storage/image.service.js';
 import { InjectStorage, type StorageProvider } from '../../core/storage/storage.js';
@@ -75,6 +78,7 @@ export class StoresService {
     private readonly auth: AuthService,
     @InjectStorage() private readonly storage: StorageProvider,
     private readonly images: ImageService,
+    private readonly billing: BillingAccessService,
   ) {}
 
   private async current(): Promise<Store> {
@@ -189,6 +193,8 @@ export class StoresService {
         });
       }
     });
+    // The read-only boundary depends on the opening hours (D042).
+    this.billing.invalidateStore(this.ctx.tenantId);
     return this.getHours();
   }
 
@@ -201,6 +207,19 @@ export class StoresService {
   /** Creates a new unit in the same organization; the creator becomes its owner. */
   async createUnit(input: CreateStoreInput & { cnpj: string; phone: string }) {
     const current = await this.current();
+    // Plan limit (D042): extra stores only when the plan has a price per extra store.
+    const billing = await this.billing.organizationBilling(current.organizationId);
+    if (billing) {
+      const error = storeLimitError(
+        {
+          priceCents: billing.subscription.priceCents,
+          storeLimit: billing.subscription.plan.storeLimit,
+          extraStorePriceCents: billing.subscription.plan.extraStorePriceCents,
+        },
+        billing.activeStores,
+      );
+      if (error) throw new DomainError(error, ErrorCode.PLAN_LIMIT, 403);
+    }
     const slug = await this.auth.availableSlug(input.slug ?? input.tradeName);
     const userId = this.ctx.userId;
     const store = await this.prisma.store.create({
@@ -223,6 +242,7 @@ export class StoresService {
         },
       },
     });
+    this.billing.invalidate(current.organizationId);
     return toStoreDto(store);
   }
 }

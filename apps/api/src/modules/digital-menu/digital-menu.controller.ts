@@ -22,6 +22,7 @@ import {
   publicOrderSchema,
 } from '@app/shared';
 import type { z } from 'zod';
+import { CreatesSale, RequiresModule } from '../platform/billing.decorators.js';
 import { ValidationError } from '../../core/errors/domain-error.js';
 import {
   MAX_UPLOAD_BYTES,
@@ -47,6 +48,7 @@ function idempotencyKey(value: string | undefined): string | null {
 @ApiTags('public')
 @Public()
 @UseGuards(PublicStoreGuard)
+@RequiresModule('DIGITAL_MENU')
 @Controller('public/:slug')
 export class PublicMenuController {
   constructor(private readonly menu: PublicMenuService) {}
@@ -71,6 +73,7 @@ export class PublicMenuController {
     return this.menu.preview(body);
   }
 
+  @CreatesSale()
   @Post('orders')
   @ApiOperation({ summary: 'Faz o pedido (pagamento na entrega ou na retirada)' })
   @ApiZodBody(publicOrderSchema)
@@ -99,6 +102,7 @@ export class PublicMenuController {
 /** Digital menu settings and blocked phones (panel). */
 @ApiTags('digital-menu')
 @ApiBearerAuth()
+@RequiresModule('DIGITAL_MENU')
 @Controller('digital-menu')
 export class DigitalMenuAdminController {
   constructor(private readonly admin: DigitalMenuAdminService) {}
