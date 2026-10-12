@@ -19,6 +19,8 @@ export const ErrorCode = {
   READ_ONLY: 'READ_ONLY_MODE',
   /** Plan limit or module not included (D042). */
   PLAN_LIMIT: 'PLAN_LIMIT',
+  /** Platform admin with a temporary password: only the password change is allowed. */
+  PASSWORD_CHANGE_REQUIRED: 'PASSWORD_CHANGE_REQUIRED',
   INTERNAL: 'INTERNAL_ERROR',
 } as const;
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

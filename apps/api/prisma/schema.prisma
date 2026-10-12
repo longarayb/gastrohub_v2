@@ -1552,24 +1552,28 @@ enum PlatformAdminRole {
 }
 
 model PlatformAdmin {
-  id                   String            @id @default(cuid())
-  email                String            @unique
-  name                 String
-  passwordHash         String
-  role                 PlatformAdminRole @default(SUPERADMIN)
+  id                         String            @id @default(cuid())
+  email                      String            @unique
+  name                       String
+  passwordHash               String
+  role                       PlatformAdminRole @default(SUPERADMIN)
   /// TOTP secret encrypted with PLATFORM_SECRETS_KEY (AES-256-GCM).
-  totpSecretEnc        String?
+  totpSecretEnc              String?
   /// Secret being enrolled (confirmed with a first code).
-  totpPendingSecretEnc String?
-  totpEnabledAt        DateTime?
+  totpPendingSecretEnc       String?
+  totpEnabledAt              DateTime?
   /// Last accepted TOTP counter: a code is never accepted twice.
-  totpLastCounter      Int?
-  isActive             Boolean           @default(true)
-  failedLogins         Int               @default(0)
-  lockedUntil          DateTime?
-  lastLoginAt          DateTime?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  totpLastCounter            Int?
+  isActive                   Boolean           @default(true)
+  /// Temporary password (created on the server): must be changed right after the 2FA step.
+  passwordChangeRequired     Boolean           @default(false)
+  /// Unused temporary passwords stop working after this moment.
+  temporaryPasswordExpiresAt DateTime?
+  failedLogins               Int               @default(0)
+  lockedUntil                DateTime?
+  lastLoginAt                DateTime?
+  createdAt                  DateTime          @default(now())
+  updatedAt                  DateTime          @updatedAt
 
   recoveryCodes PlatformRecoveryCode[]
   sessions      PlatformSession[]

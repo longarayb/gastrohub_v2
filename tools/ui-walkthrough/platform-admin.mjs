@@ -1,13 +1,16 @@
 // Platform admin walkthrough (feat/platform-admin) against the production build and the seed:
 // pnpm db:seed && pnpm start:lite --admin, then `npm run platform-admin`.
+import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { BROWSER } from './browser.mjs';
-import { ADMIN_URL, PLATFORM_ADMIN, freshCode } from './platform-api.mjs';
+import { ADMIN_URL, PLATFORM_ADMIN, freshCode, totp } from './platform-api.mjs';
 
-const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'screenshots');
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.join(HERE, '..', '..');
+const OUT = path.join(HERE, 'screenshots');
 mkdirSync(OUT, { recursive: true });
 const WEB = 'http://localhost:3000';
 const MAILPIT = 'http://localhost:8025';
@@ -310,6 +313,54 @@ await step('own account: new recovery codes with a current code', async () => {
   await page.getByRole('button', { name: 'Gerar novos códigos' }).click();
   await page.getByText('Guarde estes códigos agora').waitFor();
 });
+
+await step(
+  'admin created on the server: 2FA, then the temporary password is changed first',
+  async () => {
+    // The production command, run like on the server (from the API folder, which reads the .env).
+    const email = `novo.admin.${stamp}@plataforma.local`;
+    const out = execFileSync(
+      process.execPath,
+      ['dist/cli/platform-admin.js', 'create', '--email', email, '--name', 'Admin Novo'],
+      { cwd: path.join(ROOT, 'apps', 'api'), encoding: 'utf8' },
+    );
+    const temporary = /Senha temporária \(mostrada só agora\): (\S+)/.exec(out)?.[1];
+    if (!temporary) throw new Error(`no temporary password in: ${out}`);
+
+    const ctx = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      locale: 'pt-BR',
+    });
+    const p = await ctx.newPage();
+    watch(p);
+    await p.goto(`${ADMIN_URL}/login`);
+    await p.getByLabel('E-mail').fill(email);
+    await p.getByLabel('Senha').fill(temporary);
+    await p.getByRole('button', { name: 'Continuar' }).click();
+    const secret = (await p.locator('code').first().textContent())?.trim();
+    if (!secret) throw new Error('enrollment secret not shown');
+    await p.getByLabel('Código que aparece no aplicativo').fill(totp(secret));
+    await p.getByRole('button', { name: 'Ativar e entrar' }).click();
+    await p.getByRole('checkbox', { name: /Guardei os códigos/ }).click();
+    await p.getByRole('button', { name: 'Continuar' }).click();
+
+    // Before any other screen: the password change, without the menu.
+    await p.getByRole('heading', { name: 'Crie a sua senha' }).waitFor();
+    if (await p.getByRole('link', { name: 'Clientes' }).count()) throw new Error('menu shown');
+    await shot(p, '17-troca-obrigatoria');
+    await p.getByLabel('Senha temporária', { exact: true }).fill(temporary);
+    await p.getByLabel('Nova senha', { exact: true }).fill(temporary);
+    await p.getByLabel('Confirme a nova senha').fill(temporary);
+    await p.getByRole('button', { name: 'Salvar e continuar' }).click();
+    await p.getByText('Escolha uma senha diferente da atual').waitFor();
+    await p.getByLabel('Nova senha', { exact: true }).fill('MinhaSenhaNova1');
+    await p.getByLabel('Confirme a nova senha').fill('MinhaSenhaNova1');
+    await p.getByRole('button', { name: 'Salvar e continuar' }).click();
+    await toast(p, 'Senha criada');
+    await p.getByRole('heading', { name: 'Visão geral' }).waitFor({ timeout: 20_000 });
+    await ctx.close();
+  },
+);
 
 await step('phone layout and light theme', async () => {
   await page.goto(ADMIN_URL);

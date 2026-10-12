@@ -90,7 +90,7 @@ const children = [
 log(
   `Painel: http://localhost:3000${withMenu ? ' · Cardápio: http://localhost:3001/demo' : ''}${withAdmin ? ' · Admin da plataforma: http://localhost:3002' : ''} · API: http://localhost:3333/docs · E-mails: http://localhost:8025`,
 );
-if (ip) logLanLinks(ip, withMenu);
+if (ip) logLanLinks(ip, withMenu, withAdmin);
 
 const stop = () => children.forEach((c) => c.kill('SIGINT'));
 process.on('SIGINT', stop);

@@ -33,7 +33,12 @@ import { InvoicesService } from './invoices.service.js';
 import { OverviewService } from './overview.service.js';
 import { type IssuedPlatformSession, PlatformAuthService } from './platform-auth.service.js';
 import { PlatformDirectoryService } from './platform-directory.service.js';
-import { Actor, PlatformController, PlatformPublic } from './platform.decorators.js';
+import {
+  Actor,
+  AllowsPendingPassword,
+  PlatformController,
+  PlatformPublic,
+} from './platform.decorators.js';
 import { type PlatformActor, type PlatformRequest, actorOf } from './platform.keys.js';
 import { PlansService } from './plans.service.js';
 import { PlatformSettingsService } from './settings.service.js';
@@ -146,11 +151,13 @@ export class PlatformAuthController {
   }
 
   @Get('me')
+  @AllowsPendingPassword()
   me(@Req() req: PlatformRequest) {
     return this.auth.me(req.admin!.id);
   }
 
   @Post('password')
+  @AllowsPendingPassword()
   @HttpCode(204)
   @ApiOperation({ summary: 'Troca a senha do administrador (as outras sessões são encerradas)' })
   @ApiZodBody(platformChangePasswordSchema)

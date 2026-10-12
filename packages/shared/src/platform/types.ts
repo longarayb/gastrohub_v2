@@ -16,6 +16,8 @@ export interface PlatformAdminDto {
   email: string;
   role: 'SUPERADMIN';
   totpEnabled: boolean;
+  /** Temporary password: the admin changes it before anything else. */
+  passwordChangeRequired: boolean;
   recoveryCodesLeft: number;
   lastLoginAt: string | null;
 }

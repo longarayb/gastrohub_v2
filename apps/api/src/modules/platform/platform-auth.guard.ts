@@ -2,10 +2,15 @@ import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/com
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfig } from '../../core/config/app-config.service.js';
-import { ForbiddenError, UnauthorizedError } from '../../core/errors/domain-error.js';
+import { ErrorCode } from '@app/shared';
+import { DomainError, ForbiddenError, UnauthorizedError } from '../../core/errors/domain-error.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';
 import { extractBearer } from '../auth/jwt-auth.guard.js';
-import { IS_PLATFORM_PUBLIC_KEY, type PlatformRequest } from './platform.keys.js';
+import {
+  ALLOWS_PENDING_PASSWORD_KEY,
+  IS_PLATFORM_PUBLIC_KEY,
+  type PlatformRequest,
+} from './platform.keys.js';
 
 export const PLATFORM_ACCESS_AUDIENCE = 'platform';
 
@@ -65,6 +70,20 @@ export class PlatformAuthGuard implements CanActivate {
       !session.admin.totpEnabledAt
     ) {
       throw new UnauthorizedError();
+    }
+    // Temporary password: nothing but the password change until it is done.
+    if (
+      session.admin.passwordChangeRequired &&
+      !this.reflector.getAllAndOverride<boolean>(ALLOWS_PENDING_PASSWORD_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ])
+    ) {
+      throw new DomainError(
+        'Troque a senha temporária para continuar',
+        ErrorCode.PASSWORD_CHANGE_REQUIRED,
+        403,
+      );
     }
     req.admin = {
       id: session.admin.id,
