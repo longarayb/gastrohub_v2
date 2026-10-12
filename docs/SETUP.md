@@ -239,7 +239,7 @@ Em desenvolvimento (com recarga automática), use `pnpm dev --lan` no lugar do `
 Na primeira vez, libere as portas no **firewall do Windows** (PowerShell **como administrador**, uma vez só):
 
 ```powershell
-New-NetFirewallRule -DisplayName "App dev (rede local)" -Direction Inbound -Protocol TCP -LocalPort 3000,3001,3333 -Action Allow -Profile Private
+New-NetFirewallRule -DisplayName "App dev (rede local)" -Direction Inbound -Protocol TCP -LocalPort 3000,3001,3002,3333 -Action Allow -Profile Private
 ```
 
 A regra vale só para redes **Privadas**: em Configurações › Rede e Internet › Wi-Fi › (sua rede), marque "Rede privada". Nunca use `-Profile Public` (Wi-Fi de café, aeroporto). Para remover depois: `Remove-NetFirewallRule -DisplayName "App dev (rede local)"`.

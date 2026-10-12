@@ -69,6 +69,7 @@ export function lanLinks(ip) {
   return {
     panel: `http://${ip}:3000`,
     menu: `http://${ip}:3001/demo`,
+    admin: `http://${ip}:3002`,
     api: `http://${ip}:3333`,
   };
 }
@@ -88,20 +89,23 @@ export function applyLanEnv() {
     API_PUBLIC_URL: links.api,
     WEB_PUBLIC_URL: links.panel,
     MENU_PUBLIC_URL: `http://${ip}:3001`,
+    ADMIN_PUBLIC_URL: links.admin,
     API_CORS_ORIGINS: [
       'http://localhost:3000',
       'http://localhost:3001',
+      'http://localhost:3002',
       links.panel,
       `http://${ip}:3001`,
+      links.admin,
     ].join(','),
   });
   return ip;
 }
 
-export function logLanLinks(ip, withMenu = true) {
+export function logLanLinks(ip, withMenu = true, withAdmin = false) {
   const links = lanLinks(ip);
   log(
-    `No celular (mesma rede Wi-Fi): painel ${links.panel}${withMenu ? ` · cardápio ${links.menu}` : ''}`,
+    `No celular (mesma rede Wi-Fi): painel ${links.panel}${withMenu ? ` · cardápio ${links.menu}` : ''}${withAdmin ? ` · admin da plataforma ${links.admin}` : ''}`,
   );
   log('Se não abrir no celular, veja "Testar no celular" no docs/SETUP.md (firewall do Windows).');
 }

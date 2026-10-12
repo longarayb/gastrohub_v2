@@ -12,12 +12,13 @@ log(`IP desta máquina na rede local: ${ip}`);
 console.log(`
   Cardápio digital: ${links.menu}
   Painel:           ${links.panel}
+  Admin plataforma: ${links.admin}   (só com --admin)
   API:              ${links.api}/api/health
 
   No celular, use a mesma rede Wi-Fi. Os servidores precisam estar no ar com:
-    pnpm start:lite --menu --lan   (ou, em desenvolvimento: pnpm dev --lan)
+    pnpm start:lite --menu --admin --lan   (ou, em desenvolvimento: pnpm dev --lan)
   O pnpm dev comum não serve: ele compila com "localhost" como endereço da API.
   Se não abrir, libere as portas no firewall do Windows (uma vez, PowerShell como administrador):
-    New-NetFirewallRule -DisplayName "App dev (rede local)" -Direction Inbound -Protocol TCP -LocalPort 3000,3001,3333 -Action Allow -Profile Private
+    New-NetFirewallRule -DisplayName "App dev (rede local)" -Direction Inbound -Protocol TCP -LocalPort 3000,3001,3002,3333 -Action Allow -Profile Private
   e confira se a rede Wi-Fi está como "Privada" nas configurações do Windows.
 `);
