@@ -1,6 +1,6 @@
 // Automatic accessibility check (axe-core, WCAG 2.1 A and AA) of the main screens in both
 // themes, on the desktop and on the phone (feat/redesign, phase D). Against the production
-// build (pnpm start:lite --menu) and a fresh seed.
+// build (pnpm start:lite --menu --admin) and a fresh seed.
 //
 //   node a11y.mjs                 every screen
 //   ONLY=login,caixa node a11y.mjs
@@ -12,7 +12,11 @@ import { BROWSER } from './browser.mjs';
 
 const WEB = 'http://localhost:3000';
 const MENU = 'http://localhost:3001';
+const ADMIN = 'http://localhost:3002';
 const PASSWORD = 'Demo1234';
+const PLATFORM = 'platform';
+// Seed recovery codes (each one works once; a fresh seed restores them).
+let recoveryCode = 0;
 const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null;
 const BLOCKING = new Set(['serious', 'critical']);
 
@@ -56,6 +60,36 @@ const SCREENS = [
   { name: 'config-empresa', url: `${WEB}/configuracoes/empresa`, user: 'dono' },
   { name: 'config-usuarios', url: `${WEB}/configuracoes/usuarios`, user: 'dono' },
   { name: 'cardapio-digital', url: `${MENU}/demo`, user: null, mobile: true, phoneOnly: true },
+  // Platform notices in the restaurant panel (feat/platform-admin): trial, overdue, read-only.
+  { name: 'painel-teste', url: `${WEB}/painel`, user: 'dono.teste@exemplo.local' },
+  {
+    name: 'painel-atraso',
+    url: `${WEB}/painel`,
+    user: 'dono.atrasado@exemplo.local',
+    mobile: true,
+  },
+  { name: 'painel-somente-leitura', url: `${WEB}/painel`, user: 'dono.suspenso@exemplo.local' },
+  // Platform admin app (seed admin; each context signs in with one recovery code).
+  { name: 'admin-login', url: `${ADMIN}/login`, user: null, mobile: true },
+  { name: 'admin-visao-geral', url: `${ADMIN}/`, user: PLATFORM, mobile: true },
+  { name: 'admin-clientes', url: `${ADMIN}/clientes`, user: PLATFORM, mobile: true },
+  {
+    name: 'admin-cliente',
+    url: `${ADMIN}/clientes`,
+    user: PLATFORM,
+    prepare: async (page) => {
+      await page.getByRole('link', { name: 'Lanchonete do Zé', exact: true }).click();
+      await page.getByRole('heading', { name: 'Lanchonete do Zé', exact: true }).waitFor();
+      await page.waitForLoadState('networkidle');
+    },
+  },
+  { name: 'admin-clientes-novo', url: `${ADMIN}/clientes/novo`, user: PLATFORM },
+  { name: 'admin-planos', url: `${ADMIN}/planos`, user: PLATFORM },
+  { name: 'admin-cobrancas', url: `${ADMIN}/cobrancas`, user: PLATFORM, mobile: true },
+  { name: 'admin-suporte', url: `${ADMIN}/suporte`, user: PLATFORM },
+  { name: 'admin-auditoria', url: `${ADMIN}/auditoria`, user: PLATFORM },
+  { name: 'admin-configuracoes', url: `${ADMIN}/configuracoes`, user: PLATFORM },
+  { name: 'admin-conta', url: `${ADMIN}/conta`, user: PLATFORM },
 ].filter((s) => !ONLY || ONLY.has(s.name));
 
 const THEMES = ['dark', 'light'];
@@ -97,9 +131,21 @@ for (const [device, options] of DEVICES) {
         } catch {}
       }, theme);
       const page = await context.newPage();
-      if (user) {
+      if (user === PLATFORM) {
+        await page.goto(`${ADMIN}/login`);
+        await page.getByLabel('E-mail').fill('admin@plataforma.local');
+        await page.getByLabel('Senha').fill('Plataforma123');
+        await page.getByRole('button', { name: 'Continuar' }).click();
+        await page.getByRole('button', { name: 'Usar um código de recuperação' }).click();
+        recoveryCode += 1;
+        await page
+          .getByLabel('Código de recuperação')
+          .fill(`RECUP-${String(recoveryCode).padStart(5, '0')}`);
+        await page.getByRole('button', { name: 'Entrar' }).click();
+        await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 20_000 });
+      } else if (user) {
         await page.goto(`${WEB}/login`);
-        await page.getByLabel('E-mail').fill(`${user}@demo.local`);
+        await page.getByLabel('E-mail').fill(user.includes('@') ? user : `${user}@demo.local`);
         await page.getByLabel('Senha').fill(PASSWORD);
         await page.getByRole('button', { name: 'Entrar' }).click();
         await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 20_000 });
