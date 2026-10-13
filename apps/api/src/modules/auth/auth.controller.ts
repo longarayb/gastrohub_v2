@@ -178,7 +178,7 @@ export class AuthController {
   private cookieOptions(): CookieOptions {
     return {
       httpOnly: true,
-      secure: this.config.isProduction,
+      secure: this.config.secureCookies,
       sameSite: 'lax',
       path: '/api/auth',
     };

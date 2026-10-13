@@ -12,6 +12,7 @@ import {
   applyLanEnv,
   ensureDocker,
   ensureEnvFile,
+  failIfServerRunning,
   infraUp,
   log,
   logLanLinks,
@@ -28,6 +29,7 @@ const host = lan ? '0.0.0.0' : 'localhost';
 
 ensureEnvFile();
 ensureDocker();
+failIfServerRunning();
 infraUp();
 
 log('Aplicando migrations pendentes...');

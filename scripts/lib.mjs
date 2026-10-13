@@ -109,3 +109,26 @@ export function logLanLinks(ip, withMenu = true, withAdmin = false) {
   );
   log('Se não abrir no celular, veja "Testar no celular" no docs/SETUP.md (firewall do Windows).');
 }
+
+/** Names of the running containers of the Surface home server (compose project "servidor"). */
+export function serverContainers() {
+  const result = spawnSync(
+    'docker',
+    ['ps', '--filter', 'label=com.docker.compose.project=servidor', '--format', '{{.Names}}'],
+    { encoding: 'utf8' },
+  );
+  return result.status === 0 ? result.stdout.split('\n').filter(Boolean) : [];
+}
+
+/**
+ * Development and the home server use the same ports (3000–3002, 3333) and, on the Surface, do
+ * not fit in memory together: development refuses to start while the server is up.
+ */
+export function failIfServerRunning() {
+  if (serverContainers().length) {
+    fail(
+      'O servidor da rede de casa está no ar (pnpm servidor:status): ele usa as mesmas portas e a memória do Surface não comporta os dois.\n' +
+        '  Pare antes com: pnpm servidor:parar',
+    );
+  }
+}

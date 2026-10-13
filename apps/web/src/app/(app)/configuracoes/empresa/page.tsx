@@ -56,12 +56,15 @@ import { type StoreDto, storeKeys, useCurrentStore } from '@/lib/stores';
 
 /**
  * Digital menu address. In production the build has none (NEXT_PUBLIC_MENU_URL empty): the menu
- * lives next to the panel, `painel.<base>` → `cardapio.<base>`.
+ * lives next to the panel, `painel.<base>` → `cardapio.<base>`, or on the home network server
+ * port 3000 → 3001 of the same address.
  */
 function menuBaseUrl(): string {
   const configured = process.env.NEXT_PUBLIC_MENU_URL ?? 'http://localhost:3001';
   if (configured || typeof window === 'undefined') return configured;
-  return window.location.origin.replace('//painel.', '//cardapio.');
+  const { origin, port, protocol, hostname } = window.location;
+  if (port === '3000') return `${protocol}//${hostname}:3001`;
+  return origin.replace('//painel.', '//cardapio.');
 }
 
 function StoreDataForm({ store }: { store: StoreDto }) {

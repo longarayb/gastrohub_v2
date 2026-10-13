@@ -4,6 +4,7 @@ import {
   applyLanEnv,
   ensureDocker,
   ensureEnvFile,
+  failIfServerRunning,
   infraUp,
   log,
   logLanLinks,
@@ -15,6 +16,7 @@ const ip = process.argv.includes('--lan') ? applyLanEnv() : null;
 
 ensureEnvFile();
 ensureDocker();
+failIfServerRunning();
 infraUp();
 
 log('Aplicando migrations pendentes...');

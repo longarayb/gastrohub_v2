@@ -1,0 +1,77 @@
+# Home network server on the Surface (docs/SETUP.md, "Servidor temporário no Surface"). Used ON TOP
+# of deploy/compose.prod.yml by scripts/servidor.mjs (`pnpm servidor:*`), project "servidor":
+#
+#   - Postgres and Mailpit in containers of THIS project (own volumes): development (project "app")
+#     and its seed and e2e never reach them; the database port is not published at all.
+#   - Caddy serves plain http on the ports of the local network (3000 panel, 3001 menu, 3002
+#     admin, 3333 API), each app calling /api on its own address as in production.
+#   - Images built locally from the server folder (local/app-*:<commit>), never pulled.
+services:
+  migrate:
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    environment:
+      LAN_SERVER: 'true'
+      SMTP_HOST: mailpit
+      SMTP_PORT: '1025'
+      SMTP_TLS: none
+      SMTP_USER: ''
+      SMTP_PASSWORD: ''
+    volumes: !override
+      - ${SERVER_DATA}/uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  menu:
+    environment:
+      MENU_PUBLIC_URL: ${MENU_PUBLIC_URL}
+
+  caddy:
+    ports: !override
+      - '3000:3000'
+      - '3001:3001'
+      - '3002:3002'
+      - '3333:3333'
+    volumes: !override
+      - ./Caddyfile.home:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  # Logs through `pnpm servidor:logs`.
+  dozzle:
+    profiles: ['off']
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    networks: [app_net]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      TZ: UTC
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d app_db || pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+
+  # E-mails of the server (invitations, password): http://localhost:8026 on the Surface only.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    networks: [app_net]
+    ports:
+      - '127.0.0.1:8026:8025'
+
+volumes:
+  postgres-data:

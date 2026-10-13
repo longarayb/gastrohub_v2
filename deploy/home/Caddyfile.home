@@ -1,0 +1,55 @@
+# Home network server (Surface): plain http on the local network ports, one per app. Each app
+# calls /api and /socket.io on its own address, as in production (deploy/Caddyfile). For https
+# (the courier's GPS on a phone), `pnpm servidor:tunel` opens a temporary Cloudflare tunnel.
+
+{
+	auto_https off
+}
+
+(common) {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
+
+(to_api) {
+	handle /api/* {
+		reverse_proxy api:3333
+	}
+	handle /socket.io/* {
+		reverse_proxy api:3333
+	}
+}
+
+:3000 {
+	import common
+	import to_api
+	handle {
+		reverse_proxy web:3000
+	}
+}
+
+:3001 {
+	import common
+	import to_api
+	handle {
+		reverse_proxy menu:3000
+	}
+}
+
+:3002 {
+	import common
+	import to_api
+	handle {
+		reverse_proxy admin:3000
+	}
+}
+
+# Swagger (/docs), uploaded images (/uploads) and the print agent.
+:3333 {
+	import common
+	reverse_proxy api:3333
+}
