@@ -1,5 +1,8 @@
+import { createHash, randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { BRAND } from '@app/shared';
-import { validateEnv } from './env.js';
+import { PRODUCTION_SECRETS, productionProblems, validateEnv } from './env.js';
 
 const base = {
   DATABASE_URL: 'postgresql://x',
@@ -32,5 +35,58 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...base, JWT_ACCESS_SECRET: 'curto' })).toThrow(
       /Variáveis de ambiente inválidas/,
     );
+  });
+});
+
+describe('production settings', () => {
+  const secret = (seed: string) => createHash('sha256').update(seed).digest('base64url');
+  const production = {
+    NODE_ENV: 'production',
+    DATABASE_URL: 'postgresql://app:s3nh4-gerada@172.30.0.1:5432/app_db',
+    JWT_ACCESS_SECRET: secret('a'),
+    JWT_REFRESH_SECRET: secret('b'),
+    PLATFORM_JWT_SECRET: secret('c'),
+    PLATFORM_SECRETS_KEY: randomBytes(32).toString('base64url'),
+    MENU_REVALIDATE_SECRET: secret('d'),
+    API_PUBLIC_URL: 'https://api.203-0-113-10.sslip.io',
+    WEB_PUBLIC_URL: 'https://painel.203-0-113-10.sslip.io',
+    MENU_PUBLIC_URL: 'https://cardapio.203-0-113-10.sslip.io',
+    ADMIN_PUBLIC_URL: 'https://admin.203-0-113-10.sslip.io',
+    SMTP_TLS: 'starttls',
+  };
+
+  it('accepts generated secrets and public addresses', () => {
+    expect(productionProblems(validateEnv(production))).toEqual([]);
+  });
+
+  it('refuses every development secret of .env.example', () => {
+    const example = readFileSync(
+      path.join(import.meta.dirname, '../../../../../.env.example'),
+      'utf8',
+    );
+    for (const key of PRODUCTION_SECRETS) {
+      const value = new RegExp(`^${key}=(.*)$`, 'm').exec(example)?.[1];
+      expect(value, key).toBeTruthy();
+      expect(() => validateEnv({ ...production, [key]: value }), key).toThrow(
+        new RegExp(`Configuração de produção recusada[\\s\\S]*${key}`),
+      );
+    }
+  });
+
+  it('refuses the development database password, local addresses and e-mail without TLS', () => {
+    expect(() =>
+      validateEnv({ ...production, DATABASE_URL: 'postgresql://app:app_dev@localhost/app_db' }),
+    ).toThrow(/DATABASE_URL/);
+    expect(() => validateEnv({ ...production, WEB_PUBLIC_URL: 'http://localhost:3000' })).toThrow(
+      /WEB_PUBLIC_URL: endereço local/,
+    );
+    expect(() => validateEnv({ ...production, SMTP_TLS: 'none' })).toThrow(/SMTP_TLS/);
+    expect(() => validateEnv({ ...production, MENU_REVALIDATE_SECRET: '' })).toThrow(
+      /MENU_REVALIDATE_SECRET: vazio/,
+    );
+  });
+
+  it('does not apply outside production (development and the tests)', () => {
+    expect(productionProblems(validateEnv({ ...base, SMTP_TLS: 'none' }))).toEqual([]);
   });
 });

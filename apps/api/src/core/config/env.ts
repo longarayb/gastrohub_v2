@@ -54,6 +54,11 @@ export const envSchema = z.object({
 
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().int().default(1025),
+  /** SMTP login (empty = none, as with Mailpit in development). */
+  SMTP_USER: z.string().default(''),
+  SMTP_PASSWORD: z.string().default(''),
+  /** none (Mailpit), starttls (port 587, e.g. Brevo) or tls (port 465). */
+  SMTP_TLS: z.enum(['none', 'starttls', 'tls']).default('none'),
   MAIL_FROM_ADDRESS: z.email().default('nao-responda@app.local'),
 
   WEB_PUBLIC_URL: z.url().default('http://localhost:3000'),
@@ -73,11 +78,62 @@ export const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+/** Secrets that must be generated for production (`deploy/gen-secrets.sh`). */
+export const PRODUCTION_SECRETS = [
+  'JWT_ACCESS_SECRET',
+  'JWT_REFRESH_SECRET',
+  'PLATFORM_JWT_SECRET',
+  'PLATFORM_SECRETS_KEY',
+  'MENU_REVALIDATE_SECRET',
+] as const;
+
+// The development values in .env.example all carry one of these marks (in plain text or, for the
+// 2FA key, in base64url). env.test.ts checks every one of them is refused.
+const DEV_MARKS = /dev-only|change-me|troque|desenvolvimento|app_dev/i;
+const looksLikeDevSecret = (value: string) =>
+  DEV_MARKS.test(value) || DEV_MARKS.test(Buffer.from(value, 'base64url').toString('latin1'));
+const isLocal = (url: string) => /^https?:\/\/(localhost|127\.|0\.0\.0\.0)/i.test(url);
+
+/**
+ * Production refuses to start with development settings: a known secret would let anyone sign
+ * tokens; a localhost address or e-mail without TLS means the .env was not filled in.
+ */
+export function productionProblems(env: Env): string[] {
+  if (env.NODE_ENV !== 'production') return [];
+  const problems: string[] = [];
+  for (const key of PRODUCTION_SECRETS) {
+    const value = env[key];
+    if (!value) problems.push(`${key}: vazio (gere com deploy/gen-secrets.sh)`);
+    else if (looksLikeDevSecret(value) || value.length < 32)
+      problems.push(
+        `${key}: valor de desenvolvimento ou curto demais (gere com deploy/gen-secrets.sh)`,
+      );
+  }
+  if (DEV_MARKS.test(env.DATABASE_URL)) problems.push('DATABASE_URL: senha de desenvolvimento');
+  for (const key of [
+    'API_PUBLIC_URL',
+    'WEB_PUBLIC_URL',
+    'MENU_PUBLIC_URL',
+    'ADMIN_PUBLIC_URL',
+  ] as const) {
+    if (isLocal(env[key])) problems.push(`${key}: endereço local (${env[key]})`);
+  }
+  if (env.SMTP_TLS === 'none')
+    problems.push('SMTP_TLS: e-mail sem criptografia (use starttls ou tls)');
+  return problems;
+}
+
 export function validateEnv(raw: Record<string, unknown>): Env {
   const result = envSchema.safeParse(raw);
   if (!result.success) {
     const issues = result.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`);
     throw new Error(`Variáveis de ambiente inválidas:\n${issues.join('\n')}`);
+  }
+  const problems = productionProblems(result.data);
+  if (problems.length) {
+    throw new Error(
+      `Configuração de produção recusada:\n${problems.map((p) => `  - ${p}`).join('\n')}`,
+    );
   }
   return result.data;
 }
