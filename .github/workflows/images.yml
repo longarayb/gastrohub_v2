@@ -10,9 +10,7 @@ name: images
 
 on:
   push:
-    # chore/hosting: the rehearsal on the new VM needs images before the stage is merged.
-    # Remove it when chore/hosting is merged into main.
-    branches: [main, chore/hosting]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

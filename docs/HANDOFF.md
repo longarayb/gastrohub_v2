@@ -2,11 +2,11 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções e regras de trabalho em duas máquinas), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-13**, no **Surface** (WSL): ambiente atualizado (`.env` com as variáveis da plataforma, `pnpm install`, migrations, seed), **proposta da hospedagem aprovada** (merge da `docs/hosting-proposal-v2`) e **código da hospedagem pronto e testado localmente na `chore/hosting`** (D045 modo demonstração, D046 arquitetura; ensaio local de produção 21/21). **Próximo passo: o Braian contrata a VM e cria as contas** (docs/DEPLOY.md, Parte 1). Antes, em **2026-10-12**, no **desktop de casa**: **`feat/platform-admin` concluída e integrada na `main`** (D041–D044), depois a `fix/lan-admin` (painel da plataforma no celular; senha temporária do admin com troca obrigatória e validade de 24 h) e a **proposta da hospedagem salva em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), aguardando aprovação**. A próxima sessão é no **Surface**. Em 2026-10-11, decisões da hospedagem e plano dos marketplaces registrados. Em 2026-10-10, no desktop de casa (`D:\GastroHub_v2`, Windows): ambiente atualizado e **teste de reinicialização do agente de impressão concluído**. Antes disso (2026-10-09, Surface, no WSL), a `feat/redesign` foi aprovada, validada e integrada na `main`.
+> Atualizado em **2026-10-13**, no **Surface** (WSL): ambiente atualizado (`.env` com as variáveis da plataforma, `pnpm install`, migrations, seed), **proposta da hospedagem aprovada** (merge da `docs/hosting-proposal-v2`) e **código da hospedagem pronto, testado localmente e integrado na `main`** (D045 modo demonstração, D046 arquitetura; ensaio local de produção 21/21). **A publicação na Contabo (Parte 1 do DEPLOY.md: VM e contas) está pendente por decisão do Braian.** Nova ordem: servidor temporário no Surface → `feat/dispatch` → laboratório de receitas → Contabo → marketplaces. Antes, em **2026-10-12**, no **desktop de casa**: **`feat/platform-admin` concluída e integrada na `main`** (D041–D044), depois a `fix/lan-admin` (painel da plataforma no celular; senha temporária do admin com troca obrigatória e validade de 24 h) e a **proposta da hospedagem salva em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), aguardando aprovação**. A próxima sessão é no **Surface**. Em 2026-10-11, decisões da hospedagem e plano dos marketplaces registrados. Em 2026-10-10, no desktop de casa (`D:\GastroHub_v2`, Windows): ambiente atualizado e **teste de reinicialização do agente de impressão concluído**. Antes disso (2026-10-09, Surface, no WSL), a `feat/redesign` foi aprovada, validada e integrada na `main`.
 
 ## Estado atual
 
-- `main` tem tudo até o **painel da plataforma** (merge da `feat/platform-admin`, D041–D044), o redesign (D039–D040) e a proposta da hospedagem aprovada. Todas as branches estão no GitHub. **Frente em andamento: `chore/hosting`** (código pronto; falta o ensaio na VM). Ela **alterou o schema** (migration `demo_mode`: `Store.demoMode`); até o merge, só ela altera o schema do Prisma. No desktop, ao trocar para ela: `pnpm --filter @app/api db:deploy`.
+- `main` tem tudo até o **código da hospedagem** (merge da `chore/hosting`, D045–D046), o painel da plataforma (D041–D044) e o redesign (D039–D040). Todas as branches estão no GitHub. **Frente em andamento: `chore/home-server`** (servidor temporário no Surface; não altera o schema do Prisma). A `main` ganhou a migration `demo_mode` (`Store.demoMode`): no desktop, `pnpm --filter @app/api db:deploy`.
 - **Surface atualizado em 2026-10-13** (passos abaixo feitos; cópia do `.env` anterior em `.env.bak-2026-10-13`, fora do git). Referência dos passos:
   1. `git fetch`, `git checkout main`, `git pull`.
   2. `pnpm install` (app novo `apps/admin`) e, em `tools/ui-walkthrough`, `npm install`.
@@ -108,11 +108,19 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### Agora: hospedagem (`chore/hosting`) — código pronto; o Braian contrata a VM e cria as contas
+### Nova ordem (2026-10-13)
 
-Aprovada em 2026-10-13 ([PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), decisões no fim; D045 e D046). Passo a passo do servidor e roteiro de operação em [DEPLOY.md](DEPLOY.md).
+1. **Agora: servidor temporário no Surface** (`chore/home-server`): o Surface serve o sistema na rede de casa (detalhes abaixo).
+2. **`feat/dispatch`**: tela de despacho com mapa e rotas, acompanhamento em tempo real e app do entregador com localização. Apresentar a proposta e **esperar a aprovação** antes de codar.
+3. **Laboratório de receitas.**
+4. **Publicação na Contabo**, quando o Braian decidir.
+5. **Integrações com marketplaces.**
 
-**Feito na `chore/hosting` (testado localmente):**
+### Publicação na Contabo — pendente por decisão do Braian
+
+O código está na `main` (merge da `chore/hosting` em 2026-10-13; D045 e D046; [DEPLOY.md](DEPLOY.md)). **A Parte 1 do DEPLOY.md (contratar a VM e criar as contas: Contabo, Backblaze B2, Brevo, Healthchecks.io, pacotes públicos no GHCR) está pendente por decisão do Braian**: ele avisa quando quiser publicar. Depois disso, a Parte 2 (ensaio na VM com o Claude por SSH, aprovação a cada passo e snapshot antes de cada etapa).
+
+**Feito na `chore/hosting` (testado localmente, na `main`):**
 
 - Apps chamam a API pelo **próprio endereço** (`NEXT_PUBLIC_*` vazios no build); o cardápio lê o endereço ao rodar.
 - **SMTP** com usuário, senha e TLS; a API **recusa iniciar em produção** com segredo de desenvolvimento, endereço local ou e-mail sem TLS.
@@ -122,15 +130,10 @@ Aprovada em 2026-10-13 ([PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), decis�
 - `deploy/`: `compose.prod.yml`, `Caddyfile`, `server-setup.sh`, `gen-secrets.sh`, `db-setup.sh`, `deploy.sh`, `rollback.sh`, `healthcheck.sh`, `backup.sh`, `restore.sh`, `monitor.sh`, timers do systemd e `local-check.sh` (ensaio local de produção: 21/21; `prod-smoke.mjs` no navegador: 5/5). O ensaio achou e corrigiu: a imagem da API nunca montava com o Prisma 7 e o `.env` era lido como código de shell.
 - Validação (2026-10-13, Surface/WSL): `pnpm check` 27/27, `format:check`, e2e 131/131 (inclui `demo-mode.e2e` e o link do convite), os 11 roteiros visuais com seed limpo antes de cada um (auth 20, menu 15, orders 18, keyboard 7, pos 12, kds 8, delivery 16, digital-menu 11, printing 13, dashboard 12, platform-admin 16) e a acessibilidade em 86 telas, sem violação séria ou crítica.
 
-**Próximos passos (nesta ordem):**
-
-1. **Braian:** contas e VM (DEPLOY.md, Parte 1): chave SSH e chave `age` no computador; Contabo Cloud VPS 20 US East com Ubuntu 24.04 (ver se o pedido permite partição para `/mnt/dados`; anotar quantos snapshots o plano inclui); Backblaze B2 (bucket, regras por prefixo, chave sem apagar); Brevo; Healthchecks.io (dois checks); depois da primeira execução do workflow `images`, tornar os 4 pacotes do GHCR públicos.
-2. **Ensaio na VM** pelo DEPLOY.md, Parte 2, com o Claude por SSH e aprovação a cada passo, snapshot antes de cada etapa: `server-setup.sh`, fechar o SSH, segredos, banco (porta 5432 fechada de fora), rclone, primeiro deploy, `demo-reset` e primeiro admin, **teste de restauração**, timers, **reinício da VM**.
-3. Corrigir o DEPLOY.md com o que o ensaio mostrar; validação pelo celular; merge da `chore/hosting` (tirando a branch do workflow).
-
 **A conferir no ensaio na VM** (não dá para testar no Surface): o Postgres escutando em `172.30.0.1` depois do reinício (ordem do boot); a regra do ufw para `br-app`; o `unattended-upgrades` com a origem do PGDG; os certificados do sslip.io; o envio pela Brevo; o `rclone` com o B2 e a retenção por prefixo.
 
-### Depois da hospedagem: integrações com marketplaces
+
+### Depois da publicação na Contabo: integrações com marketplaces
 
 Primeiro o **iFood** (API própria), depois um **adaptador Open Delivery** (padrão da Abrasel, adotado pela 99Food e pela Keeta); **Aiqfome a verificar**. O desenvolvimento pode ser local, por **polling**, contra as lojas de teste; a **homologação e a produção exigem o sistema hospedado** e o **cadastro como parceiro** em cada plataforma (provavelmente com CNPJ). Detalhes no ROADMAP, "Integrações com marketplaces".
 
@@ -152,7 +155,7 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-- Contratar a VM e criar as contas (DEPLOY.md, Parte 1) para o ensaio no servidor.
+- Quando publicar na Contabo (a Parte 1 do DEPLOY.md está pendente por decisão do Braian).
 - Textos dos termos de uso e da privacidade (`packages/shared/src/platform/legal.ts`): provisórios, **revisar com apoio jurídico** antes de clientes reais (mudar o texto exige mudar a versão, e os donos aceitam de novo).
 
 ## Lembretes de ambiente

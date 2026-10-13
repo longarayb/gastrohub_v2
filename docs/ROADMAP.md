@@ -18,8 +18,12 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Dashboard e relatórios (dashboard do dia em tempo real com comparação e "Atenção agora"; vendas com curva ABC e mapa de calor; controle de perdas; tempos do KDS; rede para o dono; CSV e impressão; conciliação exata com o caixa; 90 dias de histórico no seed) | `feat/dashboard` | ✅ |
 | Redesign do painel (tema do [DESIGN.md](DESIGN.md) em todas as telas, escuro como padrão e claro equivalente; componentes base; KDS com a mesma paleta) | `feat/redesign` | ✅ concluído (2026-10-09; D039, D040) |
 | Painel admin da plataforma (app `admin` com login e 2FA próprios, clientes, planos, assinaturas, mensalidades manuais, inadimplência com somente leitura fora do expediente, acesso de suporte, aceite dos termos) | `feat/platform-admin` | ✅ concluído (2026-10-12; D041–D044) |
-| Hospedagem (servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações; decisões já tomadas em "Hospedagem: decisões") | `chore/hosting` | 🚧 código pronto e testado localmente (D045, D046; [DEPLOY.md](DEPLOY.md)); falta contratar a VM e o ensaio no servidor |
-| Integração iFood (API própria) | `feat/ifood` | ⏳ depois da hospedagem (ver "Integrações com marketplaces") |
+| Hospedagem: código (imagens, scripts do servidor, backups, monitoramento, modo demonstração; [DEPLOY.md](DEPLOY.md)) | `chore/hosting` | ✅ concluído (2026-10-13; D045, D046) |
+| Servidor temporário no Surface (rede de casa: pasta própria só com a `main`, banco e Redis próprios, `servidor:*`) | `chore/home-server` | 🚧 em andamento |
+| Despacho com mapa e rotas (tela de despacho, rota sugerida, acompanhamento em tempo real, app do entregador com localização) | `feat/dispatch` | ⏳ proposta a apresentar |
+| Laboratório de receitas | — | ⏳ |
+| Publicação na Contabo (DEPLOY.md, Partes 1 e 2) | — | ⏳ quando o Braian decidir (contas e VM pendentes por decisão dele) |
+| Integração iFood (API própria) | `feat/ifood` | ⏳ depois da publicação na Contabo (ver "Integrações com marketplaces") |
 | Adaptador Open Delivery (padrão da Abrasel; 99Food e Keeta) | `feat/open-delivery` | ⏳ depois do iFood |
 | Aiqfome | — | ⏳ a verificar (forma de integração ainda não levantada) |
 | QR Code na mesa (pedido pelo celular no salão, rodadas na conta da mesa) | `feat/table-qr` | ⏳ |
@@ -28,6 +32,8 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 Ordem combinada (2026-10-07): fechar o escopo do MVP primeiro — impressão, depois dashboard e só então o QR Code na mesa. A NFC-e (cupom fiscal) fica para a etapa fiscal (Fase 2, `FiscalProvider`).
 
 Atualização (2026-10-08): depois do dashboard, o **redesign** do painel vem agora; a **hospedagem** fica para a semana que vem, logo depois do redesign.
+
+Atualização (2026-10-13): **nova ordem** — servidor temporário no Surface (rede de casa) → `feat/dispatch` → laboratório de receitas → publicação na Contabo (quando o Braian decidir; a Parte 1 do DEPLOY.md, contas e VM, está pendente por decisão dele) → integrações com marketplaces.
 
 Atualização (2026-10-11): o **painel admin da plataforma** (`feat/platform-admin`) vem antes da hospedagem; depois da hospedagem, as **integrações com marketplaces** (iFood, depois Open Delivery). A posição do QR Code na mesa em relação aos marketplaces ainda será combinada.
 
