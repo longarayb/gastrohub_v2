@@ -1,5 +1,5 @@
 import { normalizeSearch } from '@app/shared';
-import type { PrismaClient } from '../../src/generated/prisma/client.js';
+import type { PrismaClient } from '../generated/prisma/client.js';
 
 /**
  * Realistic demo menu: burgers with inherited complements, a combo, sized portions,

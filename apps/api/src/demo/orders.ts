@@ -25,7 +25,7 @@ import {
   routeItem,
   splitEvenly,
 } from '@app/shared';
-import type { PrismaClient } from '../../src/generated/prisma/client.js';
+import type { PrismaClient } from '../generated/prisma/client.js';
 
 const CODE_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const publicCode = () =>
