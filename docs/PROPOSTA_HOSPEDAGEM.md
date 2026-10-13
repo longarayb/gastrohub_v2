@@ -1,45 +1,103 @@
 # Proposta: hospedagem (`chore/hosting`)
 
-> **Status: aguardando aprovação.** Apresentada em 2026-10-12 (desktop de casa). Nada desta proposta foi implementado. Antes de aprovar, ela precisa ser **revista com os pontos da seção "Pontos a revisar na retomada"** (no fim deste arquivo), principalmente o Postgres instalado direto na VM, fora do Docker. Onde a proposta abaixo conflita com esses pontos, valem os pontos.
+> **Status: revisada em 2026-10-13 (Surface), aguardando aprovação.** Nada foi implementado. A primeira versão (2026-10-12, desktop de casa) foi revista com os oito pontos pedidos pelo Braian; o principal é o **Postgres instalado direto na VM, fora do Docker, com os dados em `/mnt/dados`**. A seção "O que mudou nesta revisão" resume as diferenças.
 
-Decisões já tomadas (2026-10-11, ROADMAP "Hospedagem: decisões"): VM na **Contabo**, região **EUA (East)**, cerca de **US$ 20/mês**, configurada do zero com **Docker Compose**; primeiro uso como **demonstração, só com dados fictícios**; **domínio provisório ou sslip.io**, trocável depois; **backup diário do Postgres fora da VM** (Backblaze B2 ou Cloudflare R2).
+Decisões já tomadas (2026-10-11, ROADMAP "Hospedagem: decisões"): VM na **Contabo**, região **EUA (East)**, cerca de **US$ 20/mês**, configurada do zero com **Docker Compose**; primeiro uso como **demonstração, só com dados fictícios**; **domínio provisório ou sslip.io**, trocável depois; **backup diário do Postgres fora da VM**.
+
+## O que mudou nesta revisão
+
+1. **Postgres 17 do repositório oficial (PGDG) instalado na VM**, cluster `17/main` com os dados em `/mnt/dados/postgresql/17/main`; os containers chegam a ele por uma rede do Docker com sub-rede fixa; a porta 5432 só escuta em `localhost` e no gateway dessa rede (seção 3).
+2. **`/mnt/dados` na Contabo é pasta (ou partição) no disco do plano:** o Cloud VPS não tem disco avulso para conectar; o armazenamento é o do plano, que pode ser aumentado no painel ([ajuda da Contabo](https://help.contabo.com/en/support/solutions/articles/103000404871-can-i-add-more-nvme-storage-to-my-vps-or-vds-dedicated-server-)). Conferir no primeiro acesso (seção 3.2).
+3. **Dois usuários no banco:** `app_owner` (dono das tabelas, só nas migrations) e `app` (só dados, usado pela API). Conferido no código: a API em execução não cria nem altera tabelas.
+4. **Imagens no GHCR públicas** (recomendado), com o caminho para privadas descrito (seção 6).
+5. **Modo demonstração** da unidade Demo, com bloqueio no servidor e faixa no painel (seção 10).
+6. **Botão "copiar link do convite"** (aprovado) entra na lista de código (seção 8).
+7. **Snapshots da Contabo** no DEPLOY.md, como complemento do backup, nunca substituto (seção 7.4).
+8. **Servidor em UTC, agendamentos no horário de Brasília** por timers do systemd com o fuso explícito (seção 9).
+9. **Senha do Dozzle** gerada pelo `gen-secrets.sh` (seção 5).
+10. **Execução no servidor pelo Claude por SSH, com aprovação a cada passo;** o DEPLOY.md funciona sozinho (seção 13).
+11. **Ensaio na própria VM** em vez de "produção simulada no desktop": com o Postgres no host, o desktop Windows não reproduz a rede do servidor; a VM nova, só com dados fictícios, é o ensaio (com snapshot antes de cada etapa).
 
 ## 1. O que o Braian faz e o que fica automatizado
 
 **Manual (Braian, uma vez):**
 
-1. **VM:** Contabo **Cloud VPS 20** (12 GB de RAM, NVMe), região US East, **Ubuntu 24.04 LTS**. A VPS 10 (8 GB) também atenderia, porque as imagens não são montadas no servidor (item 5); a VPS 20 dá folga dentro do orçamento.
-2. **Chave SSH:** gerada no computador (`ssh-keygen -t ed25519`); a parte pública vai no pedido da VM. A chave privada nunca sai do computador.
-3. **Backblaze B2:** conta, bucket privado `app-backups` e uma chave de aplicação limitada ao bucket, **sem permissão de apagar** (a retenção fica com as regras do bucket).
-4. **Brevo** (plano gratuito): conta e chave SMTP.
-5. **Healthchecks.io** (plano gratuito): conta; os endereços de verificação são criados no passo a passo.
-6. **Gerenciador de senhas** (Bitwarden gratuito ou o que já usa): guarda o `.env` de produção e a chave privada dos backups.
-7. Executar o roteiro no servidor e conferir cada etapa (ou aprovar cada passo, se a execução for feita pelo Claude por SSH; ver os pontos a revisar).
+1. **VM:** Contabo **Cloud VPS 20** (12 GB de RAM, NVMe), região US East, **Ubuntu 24.04 LTS**. No pedido, conferir se há opção de particionamento (para o `/mnt/dados` em partição própria) e quantos snapshots o plano inclui.
+2. **Chave SSH:** `ssh-keygen -t ed25519` no computador de onde o servidor será acessado; a parte pública vai no pedido da VM. A chave privada nunca sai desse computador nem vai para o git.
+3. **Backblaze B2:** bucket privado `app-backups` e chave de aplicação limitada ao bucket, **sem permissão de apagar** (a retenção fica com as regras do bucket).
+4. **Brevo** (gratuito): conta e chave SMTP.
+5. **Healthchecks.io** (gratuito): conta.
+6. **Gerenciador de senhas:** guarda o `.env` de produção, a chave privada dos backups, a senha do Dozzle e os códigos de recuperação do 2FA do primeiro admin.
+7. **Aprovar cada passo** quando o Claude executar no servidor (seção 13).
 
-**Automatizado no repositório (`deploy/`):**
-
-- `server-setup.sh`: prepara o servidor zerado (usuário, SSH, firewall, fail2ban, atualizações automáticas, Docker).
-- `gen-secrets.sh`: gera os segredos de produção.
-- `compose.prod.yml` e `Caddyfile`.
-- `deploy.sh` e `rollback.sh`.
-- `backup.sh` e `restore.sh`.
-- `monitor.sh`.
-- `demo-reset` (comando da API).
-- Workflow do GitHub Actions que monta as imagens.
-- `docs/DEPLOY.md`.
+**Automatizado no repositório (`deploy/`):** `server-setup.sh` (inclui a instalação do Postgres), `gen-secrets.sh`, `compose.prod.yml`, `Caddyfile`, `deploy.sh`, `rollback.sh`, `backup.sh`, `restore.sh`, `monitor.sh`, unidades e timers do systemd, comando `demo-reset` da API, workflow do GitHub Actions e `docs/DEPLOY.md`.
 
 ## 2. Segurança do servidor
 
-- **Usuário:** `deploy` com sudo; root sem login por SSH (`PermitRootLogin no`).
-- **SSH:** só por chave (`PasswordAuthentication no`).
-- **Firewall (ufw):** libera só 22, 80 e 443. Atenção: o Docker passa por cima do ufw nas portas que um container publica. Por isso, em produção, **nenhum container publica porta além do Caddy**; banco e Redis nunca expostos à internet.
-- **fail2ban:** protege o SSH contra tentativas de login.
-- **Atualizações:** `unattended-upgrades` com as de segurança; se uma exigir reinício, ele acontece às **04:30 de Brasília**.
-- **Logs:** rotação nos logs do Docker (`max-size`), para não lotar o disco.
+- Usuário `deploy` com sudo; `PermitRootLogin no`; SSH só por chave (`PasswordAuthentication no`); **fail2ban** no SSH.
+- **ufw:** entrada só 22, 80 e 443 da internet, mais **uma regra interna**: a sub-rede do Docker pode falar com o Postgres no gateway (`ufw allow in on br-app from 172.30.0.0/24 to 172.30.0.1 port 5432 proto tcp`). Sem ela, o ufw bloqueia os containers, porque o tráfego deles para o host passa pela entrada do host.
+- **O Docker passa por cima do ufw nas portas que um container publica:** em produção só o Caddy publica porta (80 e 443). Redis sem porta publicada e com senha; Postgres fora do Docker, sem regra para a internet.
+- **Atualizações automáticas** (`unattended-upgrades`) de segurança do Ubuntu, do Docker e do **PGDG** (seção 3.5); reinício, se exigido, às 04:30 de Brasília.
+- Rotação dos logs do Docker (`max-size`) e do Postgres (`logrotate` do pacote).
 
-## 3. Endereços e HTTPS
+## 3. Postgres na VM (fora do Docker)
 
-O **Caddy** gera e renova o HTTPS sozinho, com um subdomínio por app:
+### 3.1 Instalação
+
+1. Repositório oficial pelo script do próprio pacote: `apt install postgresql-common` e `/usr/share/postgresql-common/pgdg/apt.postgresql.org.sh` (chave assinada do PGDG).
+2. **Antes de instalar o servidor**, `create_main_cluster = false` em `/etc/postgresql-common/createcluster.conf`: o pacote não cria o cluster padrão em `/var/lib/postgresql`.
+3. `apt install postgresql-17` (a mesma versão principal do desenvolvimento, `postgres:17-alpine`).
+4. `/mnt/dados/postgresql` com dono `postgres` e permissão 700; `pg_createcluster 17 main -d /mnt/dados/postgresql/17/main --locale C.UTF-8 --start`. A configuração continua em `/etc/postgresql/17/main` (é ela que vai no backup de configuração e no DEPLOY.md).
+5. `timezone = 'UTC'` e `log_timezone = 'UTC'` (o app já grava instantes em UTC e calcula o dia de negócio em São Paulo).
+
+### 3.2 `/mnt/dados`
+
+- **No primeiro acesso:** `lsblk` e `findmnt /mnt/dados` mostram se é partição própria ou pasta do disco principal.
+- **Pasta (o mais provável na Contabo):** organiza os dados e facilita mover para outro disco depois; não isola. Proteção contra disco cheio: alerta em 80% (seção 11), logs com rotação, backups locais apagados depois do envio.
+- **Partição própria (se o pedido permitir particionar):** montada por UUID no `/etc/fstab`; **sem `nofail`**, para o sistema não seguir sem os dados (melhor parar e avisar do que o Postgres subir numa pasta vazia).
+- **Nos dois casos:** override do systemd em `postgresql@17-main.service` com `RequiresMountsFor=/mnt/dados`, e o cluster só existe dentro de `/mnt/dados/postgresql/17/main` (se a pasta estiver vazia, o Postgres não sobe; não cria um banco novo sozinho).
+- **Snapshots:** com tudo no disco do plano, o snapshot da Contabo inclui o banco (seção 7.4).
+
+### 3.3 Acesso dos containers ao banco
+
+- **Rede do Docker criada uma vez pelo `server-setup.sh`**, fora do Compose, para não sumir num `docker compose down`:
+  `docker network create --subnet 172.30.0.0/24 --gateway 172.30.0.1 -o com.docker.network.bridge.name=br-app app_net`.
+  O `compose.prod.yml` usa essa rede como `external`.
+- **`DATABASE_URL` aponta para `172.30.0.1:5432`**, o gateway dessa rede. O atalho `host.docker.internal:host-gateway` não serve aqui: por padrão ele aponta para a rede padrão do Docker (`172.17.0.1`), não para a `app_net`.
+- `listen_addresses = 'localhost,172.30.0.1'`.
+- `pg_hba.conf` só com `local` (peer, para backup e administração), `127.0.0.1/32`, `::1/128` e `172.30.0.0/24`, todos com `scram-sha-256`. Nada de `0.0.0.0/0`.
+- **Ordem no boot:** o endereço `172.30.0.1` só existe depois que o Docker sobe. Override do Postgres com `After=docker.service` e `Wants=docker.service`; os containers têm `restart: unless-stopped` e tentam de novo até o banco aceitar. **Testado no ensaio com um reinício da VM.** Se mesmo assim falhar, alternativa: `net.ipv4.ip_nonlocal_bind = 1`, que deixa o Postgres escutar no endereço antes de ele existir.
+- **5432 nunca exposta:** `ss -tlnp` mostra só `127.0.0.1`, `::1` e `172.30.0.1`; teste de fora da VM (`nc -vz <IP> 5432` recusado) registrado no DEPLOY.md.
+
+### 3.4 Usuários e conexões
+
+- `app_owner`: dono do banco `app_db` e das tabelas; usado **só** pelo container de migrations.
+- `app`: `SELECT, INSERT, UPDATE, DELETE` nas tabelas e uso das sequências, por `ALTER DEFAULT PRIVILEGES FOR ROLE app_owner` (tabelas novas já nascem com a permissão). Usado pela API. Bônus: sem `UPDATE`/`DELETE` na auditoria da plataforma, que hoje já é protegida por gatilho.
+- Backup e administração pelo usuário `postgres` local (peer, sem senha na rede).
+- **Conexões:** a API abre um único pool do `pg` (até 10 conexões); migrations, backup, teste de restauração e `psql` usam poucas e por pouco tempo. `max_connections = 40`.
+
+### 3.5 Memória, configuração e atualizações
+
+Para a VPS 20 (12 GB), com os containers usando cerca de 2 GB:
+
+| Parâmetro | Valor | Por quê |
+|---|---|---|
+| `shared_buffers` | 2 GB | cerca de 25% da memória destinada ao banco |
+| `effective_cache_size` | 6 GB | o que o cache do sistema costuma ter livre |
+| `work_mem` | 16 MB | relatórios com ordenação; 40 conexões não estouram |
+| `maintenance_work_mem` | 512 MB | `VACUUM`, índices, restore |
+| `random_page_cost` / `effective_io_concurrency` | 1.1 / 200 | disco NVMe |
+| `idle_in_transaction_session_timeout` | 5 min | transação esquecida não segura bloqueios |
+| `log_min_duration_statement` | 500 ms | consultas lentas aparecem no log (meta dos relatórios: 500 ms) |
+
+Se for a VPS 10 (8 GB): `shared_buffers` 1,5 GB e `effective_cache_size` 4 GB.
+
+- **Atualizações menores do 17** (segurança): `unattended-upgrades` com a origem do PGDG (`origin=apt.postgresql.org,codename=${distro_codename}-pgdg`). Elas reiniciam o Postgres (alguns segundos). A rodada das atualizações passa para **04:15 de Brasília** (seção 9), depois do backup e da restauração da demo.
+- **Versão principal (17 → 18): manual e documentada** no DEPLOY.md: snapshot e backup antes, `pg_upgradecluster 17 main`, teste, e só então apagar o cluster antigo. Desenvolvimento (`docker-compose.yml`) muda junto.
+
+## 4. Endereços e HTTPS
+
+O **Caddy** gera e renova o HTTPS sozinho, um subdomínio por app:
 
 | Subdomínio | Para quê |
 |---|---|
@@ -47,179 +105,134 @@ O **Caddy** gera e renova o HTTPS sozinho, com um subdomínio por app:
 | `cardapio.<base>` | Cardápio digital (`/demo`) |
 | `admin.<base>` | Painel da plataforma |
 | `api.<base>` | Swagger e agente de impressão |
+| `logs.<base>` | Dozzle, com senha |
 
-- Hoje `<base>` = `203-0-113-10.sslip.io` (com o IP da VM). Para trocar pelo domínio próprio: mudar `BASE_DOMAIN` no `.env` e apontar o DNS.
-- **Mudança de código necessária:** cada app passa a chamar a API pelo **próprio endereço** (`painel.<base>/api/...`), e o Caddy repassa para a API. Assim as imagens não carregam o domínio (trocar de domínio não exige build novo), os cookies de sessão ficam no mesmo site (sem CORS) e o tempo real (Socket.IO) passa pelo mesmo caminho. Conferido: o código aceita endereço de API vazio, que vira relativo (`API_URL = NEXT_PUBLIC_API_URL ?? ...`).
-- **Risco do sslip.io:** domínio compartilhado pode bater nos limites do Let's Encrypt; o Caddy tenta outra autoridade (ZeroSSL) automaticamente. Se mesmo assim falhar, comprar o domínio antes.
-- **Painel da plataforma:** aberto com 2FA e limite de tentativas; liberar só alguns IPs (`PLATFORM_ALLOWED_IPS`) fica como opção (IP doméstico dinâmico atrapalharia).
+- `<base>` começa como `<ip-com-traços>.sslip.io`; trocar de domínio = mudar `BASE_DOMAIN` no `.env` e apontar o DNS.
+- **Mudança de código:** cada app chama a API pelo próprio endereço (`painel.<base>/api/...`) e o Caddy repassa: as imagens não carregam domínio, os cookies ficam no mesmo site e o Socket.IO passa pelo mesmo caminho.
+- **Risco do sslip.io:** limites do Let's Encrypt para domínio compartilhado; o Caddy tenta ZeroSSL sozinho. Se falhar, comprar o domínio antes.
+- Painel da plataforma aberto com 2FA e limite de tentativas; `PLATFORM_ALLOWED_IPS` fica como opção.
 
-## 4. Segredos
+## 5. Segredos
 
-- O `gen-secrets.sh` roda **no servidor** e gera com `openssl rand`: segredos de JWT e da plataforma, `PLATFORM_SECRETS_KEY`, senha do Postgres e segredo de revalidação do cardápio. Grava em `/opt/app/.env` (permissão 600, dono `deploy`).
-- **Nada vai para o git.** A API **recusa iniciar** em produção com segredo de desenvolvimento ou faltando.
-- **Cópia de segurança:** o `.env` inteiro no gerenciador de senhas, em especial a `PLATFORM_SECRETS_KEY` (consequência da perda em docs/SETUP.md).
-- **Backups cifrados com `age`:** o servidor guarda só a chave pública; a privada fica **só** no gerenciador de senhas. Quem invadir o servidor não lê os backups antigos.
-- **Renovação:** um comando por segredo, no roteiro de operação. Trocar o segredo de JWT só obriga todos a entrar de novo.
+- `gen-secrets.sh` roda **no servidor** e gera com `openssl rand`: segredos de JWT e da plataforma, `PLATFORM_SECRETS_KEY`, senhas do Postgres (`app_owner` e `app`), senha do Redis, segredo de revalidação do cardápio e a **senha do Dozzle**. O `.env` (`/opt/app/.env`, permissão 600, dono `deploy`) guarda só o **hash** da senha do Dozzle (formato do Caddy); a senha em texto aparece **uma vez** na tela, para o gerenciador de senhas.
+- **Nada vai para o git**; a API recusa iniciar em produção com segredo de desenvolvimento ou faltando.
+- **Cópia do `.env` no gerenciador de senhas**, em especial a `PLATFORM_SECRETS_KEY` (perda = todo admin refaz o 2FA; docs/SETUP.md).
+- Backups cifrados com **`age`**: o servidor guarda só a chave pública; a privada fica só no gerenciador de senhas.
+- Renovação: um comando por segredo no roteiro de operação.
 
-## 5. Publicar atualizações
+## 6. Publicar atualizações
 
-| | Montar no servidor | **Montar no GitHub Actions** (recomendado) |
-|---|---|---|
-| Memória | 3 builds do Next disputam memória com o sistema no ar | O servidor só baixa as imagens |
-| Tempo fora do ar | Builds de vários minutos na VM | Troca de containers em segundos |
-| Custo | — | Gratuito (repositório público, imagens no GHCR) |
-| Rollback | Precisa montar a versão antiga de novo | Imagens antigas guardadas por versão |
+- **Imagens montadas no GitHub Actions** a cada push na `main` (api, web, menu, admin), marcadas com o commit, sem segredos; o servidor só baixa (3 builds do Next na VM disputariam memória com o sistema no ar).
+- **GHCR: imagens públicas (recomendado).** O repositório já é público e as imagens não têm segredos; o servidor baixa sem credencial, e não há token para vencer ou vazar. **Se preferir privadas:** um token clássico do GitHub só com `read:packages` (o GHCR não aceita os tokens de permissão fina), validade de 1 ano com lembrete, `docker login ghcr.io` como `deploy` (fica em `~deploy/.docker/config.json`, permissão 600, fora do `.env` do app) e cópia no gerenciador de senhas; a renovação vai no roteiro de operação.
+- **`deploy.sh <versão>`** no servidor: backup rápido → `docker compose pull` → **migrations num container de uso único** (`prisma migrate deploy` como `app_owner`, antes de trocar os apps) → sobe a versão nova → verificação de saúde (`/api/health` e as três páginas por HTTPS) → se falhar, volta sozinho.
+- Hoje a imagem da API roda as migrations ao iniciar (`docker/api.Dockerfile`); isso passa para o passo separado.
+- **Rollback:** `rollback.sh`. Migrations só andam para a frente e precisam continuar compatíveis com a versão anterior do app; quando não der, restaurar o backup do primeiro passo.
+- Deploy manual no servidor por enquanto (nenhuma chave do servidor no GitHub).
 
-- **Cada push na `main`** monta 4 imagens (api, web, menu, admin), marcadas com o commit. Nenhum segredo dentro delas.
-- **`deploy.sh <versão>`**, rodado no servidor:
-  1. backup rápido do banco;
-  2. `docker compose pull`;
-  3. **migrations** num container de uso único (`prisma migrate deploy`), antes de trocar os apps;
-  4. sobe a versão nova;
-  5. **verificação de saúde** (`/api/health` e as três páginas por HTTPS);
-  6. se falhar, volta sozinho para a versão anterior.
-- Deploy manual no servidor por enquanto (sem guardar chave do servidor no GitHub); automatizar depois.
-- **Rollback:** `rollback.sh` volta à versão anterior. Migrations só andam para a frente: toda migration precisa continuar compatível com a versão anterior do app (adicionar coluna antes de usar; remover numa versão seguinte). Quando não der, a volta é restaurar o backup do passo 1.
-- Hoje o container da API roda as migrations ao iniciar (`docker/api.Dockerfile`); isso passa para o passo separado.
+## 7. Backups
 
-## 6. Backups
+### 7.1 Diário, às 03:30 de Brasília
 
-- **Diário, às 03:30 de Brasília:** `pg_dump` cifrado com `age`, `tar` cifrado da pasta de imagens enviadas (fotos do cardápio e logos), envio pelo `rclone` para o **B2**.
-- **Retenção pelas regras do bucket:** 7 diários, 4 semanais e 6 mensais.
-- **Alerta:** o script avisa o Healthchecks.io no início e no fim; se falhar ou não rodar, chega e-mail.
-- **Teste de restauração:** `restore.sh` baixa, decifra e restaura num Postgres temporário, confere contagens (pedidos, clientes, produtos) e se as imagens abrem. Executado **pelo menos uma vez nesta etapa**, com o resultado registrado no DEPLOY.md; depois, mensalmente pelo roteiro de operação.
-- **R2 em vez do B2:** sem custo de saída, mas mais caro para guardar; para este volume os dois saem praticamente de graça.
+- `sudo -u postgres pg_dump -Fc app_db` e `pg_dumpall --globals-only --no-role-passwords` (usuários e permissões), cifrados com `age`.
+- `tar` cifrado da pasta de imagens enviadas (fotos do cardápio, logos) e da configuração do servidor (`/etc/postgresql/17/main`, `Caddyfile`, overrides do systemd; **sem** o `.env`, que vive no gerenciador de senhas).
+- Envio pelo `rclone` para o **B2**; retenção pelas regras do bucket: 7 diários, 4 semanais e 6 mensais.
+- O script avisa o Healthchecks.io no início e no fim; falha ou ausência vira e-mail.
 
-## 7. E-mail
+### 7.2 Teste de restauração
 
-- **Brevo:** grátis até 300 e-mails por dia, por SMTP; atende convites e recuperação de senha. Alternativa: Resend (100 por dia).
-- **Mudança de código pequena:** o envio passa a aceitar usuário, senha e TLS do SMTP (hoje só fala com o Mailpit).
-- **Sem domínio próprio:** o remetente seria um e-mail verificado (ex.: Gmail), sem autenticação do domínio (SPF/DKIM/DMARC): **os e-mails tendem a cair no spam ou ser recusados**. Recomendação: comprar um domínio barato (cerca de US$ 10–15/ano) assim que der.
-- **Até lá:** botão "copiar link do convite" no painel da plataforma, para mandar o convite por WhatsApp (**aprovado**, ver pontos a revisar).
+`restore.sh`: baixa, decifra e restaura num banco temporário do próprio cluster (`app_restore_test`, criado e apagado pelo script), confere contagens (pedidos, clientes, produtos) e se as imagens abrem. Executado **nesta etapa**, com o resultado no DEPLOY.md, e depois mensalmente.
 
-## 8. Monitoramento (gratuito ou leve)
+### 7.3 Antes de clientes reais (fora desta etapa)
 
-- **Fora do ar:** o `monitor.sh` roda a cada 5 minutos, confere a saúde dos 4 endereços por HTTPS e o uso de disco, memória e CPU, e avisa o Healthchecks.io ("ok" ou falha com o motivo). Se a VM inteira cair, o sinal para de chegar e o Healthchecks avisa por e-mail. Limites: disco acima de 80%, memória acima de 90%, carga alta.
-- **UptimeRobot:** checagem externa extra possível; os termos do plano gratuito para uso comercial são contraditórios nas fontes. Serve para a demonstração, mas não como dependência.
-- **Logs:** **Dozzle** (cerca de 30 MB) mostra os logs dos containers em `logs.<base>`, protegido por senha no Caddy. A API já registra erros em JSON com stack. Sentry gratuito fica como opção futura.
-- **Uso da máquina:** `docker stats` e o Dozzle; Netdata fica de fora por pesar mais.
+O backup diário aceita perder até 24 h de dados, o que basta para a demonstração. Antes de dados reais: backup contínuo do WAL para o B2 (pgBackRest ou WAL-G), com perda de minutos. Fica registrado no ROADMAP.
 
-## 9. Dados da demonstração
+### 7.4 Snapshots da Contabo (no DEPLOY.md)
 
-- **Hoje o `pnpm db:seed` apaga as tabelas da plataforma inteiras.** Em produção, isso apagaria administradores e clientes reais.
-- **Proteção:** o seed de desenvolvimento passa a **recusar rodar** com `NODE_ENV=production` ou com banco que não seja local.
-- **Comando de produção `demo-reset`**, que só mexe na unidade `demo`: nunca toca a plataforma nem outros clientes; só roda com `DEMO_RESET_ENABLED=true` no `.env` e a confirmação `--yes`.
-- **Conteúdo:** a Demo com **30 dias de histórico** (dashboard com dados, seed em segundos), sem clientes de exemplo da plataforma nem admin de demonstração. O primeiro admin vem do comando `create`.
-- **Restauração:** sugerida **toda noite às 04:00 de Brasília** (visitante sempre encontra a demonstração limpa); alternativa semanal ou manual.
+- **Quando:** depois do `server-setup.sh` (ponto de partida limpo), antes de mudanças grandes no servidor e antes de atualizar a versão principal do Postgres.
+- **Como:** painel da Contabo › Snapshots › criar; rodar `CHECKPOINT` no Postgres antes (o snapshot de uma VM ligada equivale a uma queda de energia; o Postgres se recupera, mas o `CHECKPOINT` encurta a recuperação). Restaurar é o "rollback" no mesmo painel e **volta a VM inteira**, inclusive o banco, para aquele momento.
+- **Limite:** a quantidade incluída no plano não está clara nas fontes; conferir no painel no pedido e registrar no DEPLOY.md.
+- **Não substitui o backup:** o snapshot fica na mesma empresa, não tem retenção longa nem é testado; o backup fora da VM continua obrigatório.
 
-## 10. Agente de impressão
+## 8. E-mail
 
-- Instalador gerado no desktop (Windows + Inno Setup) apontando para produção:
-  `pnpm --filter @app/print-agent package -- --api https://api.<base>/api`
-- Continua **sem assinatura de código**: o Smart App Control bloqueia no Surface; serve para testar no desktop até existir o certificado (ROADMAP).
-- Trocar de domínio exige reinstalar o agente por cima.
+- **Brevo** (300 e-mails por dia, SMTP); o envio passa a aceitar usuário, senha e TLS do SMTP.
+- **Sem domínio próprio**, os e-mails tendem a cair no spam: comprar um domínio (US$ 10–15/ano) assim que der.
+- **Botão "copiar link do convite"** no painel da plataforma, ao lado do reenvio (**aprovado**), para mandar o convite por WhatsApp.
 
-## 11. Custos mensais estimados
+## 9. Fuso horário e agendamentos
+
+- **Servidor em UTC** (`timedatectl set-timezone Etc/UTC`), Postgres em UTC e containers com `TZ=UTC` (já é assim na imagem da API).
+- **Agendamentos por timers do systemd com o fuso no próprio horário** (ex.: `OnCalendar=*-*-* 03:30 America/Sao_Paulo`). Assim o DEPLOY.md e os arquivos dizem o horário de Brasília, sem conta de cabeça, e uma volta do horário de verão não exige mudança.
+
+| Horário (Brasília) | O quê |
+|---|---|
+| 03:30 | backup |
+| 04:00 | restauração da demonstração (`demo-reset`) |
+| 04:15 | atualizações automáticas (override do `apt-daily-upgrade.timer`) |
+| 04:30 | reinício, se uma atualização exigir (`Automatic-Reboot-Time` do `unattended-upgrades`, que usa o relógio do servidor: `07:30` em UTC; anotado no arquivo) |
+| a cada 5 min | monitoramento |
+
+Bares e deliveries podem ir até 2–3 h; a janela 03:30–04:30 é a de menor movimento.
+
+## 10. Dados e modo da demonstração
+
+- **Hoje o `pnpm db:seed` apaga as tabelas da plataforma.** Proteção: o seed recusa rodar com `NODE_ENV=production` ou com banco que não seja local.
+- **`demo-reset`** (comando da API): só mexe na unidade `demo`, nunca na plataforma nem em outros clientes; só roda com `DEMO_RESET_ENABLED=true` e `--yes`. Demo com 30 dias de histórico; sem clientes de exemplo da plataforma nem admin de demonstração (o primeiro admin vem do `create`). **Toda noite às 04:00.**
+- **Modo demonstração** (credenciais da Demo públicas), ligado por configuração da unidade e **bloqueado no servidor** (guarda na API, erro `DEMO_MODE` com mensagem em pt-BR, "Indisponível no ambiente de demonstração"); a tela esconde ou desativa os botões, mas a regra é da API:
+  - **bloqueado:** troca de senha e de e-mail, recuperação de senha dos usuários da Demo, gestão de usuários, exclusões, configurações da empresa, chave PIX, impressão (vínculo de computador e impressoras) e **pedidos reais do cardápio digital** (o cardápio abre, mas o envio mostra que é demonstração). **Sugestão minha, para aprovar:** bloquear também o envio de imagens (fotos de produto e logo), para a demo não virar hospedagem de arquivos de terceiros.
+  - **livre:** pedidos, caixa, mesas, cozinha, entregas e relatórios.
+  - **Faixa no painel:** "Ambiente de demonstração, restaurado toda noite".
+  - Teste e2e para cada bloqueio e roteiro visual da faixa.
+
+## 11. Monitoramento
+
+- `monitor.sh` a cada 5 minutos: saúde dos 4 endereços por HTTPS, **Postgres aceitando conexão** (`pg_isready` no gateway), uso de disco (alerta em 80%, olhando também `/mnt/dados`), memória e carga; avisa o Healthchecks.io. VM fora do ar = o sinal para de chegar = e-mail.
+- **Dozzle** (`logs.<base>`, com senha) para os logs dos containers; logs do Postgres em `/var/log/postgresql` (consultas lentas acima de 500 ms).
+- UptimeRobot opcional (termos do gratuito para uso comercial pouco claros).
+
+## 12. Agente de impressão
+
+- Instalador gerado no desktop apontando para produção: `pnpm --filter @app/print-agent package -- --api https://api.<base>/api`.
+- Continua **sem assinatura de código** (o Smart App Control bloqueia no Surface; serve para testar no desktop).
+- Na Demo, o vínculo de impressão fica bloqueado pelo modo demonstração; o teste do agente em produção usa uma unidade de teste criada pelo painel da plataforma.
+
+## 13. Execução no servidor
+
+- **Pelo Claude por SSH**, a partir do computador do Braian e com a chave dele (que não sai do computador), **com aprovação a cada passo**: antes de cada comando, o que ele faz e o que pode dar errado; depois, o resultado.
+- **O DEPLOY.md funciona sozinho:** cada passo tem o comando, a saída esperada e como conferir, para qualquer pessoa seguir sem o Claude. Os passos feitos pelo Claude seguem o DEPLOY.md, o que também testa o documento.
+
+## 14. Custos mensais estimados
 
 | Item | Custo |
 |---|---|
-| Contabo Cloud VPS 20, US East | cerca de US$ 8–12 (fontes divergem sobre a taxa da região; conferir no pedido) |
+| Contabo Cloud VPS 20, US East | cerca de US$ 8–12 (conferir a taxa da região no pedido) |
 | Backblaze B2 (menos de 10 GB) | US$ 0–1 |
-| Brevo, Healthchecks.io, Dozzle, GHCR | US$ 0 |
-| Domínio (opcional, recomendado) | cerca de US$ 1/mês (US$ 10–15/ano) |
+| Brevo, Healthchecks.io, Dozzle, GHCR (público) | US$ 0 |
+| Domínio (opcional, recomendado) | cerca de US$ 1/mês |
 | **Total** | **cerca de US$ 10–14/mês**, abaixo dos US$ 20 |
 
-Preços levantados em 2026-10-12 em fontes de terceiros; conferir nos sites oficiais antes de contratar.
+O Postgres no host não muda o custo. Preços de 2026-10-12; conferir nos sites oficiais antes de contratar.
 
-## 12. Documentação
+## 15. Documentação
 
-**`docs/DEPLOY.md`**, do servidor zerado ao sistema no ar:
+**`docs/DEPLOY.md`**, do servidor zerado ao sistema no ar: pedido da VM; primeiro acesso e `server-setup.sh`; **Postgres (instalação, cluster em `/mnt/dados`, rede, usuários, configuração, teste da porta de fora)**; snapshot inicial; DNS, `BASE_DOMAIN` e `gen-secrets.sh`; B2, Brevo e Healthchecks; primeiro deploy, `demo-reset` e o primeiro admin; teste de restauração; reinício da VM conferido; agente de impressão.
 
-1. pedido da VM;
-2. primeiro acesso e `server-setup.sh`;
-3. DNS, `BASE_DOMAIN` e `gen-secrets.sh`;
-4. contas B2, Brevo e Healthchecks;
-5. primeiro deploy, `demo-reset` e o primeiro admin (`create`);
-6. teste de restauração;
-7. agente de impressão.
-
-**Roteiro de operação:** publicar e voltar uma versão; ver logs; rodar e restaurar backup; renovar segredos e gerar senha temporária de admin (`reset-password`); trocar para o domínio próprio; o que fazer quando chega um alerta.
+**Roteiro de operação:** publicar e voltar uma versão; logs; backup e restauração; snapshots; atualização da versão principal do Postgres; renovar segredos (e o token do GHCR, se privado); senha temporária de admin (`reset-password`); trocar para o domínio próprio; o que fazer com cada alerta.
 
 ## Ordem de trabalho (depois da aprovação)
 
-1. **Código, testado localmente:** API pelo mesmo endereço do app; SMTP com autenticação; recusa de segredos de desenvolvimento; proteção do seed e `demo-reset`; migrations como passo separado; imagem do admin.
-2. **Produção simulada no desktop:** `compose.prod.yml`, Caddy, scripts e workflow, com HTTPS local, `deploy.sh`, `rollback.sh`, backup e restauração reais.
-3. **Servidor de verdade:** o Braian contrata; o DEPLOY.md é seguido passo a passo.
-4. Teste de restauração no servidor, monitoramento e validação pelo celular.
+1. **Código, testado localmente** (branch `chore/hosting`): API pelo mesmo endereço do app; SMTP com autenticação; recusa de segredos de desenvolvimento; proteção do seed e `demo-reset`; **modo demonstração**; botão "copiar link do convite"; migrations como passo separado; imagem do admin; workflow das imagens. Com `pnpm check`, e2e e roteiros visuais.
+2. **Scripts e DEPLOY.md** (`deploy/`), revisados localmente (`shellcheck`, `docker compose config`).
+3. **Ensaio na VM nova** (só dados fictícios), seguindo o DEPLOY.md, com snapshot antes de cada etapa: servidor, Postgres, primeiro deploy, backup, **restauração**, `rollback.sh` e **reinício da VM** (Postgres e containers voltam sozinhos, nessa ordem).
+4. Monitoramento e alertas conferidos, validação pelo celular e o DEPLOY.md corrigido com o que o ensaio mostrar.
 
-## Decisões pendentes (da apresentação)
+## Decisões pendentes
 
-1. Montar as imagens no **GitHub Actions** e publicar com `deploy.sh` manual no servidor?
-2. **B2** (recomendado) ou R2?
-3. Comprar um domínio agora, ou começar com sslip.io e o botão "copiar link do convite"?
-4. Restauração da demo: **toda noite**, semanal ou manual? (Os pontos a revisar indicam "toda noite".)
-5. Quem roda os comandos no servidor? (Respondido nos pontos a revisar: provavelmente o Claude por SSH, com aprovação a cada passo.)
-
----
-
-## Pontos a revisar na retomada
-
-Pedidos do Braian em 2026-10-12, ao adiar a aprovação. A proposta acima precisa ser revista com eles antes de ser apresentada de novo.
-
-### 1. Postgres de produção fora do Docker (mudança principal)
-
-O Postgres de produção **não roda em Docker**: será instalado direto na VM, como um **cluster próprio com os dados em `/mnt/dados`**. Rever a proposta para cobrir:
-
-- **Versão igual à de desenvolvimento:** hoje o `docker-compose.yml` usa `postgres:17-alpine` (Postgres 17). Produção: Postgres 17.
-- **Instalação pelo repositório oficial (PGDG)** (`apt.postgresql.org`), não pelo pacote padrão do Ubuntu.
-- **Cluster em `/mnt/dados`:** criação com `pg_createcluster 17 main -d /mnt/dados/postgresql/17/main` (ou equivalente), dono `postgres`, permissões 700; desativar ou remover o cluster padrão em `/var/lib/postgresql`.
-- **Acesso dos containers ao banco do host:**
-  - os containers alcançam o host pela rede do Docker (gateway da rede do Compose, ex.: `172.18.0.1`, ou `host.docker.internal` com `extra_hosts: ["host.docker.internal:host-gateway"]`);
-  - rede do Compose com sub-rede **fixa** declarada no `compose.prod.yml`, para o `pg_hba.conf` liberar exatamente ela;
-  - `listen_addresses = 'localhost,<IP do gateway da rede do Docker>'`;
-  - `pg_hba.conf` liberando **só** `127.0.0.1/32`, `::1/128` e a sub-rede do Docker, com `scram-sha-256`; nada de `0.0.0.0/0`;
-  - o Postgres precisa subir depois da interface da rede do Docker existir (ou escutar no gateway de uma rede criada antes); avaliar a ordem de inicialização no boot.
-- **Porta 5432 nunca exposta à internet:** o ufw não libera a 5432; conferir com `ss -tlnp` e um teste de fora da VM.
-- **Memória do Postgres ajustada à VM:** `shared_buffers` (cerca de 25% da RAM reservada ao banco), `effective_cache_size`, `work_mem`, `maintenance_work_mem`, `max_connections` coerente com o pool do Prisma (API + jobs), considerando a memória dos containers.
-- **Atualizações de segurança:** o `unattended-upgrades` precisa incluir a origem do PGDG; atualizações menores do 17 reiniciam o serviço (definir janela de Brasília); atualização de versão principal (17 → 18) é manual e documentada (`pg_upgradecluster`).
-- **O que muda:**
-  - **backup:** `pg_dump` roda no host (usuário de backup só leitura, ou `postgres` via peer); o resto (age, rclone, B2, retenção, alerta) continua;
-  - **restore:** restaurar num banco temporário no próprio cluster (ex.: `app_restore_test`) ou num cluster temporário, e apagar depois;
-  - **migrations:** o container de uso único conecta no host pela rede do Docker com o usuário dono do schema; usuário da aplicação separado, com privilégios mínimos, se fizer sentido;
-  - **compose.prod.yml:** sem serviço `postgres` nem volume do banco; `DATABASE_URL` aponta para o host; rede com sub-rede fixa.
-- **`/mnt/dados`: disco separado ou só uma pasta?** Verificar no plano da Contabo:
-  - **disco separado (volume adicional):** montar por UUID no `/etc/fstab` (com `nofail` avaliado), o serviço do Postgres esperar a montagem (`RequiresMountsFor=/mnt/dados` num override do systemd), conferir se os snapshots da Contabo incluem esse disco, e documentar o que acontece se ele não montar (o Postgres não deve subir com a pasta vazia);
-  - **só uma pasta no disco principal:** sem isolamento nem ganho de desempenho; organiza os dados e facilita uma migração futura para um disco separado.
-
-### 2. Imagens no GHCR: públicas ou privadas
-
-Decidir se as imagens ficam públicas (o repositório já é público e as imagens não têm segredos) ou privadas. Se privadas: o servidor faz `docker login ghcr.io` com um token de acesso do GitHub só de leitura de pacotes (`read:packages`), guardado no servidor (fora do `.env` do app) e no gerenciador de senhas, com validade e renovação documentadas.
-
-### 3. Modo demonstração da unidade Demo
-
-As credenciais da Demo serão públicas. Criar um modo demonstração para a unidade:
-
-- **bloqueado:** troca de senha e de e-mail, gestão de usuários, exclusões, configurações da empresa, chave PIX, impressão e **pedidos reais do cardápio digital**;
-- **livre:** os fluxos de venda (pedidos, caixa, mesas, cozinha, entregas, relatórios);
-- **faixa no painel:** "Ambiente de demonstração, restaurado toda noite";
-- bloqueio no servidor (não só esconder botões), com mensagem em pt-BR, ligado por configuração da unidade.
-
-### 4. Botão "copiar link do convite"
-
-**Aprovado:** no painel da plataforma, ao lado do reenvio do convite.
-
-### 5. Snapshots da VM
-
-Documentar no DEPLOY.md os snapshots da Contabo: quando tirar (antes de mudanças grandes no servidor e de atualizações de versão do Postgres), limite do plano, como restaurar, e que snapshot **não substitui** o backup fora da VM.
-
-### 6. Fuso horário
-
-Servidor em **UTC**; todos os agendamentos (backup, monitoramento, restauração da demo, reinício de atualizações) definidos no **horário de Brasília** (ex.: `CRON_TZ=America/Sao_Paulo` ou timers do systemd com o fuso explícito), e documentados assim.
-
-### 7. Senha do Dozzle
-
-Gerada pelo `gen-secrets.sh`, junto com os outros segredos (hash no Caddy, senha no gerenciador de senhas).
-
-### 8. Execução no servidor
-
-Provavelmente feita pelo Claude por SSH, **com aprovação do Braian a cada passo**. Mesmo assim, o **DEPLOY.md precisa funcionar sozinho**, para qualquer pessoa seguir sem o Claude.
+1. Montar as imagens no **GitHub Actions** e publicar com `deploy.sh` manual no servidor? (recomendado: sim)
+2. **GHCR público** (recomendado) ou privado?
+3. **B2** (recomendado) ou R2?
+4. Comprar um domínio agora, ou começar com sslip.io e o botão "copiar link do convite"?
+5. Restauração da demo **toda noite às 04:00** (recomendado)?
+6. Modo demonstração: aprovar a lista acima, incluindo o **bloqueio de envio de imagens** (sugestão minha)?
+7. **`/mnt/dados` como pasta** no disco do plano (o mais provável na Contabo) ou, se o pedido permitir, **partição própria**?
+8. **Ensaio direto na VM nova** em vez da produção simulada no desktop?
