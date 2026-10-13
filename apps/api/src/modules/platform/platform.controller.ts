@@ -289,6 +289,17 @@ export class PlatformAdminController {
     await this.customers.invite(id, userId, actor);
   }
 
+  /** Link of the invitation to send by WhatsApp (replaces the e-mailed one). */
+  @Post('customers/:id/users/:userId/invite-link')
+  @HttpCode(200)
+  inviteLink(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Actor() actor: PlatformActor,
+  ): Promise<{ link: string }> {
+    return this.customers.inviteLink(id, userId, actor);
+  }
+
   // ---- Subscription ----
 
   @Post('customers/:id/subscription/plan')

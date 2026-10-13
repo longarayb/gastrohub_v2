@@ -22,6 +22,7 @@ export const PlatformAuditAction = {
   CUSTOMER_DISABLED: 'customer.disabled',
   CUSTOMER_ENABLED: 'customer.enabled',
   INVITE_SENT: 'customer.invite_sent',
+  INVITE_LINK_CREATED: 'customer.invite_link_created',
   PLAN_CREATED: 'plan.created',
   PLAN_UPDATED: 'plan.updated',
   SUBSCRIPTION_CREATED: 'subscription.created',

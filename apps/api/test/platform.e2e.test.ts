@@ -469,7 +469,27 @@ describe('Platform admin (e2e)', () => {
         expect(ctx.mail.sent.some((m) => m.to === 'maria@cantina.test')).toBe(true),
       );
       const mail = ctx.mail.sent.find((m) => m.to === 'maria@cantina.test')!;
-      const token = /convite\?token=([\w-]+)/.exec(mail.text)![1];
+      const mailed = /convite\?token=([\w-]+)/.exec(mail.text)![1];
+
+      // "Copiar link do convite": a new link, the e-mailed one stops working; audited.
+      const ownerId = res.body.users[0].id as string;
+      const copied = await admin('post', `/customers/${customerId}/users/${ownerId}/invite-link`)
+        .send()
+        .expect(200);
+      expect(copied.body.link).toMatch(/\/convite\?token=[\w-]+$/);
+      const token = /convite\?token=([\w-]+)/.exec(copied.body.link)![1];
+      expect(token).not.toBe(mailed);
+      await ctx
+        .http()
+        .post('/api/auth/accept-invite')
+        .send({ token: mailed, password: 'SenhaDaMaria1', confirmPassword: 'SenhaDaMaria1' })
+        .expect(400);
+      expect(
+        await ctx.prisma.platformAuditLog.count({
+          where: { action: 'customer.invite_link_created', entityId: ownerId },
+        }),
+      ).toBe(1);
+
       const accepted = await ctx
         .http()
         .post('/api/auth/accept-invite')

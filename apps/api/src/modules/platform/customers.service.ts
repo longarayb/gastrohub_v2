@@ -229,15 +229,7 @@ export class CustomersService {
 
   /** (Re)sends the invitation of a user who has not set a password yet. */
   async invite(organizationId: string, userId: string, actor: PlatformActor): Promise<void> {
-    const membership = await this.prisma.membership.findFirst({
-      where: { userId, store: { organizationId } },
-      include: { store: true, user: true },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    });
-    if (!membership) throw new NotFoundError('Usuário');
-    if (membership.user.passwordHash !== UNUSABLE_PASSWORD) {
-      throw new ValidationError('Este usuário já definiu a senha (use "Esqueci minha senha")');
-    }
+    const membership = await this.pendingInvite(organizationId, userId);
     await this.auth.sendInvite(userId, membership.store.tradeName);
     await this.audit.log(
       {
@@ -250,6 +242,42 @@ export class CustomersService {
       },
       actor,
     );
+  }
+
+  /** New invitation link for the admin to copy (the previous links stop working). */
+  async inviteLink(
+    organizationId: string,
+    userId: string,
+    actor: PlatformActor,
+  ): Promise<{ link: string }> {
+    const membership = await this.pendingInvite(organizationId, userId);
+    const link = await this.auth.createInviteLink(userId);
+    await this.audit.log(
+      {
+        action: PlatformAuditAction.INVITE_LINK_CREATED,
+        entity: 'User',
+        entityId: userId,
+        organizationId,
+        storeId: membership.tenantId,
+        after: { email: membership.user.email },
+      },
+      actor,
+    );
+    return { link };
+  }
+
+  /** The user's first membership in the organization, while the invitation is pending. */
+  private async pendingInvite(organizationId: string, userId: string) {
+    const membership = await this.prisma.membership.findFirst({
+      where: { userId, store: { organizationId } },
+      include: { store: true, user: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    if (!membership) throw new NotFoundError('Usuário');
+    if (membership.user.passwordHash !== UNUSABLE_PASSWORD) {
+      throw new ValidationError('Este usuário já definiu a senha (use "Esqueci minha senha")');
+    }
+    return membership;
   }
 
   /** After any billing change: drop caches and refresh the banners of the organization's stores. */

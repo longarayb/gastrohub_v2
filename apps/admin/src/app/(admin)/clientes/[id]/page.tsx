@@ -13,6 +13,13 @@ import {
 import { Badge } from '@app/ui/components/badge';
 import { Button } from '@app/ui/components/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@app/ui/components/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@app/ui/components/dialog';
 import { Input } from '@app/ui/components/input';
 import { Notice } from '@app/ui/components/notice';
 import {
@@ -24,7 +31,7 @@ import {
 } from '@app/ui/components/select';
 import { toast } from '@app/ui/components/sonner';
 import { ListSkeleton } from '@app/ui/components/states';
-import { Headset, Mail } from 'lucide-react';
+import { Headset, Link2, Mail } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { ReasonDialog, SubscriptionBadge } from '@/components/common';
@@ -377,20 +384,23 @@ export default function CustomerPage() {
                     {u.invitePending && <Badge variant="info">Convite pendente</Badge>}
                   </div>
                   {u.invitePending && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          await apiPost(`/customers/${id}/users/${u.id}/invite`);
-                          toast.success('Convite reenviado');
-                        } catch (error) {
-                          toast.error(errorMessage(error));
-                        }
-                      }}
-                    >
-                      <Mail /> Reenviar convite
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            await apiPost(`/customers/${id}/users/${u.id}/invite`);
+                            toast.success('Convite reenviado');
+                          } catch (error) {
+                            toast.error(errorMessage(error));
+                          }
+                        }}
+                      >
+                        <Mail /> Reenviar convite
+                      </Button>
+                      <CopyInviteLink customerId={id} userId={u.id} />
+                    </div>
                   )}
                 </li>
               ))}
@@ -638,5 +648,61 @@ export default function CustomerPage() {
         }
       />
     </Page>
+  );
+}
+
+/**
+ * Copies a new invitation link (to send by WhatsApp while the e-mails may land in spam). The
+ * previous links stop working. Without clipboard access (plain http), the link is shown to copy.
+ */
+function CopyInviteLink({ customerId, userId }: { customerId: string; userId: string }) {
+  const [busy, setBusy] = useState(false);
+  const [shown, setShown] = useState<string | null>(null);
+
+  async function copy() {
+    setBusy(true);
+    try {
+      const { link } = await apiPost<{ link: string }>(
+        `/customers/${customerId}/users/${userId}/invite-link`,
+      );
+      try {
+        await navigator.clipboard.writeText(link);
+        toast.success('Link do convite copiado', {
+          description: 'Vale por 7 dias. Os links enviados antes deixaram de valer.',
+        });
+      } catch {
+        setShown(link);
+      }
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <Button size="sm" variant="outline" loading={busy} onClick={() => void copy()}>
+        <Link2 /> Copiar link do convite
+      </Button>
+      <Dialog open={!!shown} onOpenChange={(open) => !open && setShown(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Link do convite</DialogTitle>
+            <DialogDescription>
+              Copie e envie para a pessoa. Vale por 7 dias; os links enviados antes deixaram de
+              valer.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            readOnly
+            value={shown ?? ''}
+            aria-label="Link do convite"
+            onFocus={(e) => e.currentTarget.select()}
+            autoFocus
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

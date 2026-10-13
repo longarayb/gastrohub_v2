@@ -18,6 +18,7 @@ const LABELS: Record<string, string> = {
   'customer.disabled': 'Cliente desativado',
   'customer.enabled': 'Cliente reativado',
   'customer.invite_sent': 'Convite enviado',
+  'customer.invite_link_created': 'Link do convite copiado',
   'plan.created': 'Plano criado',
   'plan.updated': 'Plano alterado',
   'subscription.created': 'Assinatura criada',
