@@ -114,7 +114,13 @@ export function logLanLinks(ip, withMenu = true, withAdmin = false) {
 export function serverContainers() {
   const result = spawnSync(
     'docker',
-    ['ps', '--filter', 'label=com.docker.compose.project=servidor', '--format', '{{.Names}}'],
+    [
+      'ps',
+      '--filter',
+      `label=com.docker.compose.project=${process.env.SERVIDOR_PROJETO ?? 'servidor'}`,
+      '--format',
+      '{{.Names}}',
+    ],
     { encoding: 'utf8' },
   );
   return result.status === 0 ? result.stdout.split('\n').filter(Boolean) : [];

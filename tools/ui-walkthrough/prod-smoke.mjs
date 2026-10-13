@@ -1,11 +1,18 @@
 // Browser check of the local production rehearsal (KEEP=1 bash deploy/local-check.sh): the apps
 // call /api on their own https address and real time goes through the proxy. Caddy's local
 // certificates are accepted (ignoreHTTPSErrors).
+//
+// HOME_SERVER=<IP> node prod-smoke.mjs: the same against the Surface home server over plain http
+// by its network IP (not localhost: there the browser refuses Secure cookies over http).
 import { chromium } from 'playwright-core';
 import { BROWSER } from './browser.mjs';
 
 const PORT = process.env.PORT ?? '8443';
-const url = (app, path) => `https://${app}.localhost:${PORT}${path}`;
+const HOME_PORTS = { painel: 3000, cardapio: 3001, admin: 3002 };
+const url = (app, path) =>
+  process.env.HOME_SERVER
+    ? `http://${process.env.HOME_SERVER}:${HOME_PORTS[app]}${path}`
+    : `https://${app}.localhost:${PORT}${path}`;
 const results = [];
 const errors = [];
 let page;

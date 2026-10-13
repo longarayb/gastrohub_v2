@@ -386,3 +386,45 @@ O primeiro comando fixa o deslocamento; `same` reaproveita-o, para a API, o seed
 9. **Uma pasta por vez:** com o projeto no WSL, não use mais `C:\GastroHub_v2` neste computador (evita duas cópias divergentes). O GitHub continua sendo a ponte com o desktop de casa.
 10. **Claude Code dentro do WSL:** `curl -fsSL https://claude.ai/install.sh | bash` no Ubuntu; para abrir: `wsl -d Ubuntu-24.04`, `cd ~/projetos/GastroHub_v2`, `claude`. No VS Code: extensão **WSL** e `code .` a partir do Ubuntu (ou "WSL: Conectar à distribuição" › Ubuntu-24.04 › abrir a pasta), com a extensão do Claude Code instalada no lado do WSL.
 
+
+## Servidor temporário no Surface (rede de casa)
+
+Até a publicação na Contabo, o Surface serve o sistema para a rede de casa. Dois cenários: **programar no Surface com o servidor parado**, ou **programar no desktop com o servidor rodando no Surface**. Os dois nunca rodam juntos no Surface (8 GB; mesmas portas 3000–3002 e 3333): o `pnpm servidor:subir` avisa e para se o desenvolvimento estiver rodando, e o `pnpm dev`/`start:lite` recusam começar com o servidor no ar.
+
+**Como é montado** (`scripts/servidor.mjs`, dentro do WSL):
+
+- **Pasta própria:** `~/servidor/GastroHub_v2`, um clone só da `main`, separado de `~/projetos/GastroHub_v2` (onde se programa). Trocar de branch na pasta de desenvolvimento nunca muda o que o servidor roda. Segredos em `~/servidor/.env` (gerados uma vez pelo `deploy/gen-secrets.sh`), imagens enviadas em `~/servidor/dados`, backups antes de cada atualização em `~/servidor/backups` (os 5 últimos).
+- **Igual à produção:** imagens de produção montadas localmente (`local/app-*:<commit>`), `deploy/compose.prod.yml` com `deploy/home/compose.home.yml`, migrations antes dos apps com o dono das tabelas, a API com o usuário só de dados, e cada app chamando a API pelo próprio endereço (Caddy em http nas portas 3000, 3001, 3002 e 3333).
+- **Banco, Redis e e-mail próprios:** projeto `servidor` do Docker, com Postgres, Redis e Mailpit em containers e volumes próprios. A porta do banco do servidor nem é publicada: o seed e o e2e do desenvolvimento (projeto `app`, porta 5433) não alcançam o servidor. A Demo vem do `demo-reset`, em modo demonstração. `LAN_SERVER=true` (só neste servidor): cookies sem `Secure` (a rede de casa é http) e e-mail para o Mailpit do servidor (`http://localhost:8026`, só no Surface); os segredos de desenvolvimento continuam recusados.
+
+**Comandos** (no Ubuntu do Surface, de qualquer uma das duas pastas):
+
+| Comando | O que faz |
+|---|---|
+| `pnpm servidor:subir` | Sobe e mostra os endereços com o IP. Na primeira vez: clona a `main`, gera os segredos, monta as imagens (~8 min), cria o banco, aplica as migrations e cria a Demo. |
+| `pnpm servidor:parar` | Para tudo (banco, Redis e imagens enviadas ficam guardados). |
+| `pnpm servidor:atualizar` | Pull da `main`, build de produção, backup do banco, migrations e reinício; mostra a versão que ficou no ar. Se a versão nova não responder, volta para a anterior. |
+| `pnpm servidor:status` | Versão no ar, serviços, se cada endereço responde e a memória. |
+| `pnpm servidor:logs [api]` | Acompanha os logs (todos ou de um serviço: `api`, `web`, `menu`, `admin`, `caddy`, `postgres`). |
+| `pnpm servidor:demo` | Restaura a Demo quando quiser. |
+| `pnpm servidor:tunel [painel\|cardapio]` | Endereço https temporário (veja abaixo). |
+
+**Acesso pela rede de casa (uma vez):**
+
+1. **Rede espelhada do WSL e firewall:** o mesmo passo de "Testar no celular" (com o projeto no WSL): `networkingMode=mirrored` no `.wslconfig` e as portas 3000, 3001, 3002 e 3333 liberadas no firewall do Windows e no do WSL. As regras valem **só para redes privadas**; restrinja a do WSL (PowerShell como administrador):
+
+   ```powershell
+   Set-NetFirewallHyperVRule -Name "AppDevLan" -Profiles Private
+   ```
+
+   O Wi-Fi de casa precisa estar como **Rede privada** (Configurações › Rede e Internet › Wi-Fi › sua rede).
+2. **IP fixo para o Surface no roteador:** no Windows, `ipconfig /all` mostra o "Endereço Físico" (MAC) do Wi-Fi. No painel do roteador (em geral `http://192.168.0.1` ou `http://192.168.1.1`, usuário e senha na etiqueta), procure **DHCP › Reserva de endereço** (ou "IP estático", "Address Reservation") e reserve um IP para esse MAC (ex.: `192.168.0.92`). Desligue e ligue o Wi-Fi do Surface para ele pegar o IP reservado. Sem isso o IP pode mudar e os endereços mudam junto (o `servidor:subir` avisa).
+3. **Não suspender na tomada:**
+   - Configurações › Sistema › Energia › "Tela e suspensão": **Quando conectado: Nunca** (suspensão) e "Fechar a tampa" sem efeito na tomada (Painel de Controle › Opções de Energia › "Escolher a função de fechamento da tampa": **Não fazer nada** em "Conectado").
+   - Ou no PowerShell como administrador: `powercfg /change standby-timeout-ac 0`, `powercfg /change hibernate-timeout-ac 0` e `powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 0; powercfg /setactive SCHEME_CURRENT`.
+   - Docker Desktop: Settings › General › **Start Docker Desktop when you sign in**. Depois de um reinício do Windows é preciso entrar no Windows (o Docker Desktop roda na sessão do usuário); os containers do servidor voltam sozinhos (`restart: unless-stopped`).
+   - Windows Update: em "Horário ativo", deixe o horário em que o servidor é usado, para ele não reiniciar nesse intervalo.
+
+**Do desktop:** abra no navegador `http://<IP do Surface>:3000` (painel), `:3001/demo` (cardápio) e `:3002` (admin). O agente de impressão do desktop pode apontar para o servidor: `pnpm --filter @app/print-agent package -- --api http://<IP do Surface>:3333/api`.
+
+**HTTPS para o celular (GPS do entregador):** o navegador só libera a localização em https. `pnpm servidor:tunel` abre um túnel temporário da Cloudflare até o painel do servidor (`pnpm servidor:tunel cardapio` para o cardápio) e mostra o endereço `https://…trycloudflare.com`; o entregador abre `<endereço>/entregas`. **Atenção:** enquanto o túnel está aberto, o sistema do servidor de casa fica acessível pela internet (com as senhas conhecidas da Demo); ele fecha sozinho em 30 minutos (`--minutos N`), e nunca deve ser usado com dados reais. Precisa do `cloudflared` (`winget install --id Cloudflare.cloudflared` no Windows; o script usa o do Windows a partir do WSL).

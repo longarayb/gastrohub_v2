@@ -53,6 +53,8 @@ function out(cmd, args, opts = {}) {
 }
 const compose = (...args) => [
   'compose',
+  '--progress',
+  'quiet',
   '--project-name',
   PROJECT,
   '-f',
@@ -406,7 +408,7 @@ async function subir() {
   ensureRepo();
   const version = readEnv().APP_VERSION;
   if (!version || !imagesExist(version)) {
-    log('Nenhuma versão montada ainda: atualizando a partir da main (alguns minutos)...');
+    log(`Nenhuma versão montada ainda: atualizando a partir da ${BRANCH} (alguns minutos)...`);
     return atualizar();
   }
   syncFiles();
