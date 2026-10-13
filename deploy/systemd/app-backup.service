@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup diário (banco, imagens e configuração) para fora da VM
+Wants=network-online.target
+After=network-online.target postgresql@17-main.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /opt/app/repo/deploy/backup.sh
+Nice=10
+IOSchedulingClass=idle

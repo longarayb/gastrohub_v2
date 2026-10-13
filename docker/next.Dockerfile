@@ -13,8 +13,10 @@ RUN pnpm dlx turbo@2 prune @app/${APP} --docker
 FROM base AS build
 ARG NEXT_PUBLIC_API_URL=http://localhost:3333
 ARG NEXT_PUBLIC_MENU_URL=http://localhost:3001
+# Next build workers (low-memory machines: 1).
+ARG NEXT_BUILD_CPUS=2
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} NEXT_PUBLIC_MENU_URL=${NEXT_PUBLIC_MENU_URL} \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_BUILD_CPUS=${NEXT_BUILD_CPUS} NEXT_TELEMETRY_DISABLED=1
 COPY --from=prune /repo/out/json/ .
 RUN pnpm install --frozen-lockfile
 COPY --from=prune /repo/out/full/ .

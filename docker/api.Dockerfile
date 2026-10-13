@@ -12,8 +12,14 @@ RUN pnpm dlx turbo@2 prune @app/api --docker
 
 FROM base AS build
 COPY --from=prune /repo/out/json/ .
+# The postinstall of @app/api runs `prisma generate`: it needs the schema and its config.
+COPY --from=prune /repo/out/full/apps/api/prisma ./apps/api/prisma
+COPY --from=prune /repo/out/full/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 RUN pnpm install --frozen-lockfile
 COPY --from=prune /repo/out/full/ .
+# Generated again with the whole project in place: during the install the tsconfig was missing and
+# the client would import its own files as ".ts" (fails at runtime).
+RUN pnpm --filter @app/api exec prisma generate
 RUN pnpm turbo run build --filter=@app/api
 RUN pnpm --filter @app/api deploy --prod --legacy /app
 
