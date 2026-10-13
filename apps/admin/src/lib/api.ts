@@ -1,5 +1,9 @@
 import type { ApiErrorBody, PlatformSessionDto } from '@app/shared';
 
+/**
+ * API address. Empty in production: the browser calls `/api` on the admin's own address and the
+ * proxy forwards it (no domain inside the build; docs/PROPOSTA_HOSPEDAGEM.md).
+ */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333';
 
 export class ApiError extends Error {
@@ -69,7 +73,7 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
 }
 
 function buildUrl(path: string, query?: Query): string {
-  const url = new URL(`/api/platform${path}`, API_URL);
+  const url = new URL(`/api/platform${path}`, API_URL || window.location.origin);
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined && value !== null && value !== '')
       url.searchParams.set(key, String(value));
