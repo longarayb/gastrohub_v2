@@ -21,6 +21,12 @@ export const ErrorCode = {
   PLAN_LIMIT: 'PLAN_LIMIT',
   /** Platform admin with a temporary password: only the password change is allowed. */
   PASSWORD_CHANGE_REQUIRED: 'PASSWORD_CHANGE_REQUIRED',
+  /** Public demo unit: sensitive actions are refused (D045). */
+  DEMO_MODE: 'DEMO_MODE',
   INTERNAL: 'INTERNAL_ERROR',
 } as const;
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
+
+/** Message of the actions refused in the public demo unit (D045). */
+export const DEMO_MODE_MESSAGE =
+  'Indisponível no ambiente de demonstração. Pedidos, caixa, mesas, cozinha, entregas e relatórios estão liberados.';

@@ -25,6 +25,7 @@ import { CouriersService } from './couriers.service.js';
 import { DeliveryAreasService } from './delivery-areas.service.js';
 import { DeliveryReportService } from './delivery-report.service.js';
 import { SettlementsService } from './settlements.service.js';
+import { BlockedInDemo } from '../../core/demo/demo-mode.js';
 
 const courierQuery = z.object({ courierId: z.string().min(1, 'Escolha o entregador') });
 const optionalCourierQuery = z.object({ courierId: z.string().optional() });
@@ -75,6 +76,7 @@ export class DeliveryController {
     return this.areas.update(id, body);
   }
 
+  @BlockedInDemo()
   @Delete('areas/:id')
   @HttpCode(204)
   @RequirePermissions(Permission.DELIVERY_MANAGE)

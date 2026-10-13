@@ -6,6 +6,7 @@ import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
 import { AuditModule } from './core/audit/audit.module.js';
 import { AppConfigModule } from './core/config/config.module.js';
+import { DemoModule } from './core/demo/demo.module.js';
 import { AllExceptionsFilter } from './core/errors/all-exceptions.filter.js';
 import { GeocodingModule } from './core/geocoding/geocoding.module.js';
 import { MailModule } from './core/mail/mail.module.js';
@@ -68,6 +69,7 @@ const isTest = process.env.NODE_ENV === 'test';
     GeocodingModule,
     AuditModule,
     StorageModule,
+    DemoModule,
     AuthModule,
     HealthModule,
     StoresModule,

@@ -35,6 +35,7 @@ import { PrismaService } from '../../core/prisma/prisma.service.js';
 import { DigitalMenuAdminService } from './digital-menu-admin.service.js';
 import { PublicMenuService } from './public-menu.service.js';
 import { PublicStoreGuard } from './public-store.guard.js';
+import { BlockedInDemo } from '../../core/demo/demo-mode.js';
 
 function idempotencyKey(value: string | undefined): string | null {
   if (!value) return null;
@@ -74,6 +75,7 @@ export class PublicMenuController {
   }
 
   @CreatesSale()
+  @BlockedInDemo()
   @Post('orders')
   @ApiOperation({ summary: 'Faz o pedido (pagamento na entrega ou na retirada)' })
   @ApiZodBody(publicOrderSchema)
@@ -113,6 +115,7 @@ export class DigitalMenuAdminController {
     return this.admin.settings();
   }
 
+  @BlockedInDemo()
   @Put('settings')
   @RequirePermissions(Permission.STORE_MANAGE)
   @ApiZodBody(digitalMenuSettingsSchema)
@@ -122,6 +125,7 @@ export class DigitalMenuAdminController {
     return this.admin.updateSettings(body);
   }
 
+  @BlockedInDemo()
   @Post('cover')
   @RequirePermissions(Permission.STORE_MANAGE)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } }))
@@ -135,6 +139,7 @@ export class DigitalMenuAdminController {
     return this.admin.updateCover(file);
   }
 
+  @BlockedInDemo()
   @Delete('cover')
   @RequirePermissions(Permission.STORE_MANAGE)
   removeCover() {
@@ -147,6 +152,7 @@ export class DigitalMenuAdminController {
     return this.admin.blockedPhones();
   }
 
+  @BlockedInDemo()
   @Post('blocked-phones')
   @RequirePermissions(Permission.STORE_MANAGE)
   @ApiZodBody(blockedPhoneSchema)
@@ -154,6 +160,7 @@ export class DigitalMenuAdminController {
     return this.admin.blockPhone(body);
   }
 
+  @BlockedInDemo()
   @Delete('blocked-phones/:id')
   @RequirePermissions(Permission.STORE_MANAGE)
   unblock(@Param('id') id: string) {

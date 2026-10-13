@@ -185,6 +185,12 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     // Same response whether or not the e-mail exists (prevents account enumeration).
     if (!user || !user.isActive) return;
+    // Demo users (D045): public credentials, no e-mail (same answer, nothing is sent).
+    const memberships = await this.prisma.membership.findMany({
+      where: { userId: user.id },
+      select: { store: { select: { demoMode: true } } },
+    });
+    if (memberships.length && memberships.every((m) => m.store.demoMode)) return;
 
     const token = randomBytes(32).toString('base64url');
     await this.prisma.passwordResetToken.create({

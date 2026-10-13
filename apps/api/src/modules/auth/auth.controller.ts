@@ -21,6 +21,7 @@ import { ApiZodBody, ZBody } from '../../core/validation/zod.js';
 import { type AuthUser, CurrentUser, Public } from './auth.decorators.js';
 import { DenySupport } from '../platform/billing.decorators.js';
 import { AuthService, type RequestMeta, type SessionWithRefresh } from './auth.service.js';
+import { BlockedInDemo } from '../../core/demo/demo-mode.js';
 
 export const REFRESH_COOKIE = 'app_refresh';
 
@@ -152,6 +153,7 @@ export class AuthController {
     return this.auth.switchStore(user.sub, body.storeId);
   }
 
+  @BlockedInDemo()
   @Post('change-password')
   @DenySupport()
   @HttpCode(204)

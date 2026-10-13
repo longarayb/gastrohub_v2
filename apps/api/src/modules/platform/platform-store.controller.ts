@@ -16,6 +16,7 @@ import { Public } from '../auth/auth.decorators.js';
 import { extractBearer } from '../auth/jwt-auth.guard.js';
 import { StoreNoticesService } from './store-notices.service.js';
 import { SupportService } from './support.service.js';
+import { BlockedInDemo } from '../../core/demo/demo-mode.js';
 
 /** Restaurant side of the platform (D042/D043): banners, terms and the support session panel. */
 @ApiTags('platform-store')
@@ -36,6 +37,7 @@ export class PlatformStoreController {
     return this.notices.notices();
   }
 
+  @BlockedInDemo()
   @Post('stores/current/terms')
   @HttpCode(204)
   @ApiBearerAuth()

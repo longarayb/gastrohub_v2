@@ -41,6 +41,8 @@ export interface PublicStoreDto {
   paymentMethods: DoorPaymentMethod[];
   privacyNotice: string;
   privacyVersion: string;
+  /** Public demo unit (D045): the menu opens but orders are not sent. */
+  demo: boolean;
 }
 
 export interface PublicDeliveryQuoteDto {
