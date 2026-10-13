@@ -13,7 +13,7 @@ import {
   resolveDeliveryArea,
   settlementSummary,
 } from '@app/shared';
-import type { PrismaClient } from '../../src/generated/prisma/client.js';
+import type { PrismaClient } from '../generated/prisma/client.js';
 
 const minutesAgo = (now: Date, minutes: number) => new Date(now.getTime() - minutes * 60_000);
 

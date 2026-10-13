@@ -23,7 +23,7 @@ import { Segmented } from '@app/ui/components/segmented';
 import { Notice } from '@app/ui/components/notice';
 import { toast } from '@app/ui/components/sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { Headset, Lock } from 'lucide-react';
+import { FlaskConical, Headset, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { errorMessage } from '@/lib/api';
 import { useSession } from '@/lib/auth';
@@ -95,7 +95,7 @@ function billingText(b: StoreBillingNoticeDto, manager: boolean) {
 }
 
 /**
- * Platform notices at the top of the panel (D042/D043): support session (everyone), billing
+ * Platform notices at the top of the panel (D042/D043): public demo (D045), support session (everyone), billing
  * (amounts only for owner and manager; read-only for everyone) and the terms the owner must
  * accept before using the panel.
  */
@@ -105,10 +105,17 @@ export function PlatformNotices() {
   if (!data) return null;
   const manager = session.role === 'OWNER' || session.role === 'MANAGER';
   const billing = data.billing ? billingText(data.billing, manager) : null;
-  if (!data.support && !billing && !data.termsRequired) return null;
+  if (!data.demoMode && !data.support && !billing && !data.termsRequired) return null;
 
   return (
     <div className="space-y-2 px-4 pt-3 xl:px-8">
+      {data.demoMode && (
+        <Notice tone="info" icon={FlaskConical} title="Ambiente de demonstração" role="status">
+          Restaurado toda noite. Pedidos, caixa, mesas, cozinha, entregas e relatórios estão
+          liberados; usuários, senhas, dados da empresa, impressão, exclusões e envio de imagens,
+          não.
+        </Notice>
+      )}
       {data.support && (
         <Notice
           tone="attention"

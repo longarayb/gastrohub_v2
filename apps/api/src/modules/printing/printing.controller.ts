@@ -28,6 +28,7 @@ import { PrintAgentsService } from './print-agents.service.js';
 import { PrintDocumentsService } from './print-documents.service.js';
 import { PrintJobsService } from './print-jobs.service.js';
 import { PrintersService } from './printers.service.js';
+import { BlockedInDemo } from '../../core/demo/demo-mode.js';
 
 /** Panel: agents, printers, settings, queue and documents (docs/DECISOES.md D035–D037). */
 @ApiTags('printing')
@@ -51,6 +52,7 @@ export class PrintingController {
 
   // ---- Agents ----
 
+  @BlockedInDemo()
   @Post('agents')
   @RequirePermissions(Permission.PRINTERS_MANAGE)
   @ApiOperation({ summary: 'Cadastra um computador que imprime e devolve o código de vínculo' })
@@ -59,6 +61,7 @@ export class PrintingController {
     return this.agents.create(body);
   }
 
+  @BlockedInDemo()
   @Patch('agents/:id')
   @RequirePermissions(Permission.PRINTERS_MANAGE)
   @ApiZodBody(printAgentSchema)
@@ -69,6 +72,7 @@ export class PrintingController {
     return this.agents.rename(id, body);
   }
 
+  @BlockedInDemo()
   @Post('agents/:id/pairing-code')
   @RequirePermissions(Permission.PRINTERS_MANAGE)
   @ApiOperation({ summary: 'Gera um novo código de vínculo (válido por 10 minutos)' })
@@ -76,6 +80,7 @@ export class PrintingController {
     return this.agents.pairingCode(id);
   }
 
+  @BlockedInDemo()
   @Post('agents/:id/revoke')
   @HttpCode(200)
   @RequirePermissions(Permission.PRINTERS_MANAGE)
@@ -86,6 +91,7 @@ export class PrintingController {
 
   // ---- Printers and settings ----
 
+  @BlockedInDemo()
   @Post('printers')
   @RequirePermissions(Permission.PRINTERS_MANAGE)
   @ApiZodBody(printerSchema)
@@ -93,6 +99,7 @@ export class PrintingController {
     return this.printers.create(body);
   }
 
+  @BlockedInDemo()
   @Patch('printers/:id')
   @RequirePermissions(Permission.PRINTERS_MANAGE)
   @ApiZodBody(printerSchema)
@@ -103,6 +110,7 @@ export class PrintingController {
     return this.printers.update(id, body);
   }
 
+  @BlockedInDemo()
   @Delete('printers/:id')
   @HttpCode(204)
   @RequirePermissions(Permission.PRINTERS_MANAGE)
@@ -118,6 +126,7 @@ export class PrintingController {
     return this.printers.test(id);
   }
 
+  @BlockedInDemo()
   @Put('settings')
   @RequirePermissions(Permission.PRINTERS_MANAGE)
   @ApiZodBody(printSettingsSchema)
@@ -125,6 +134,7 @@ export class PrintingController {
     return this.printers.updateSettings(body);
   }
 
+  @BlockedInDemo()
   @Put('sectors')
   @RequirePermissions(Permission.PRINTERS_MANAGE)
   @ApiOperation({ summary: 'Impressora e número de vias de cada setor de produção' })

@@ -44,6 +44,7 @@ import { CategoriesService } from './categories.service.js';
 import { ModifierGroupsService } from './modifier-groups.service.js';
 import { ProductsService } from './products.service.js';
 import { SectorsService } from './sectors.service.js';
+import { BlockedInDemo } from '../../core/demo/demo-mode.js';
 
 const imageUpload = () =>
   UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } }));
@@ -90,6 +91,7 @@ export class SectorsController {
     return this.sectors.update(id, body);
   }
 
+  @BlockedInDemo()
   @Delete(':id')
   @HttpCode(204)
   @RequirePermissions(Permission.MENU_MANAGE)
@@ -149,6 +151,7 @@ export class CategoriesController {
     return this.categories.setSizes(id, body);
   }
 
+  @BlockedInDemo()
   @Delete(':id')
   @HttpCode(204)
   @RequirePermissions(Permission.MENU_MANAGE)
@@ -217,6 +220,7 @@ export class ProductsController {
     return this.products.update(id, body);
   }
 
+  @BlockedInDemo()
   @Delete(':id')
   @HttpCode(204)
   @RequirePermissions(Permission.MENU_MANAGE)
@@ -267,6 +271,7 @@ export class ProductsController {
     return this.products.setSizePause(id, sizeId, null);
   }
 
+  @BlockedInDemo()
   @Post(':id/image')
   @RequirePermissions(Permission.MENU_MANAGE)
   @imageUpload()
@@ -278,6 +283,7 @@ export class ProductsController {
     return this.products.setImage(id, file);
   }
 
+  @BlockedInDemo()
   @Delete(':id/image')
   @RequirePermissions(Permission.MENU_MANAGE)
   removeImage(@Param('id') id: string) {
@@ -318,6 +324,7 @@ export class ModifierGroupsController {
     return this.groups.update(id, body);
   }
 
+  @BlockedInDemo()
   @Delete(':id')
   @HttpCode(204)
   @RequirePermissions(Permission.MENU_MANAGE)

@@ -46,6 +46,7 @@ import { CustomersService } from './customers.service.js';
 import { OrdersService } from './orders.service.js';
 import { TablesService } from './tables.service.js';
 import { TabsService } from './tabs.service.js';
+import { AllowedInDemo, BlockedInDemo } from '../../core/demo/demo-mode.js';
 
 const zVersionBody = z.object({ expectedVersion: z.number().int().min(0) });
 
@@ -120,6 +121,7 @@ export class OrdersController {
     return this.orders.sendRound(id, body.expectedVersion);
   }
 
+  @AllowedInDemo()
   @Delete(':id/items/:itemId')
   @RequirePermissions(Permission.ORDERS_CREATE)
   @ApiOperation({ summary: 'Remove um item ainda não enviado à cozinha' })
@@ -333,6 +335,7 @@ export class TablesController {
     return this.tables.createArea(body.name);
   }
 
+  @BlockedInDemo()
   @Delete('areas/:id')
   @HttpCode(204)
   @RequirePermissions(Permission.TABLES_MANAGE)

@@ -1,0 +1,9 @@
+[Unit]
+Description=Restaura a unidade de demonstração (demo-reset)
+After=docker.service postgresql@17-main.service app-backup.service
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/opt/app
+ExecStart=/usr/bin/docker compose --project-name app -f /opt/app/compose.prod.yml --env-file /opt/app/.env run --rm --no-deps api node dist/cli/demo-reset.js --yes

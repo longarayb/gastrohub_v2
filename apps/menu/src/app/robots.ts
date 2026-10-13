@@ -1,10 +1,13 @@
 import type { MetadataRoute } from 'next';
-import { MENU_URL } from '@/lib/api';
+import { requestOrigin } from '@/lib/origin';
 
-export default function robots(): MetadataRoute.Robots {
+// On request: the address comes from the request, not from the build (domain can change).
+export const dynamic = 'force-dynamic';
+
+export default async function robots(): Promise<MetadataRoute.Robots> {
   return {
     // Personal tracking links stay out of search engines.
     rules: { userAgent: '*', allow: '/', disallow: ['/*/pedido/', '/api/'] },
-    sitemap: `${MENU_URL}/sitemap.xml`,
+    sitemap: `${await requestOrigin()}/sitemap.xml`,
   };
 }

@@ -51,6 +51,19 @@ services:
       timeout: 5s
       retries: 10
 
+  # Migrations: a one-off step with the API image, before the API starts (as in production).
+  migrate:
+    profiles: ['full']
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    command: ['node_modules/.bin/prisma', 'migrate', 'deploy']
+    environment:
+      DATABASE_URL: postgresql://app:app_dev@postgres:5432/app_db?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
     profiles: ['full']
     build:
@@ -62,9 +75,14 @@ services:
       REDIS_URL: redis://redis:6379
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
+      STORAGE_DIR: /data/uploads
     ports:
       - '3333:3333'
+    volumes:
+      - uploads:/data/uploads
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -98,6 +116,20 @@ services:
     depends_on:
       - api
 
+  admin:
+    profiles: ['full']
+    build:
+      context: .
+      dockerfile: docker/next.Dockerfile
+      args:
+        APP: admin
+        NEXT_PUBLIC_API_URL: http://localhost:3333
+    ports:
+      - '3002:3000'
+    depends_on:
+      - api
+
 volumes:
   postgres-data:
   redis-data:
+  uploads:

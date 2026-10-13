@@ -1,0 +1,68 @@
+# HTTPS and routing (docs/DEPLOY.md). Caddy gets and renews the certificates by itself.
+# BASE_DOMAIN comes from /opt/app/.env (e.g. 203-0-113-10.sslip.io, later the real domain).
+#
+# Each app calls the API on its own address (/api, /socket.io): same site for the session
+# cookie, no CORS, and the images carry no domain.
+
+{
+	email {$ACME_EMAIL}
+}
+
+(common) {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
+
+(to_api) {
+	handle /api/* {
+		reverse_proxy api:3333
+	}
+	handle /socket.io/* {
+		reverse_proxy api:3333
+	}
+}
+
+painel.{$BASE_DOMAIN} {
+	import common
+	import to_api
+	handle {
+		reverse_proxy web:3000
+	}
+}
+
+# /api/* goes to the API here too: the menu's own /api/revalidate (internal, called by the API
+# at http://menu:3000) is not reachable from outside.
+cardapio.{$BASE_DOMAIN} {
+	import common
+	import to_api
+	handle {
+		reverse_proxy menu:3000
+	}
+}
+
+admin.{$BASE_DOMAIN} {
+	import common
+	import to_api
+	handle {
+		reverse_proxy admin:3000
+	}
+}
+
+# Swagger (/docs), uploaded images (/uploads) and the print agent.
+api.{$BASE_DOMAIN} {
+	import common
+	reverse_proxy api:3333
+}
+
+logs.{$BASE_DOMAIN} {
+	import common
+	basic_auth {
+		{$DOZZLE_USER} {$DOZZLE_PASSWORD_HASH}
+	}
+	reverse_proxy dozzle:8080
+}

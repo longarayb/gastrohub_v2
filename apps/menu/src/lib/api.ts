@@ -1,11 +1,17 @@
 /**
  * Access to the public API of the digital menu. On the server (pages, metadata) the API may be
- * reached through an internal address; in the browser through the public one.
+ * reached through an internal address; in the browser through the public one, which is empty in
+ * production (relative `/api` on the menu's own address, forwarded by the proxy).
  */
 const PUBLIC_API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333';
-const SERVER_API = process.env.API_INTERNAL_URL || PUBLIC_API;
+const SERVER_API = process.env.API_INTERNAL_URL || PUBLIC_API || 'http://localhost:3333';
 
-export const MENU_URL = process.env.NEXT_PUBLIC_MENU_URL ?? 'http://localhost:3001';
+/**
+ * Public address of the menu, read on the server when it runs (not baked into the build), like
+ * in the API. Only a fallback: links use the address of the request (`requestOrigin`).
+ */
+export const MENU_URL =
+  process.env.MENU_PUBLIC_URL || process.env.NEXT_PUBLIC_MENU_URL || 'http://localhost:3001';
 
 export class PublicApiError extends Error {
   constructor(

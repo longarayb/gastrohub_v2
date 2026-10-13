@@ -140,6 +140,7 @@ export class PublicMenuService {
       paymentMethods: [...DOOR_PAYMENT_METHODS],
       privacyNotice: this.privacyNotice(store),
       privacyVersion: privacyNoticeVersion(this.privacyNotice(store)),
+      demo: store.demoMode,
     };
   }
 

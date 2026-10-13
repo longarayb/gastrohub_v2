@@ -54,7 +54,15 @@ import { api, apiPatch, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { type StoreDto, storeKeys, useCurrentStore } from '@/lib/stores';
 
-const MENU_URL = process.env.NEXT_PUBLIC_MENU_URL ?? 'http://localhost:3001';
+/**
+ * Digital menu address. In production the build has none (NEXT_PUBLIC_MENU_URL empty): the menu
+ * lives next to the panel, `painel.<base>` → `cardapio.<base>`.
+ */
+function menuBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_MENU_URL ?? 'http://localhost:3001';
+  if (configured || typeof window === 'undefined') return configured;
+  return window.location.origin.replace('//painel.', '//cardapio.');
+}
 
 function StoreDataForm({ store }: { store: StoreDto }) {
   const queryClient = useQueryClient();
@@ -115,7 +123,7 @@ function StoreDataForm({ store }: { store: StoreDto }) {
             control={form.control}
             name="slug"
             label="Endereço do cardápio digital"
-            hint={`${MENU_URL}/${form.watch('slug') || 'seu-restaurante'}`}
+            hint={`${menuBaseUrl()}/${form.watch('slug') || 'seu-restaurante'}`}
           />
           <div className="border-t pt-2 md:col-span-2">
             <p className="text-sm font-medium">Endereço</p>

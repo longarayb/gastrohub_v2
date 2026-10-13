@@ -26,7 +26,7 @@ import {
   weekdayOfDate,
   zonedTimeToInstant,
 } from '@app/shared';
-import type { Prisma, PrismaClient } from '../../src/generated/prisma/client.js';
+import type { Prisma, PrismaClient } from '../generated/prisma/client.js';
 
 /** Small deterministic PRNG (mulberry32). */
 function rng(seed: number) {

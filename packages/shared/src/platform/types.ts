@@ -286,6 +286,8 @@ export interface StoreNoticesDto {
   termsRequired: { termsVersion: string; privacyVersion: string } | null;
   /** Plan modules (the panel hides what is not included). Null = no subscription (all). */
   modules: PlatformModule[] | null;
+  /** Public demo unit (D045): banner "Ambiente de demonstração, restaurado toda noite". */
+  demoMode: boolean;
 }
 
 /** Signup availability for the public /cadastro page. */

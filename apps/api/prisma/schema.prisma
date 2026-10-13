@@ -85,6 +85,9 @@ model Store {
   logoUrl        String?
   timezone       String  @default("America/Sao_Paulo")
   isActive       Boolean @default(true)
+  /// Public demo (D045): sensitive actions refused by the API, banner in the panel. Only the
+  /// `demo-reset` command turns it on.
+  demoMode       Boolean @default(false)
 
   addressCep          String?
   addressStreet       String?

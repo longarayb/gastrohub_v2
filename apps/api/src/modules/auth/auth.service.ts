@@ -185,6 +185,12 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     // Same response whether or not the e-mail exists (prevents account enumeration).
     if (!user || !user.isActive) return;
+    // Demo users (D045): public credentials, no e-mail (same answer, nothing is sent).
+    const memberships = await this.prisma.membership.findMany({
+      where: { userId: user.id },
+      select: { store: { select: { demoMode: true } } },
+    });
+    if (memberships.length && memberships.every((m) => m.store.demoMode)) return;
 
     const token = randomBytes(32).toString('base64url');
     await this.prisma.passwordResetToken.create({
@@ -201,6 +207,15 @@ export class AuthService {
   /** Invitation e-mail with the link to set the first password (7 days). */
   async sendInvite(userId: string, storeName: string): Promise<void> {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    const link = await this.createInviteLink(userId);
+    await this.mail.sendInvite(user.email, user.name, storeName, link);
+  }
+
+  /**
+   * New invitation link (7 days), replacing the previous ones. Also copied by the platform admin
+   * to send by WhatsApp while e-mails from a domain without SPF/DKIM land in spam.
+   */
+  async createInviteLink(userId: string): Promise<string> {
     const token = randomBytes(32).toString('base64url');
     // A new invitation replaces the previous links.
     await this.prisma.passwordResetToken.updateMany({
@@ -215,8 +230,7 @@ export class AuthService {
         expiresAt: new Date(Date.now() + INVITE_TOKEN_TTL_MS),
       },
     });
-    const link = `${this.config.get('WEB_PUBLIC_URL')}/convite?token=${token}`;
-    await this.mail.sendInvite(user.email, user.name, storeName, link);
+    return `${this.config.get('WEB_PUBLIC_URL')}/convite?token=${token}`;
   }
 
   /** The invited user sets the first password and signs in. */

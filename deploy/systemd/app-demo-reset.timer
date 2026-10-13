@@ -1,0 +1,9 @@
+[Unit]
+Description=Demonstração restaurada toda noite às 04:00 de Brasília
+
+[Timer]
+OnCalendar=*-*-* 04:00 America/Sao_Paulo
+Persistent=true
+
+[Install]
+WantedBy=timers.target

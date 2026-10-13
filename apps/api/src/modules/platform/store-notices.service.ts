@@ -36,11 +36,12 @@ export class StoreNoticesService {
     const session = await this.support.activeForStore(storeId);
     const store = await this.prisma.store.findUniqueOrThrow({
       where: { id: storeId },
-      select: { organizationId: true },
+      select: { organizationId: true, demoMode: true },
     });
 
     let termsRequired: StoreNoticesDto['termsRequired'] = null;
-    if (role === 'OWNER') {
+    // The public demo (D045) is not a customer: visitors never accept terms in its name.
+    if (role === 'OWNER' && !store.demoMode) {
       const latest = await this.prisma.termsAcceptance.findFirst({
         where: { organizationId: store.organizationId },
         orderBy: { acceptedAt: 'desc' },
@@ -74,6 +75,7 @@ export class StoreNoticesService {
         : null,
       termsRequired,
       modules: billing ? billing.modules : null,
+      demoMode: store.demoMode,
     };
   }
 

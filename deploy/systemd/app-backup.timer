@@ -1,0 +1,9 @@
+[Unit]
+Description=Backup diário às 03:30 de Brasília
+
+[Timer]
+OnCalendar=*-*-* 03:30 America/Sao_Paulo
+Persistent=true
+
+[Install]
+WantedBy=timers.target

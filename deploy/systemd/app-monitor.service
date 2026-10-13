@@ -1,0 +1,6 @@
+[Unit]
+Description=Monitoramento (saúde, Postgres, disco, memória, carga) com aviso ao Healthchecks.io
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /opt/app/repo/deploy/monitor.sh

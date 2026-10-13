@@ -3,7 +3,7 @@
  * phone, an order refused with a reason for the customer, a PIX the customer reported as paid
  * (on the courier's route) and searches from neighborhoods without a delivery area.
  */
-import type { PrismaClient } from '../../src/generated/prisma/client.js';
+import type { PrismaClient } from '../generated/prisma/client.js';
 
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000);
 

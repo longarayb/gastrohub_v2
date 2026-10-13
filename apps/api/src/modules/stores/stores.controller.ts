@@ -22,6 +22,7 @@ import {
 import { ApiZodBody, ZBody } from '../../core/validation/zod.js';
 import { RequirePermissions } from '../auth/auth.decorators.js';
 import { StoresService } from './stores.service.js';
+import { BlockedInDemo } from '../../core/demo/demo-mode.js';
 
 @ApiTags('stores')
 @ApiBearerAuth()
@@ -35,6 +36,7 @@ export class StoresController {
     return this.stores.getCurrent();
   }
 
+  @BlockedInDemo()
   @Patch('current')
   @RequirePermissions(Permission.STORE_MANAGE)
   @ApiOperation({ summary: 'Atualiza dados cadastrais e endereço da unidade' })
@@ -43,6 +45,7 @@ export class StoresController {
     return this.stores.update(body);
   }
 
+  @BlockedInDemo()
   @Patch('current/settings')
   @RequirePermissions(Permission.STORE_MANAGE)
   @ApiOperation({ summary: 'Atualiza configurações operacionais (taxa de serviço, KDS etc.)' })
@@ -58,6 +61,7 @@ export class StoresController {
     return this.stores.getPix();
   }
 
+  @BlockedInDemo()
   @Patch('current/pix')
   @RequirePermissions(Permission.STORE_MANAGE)
   @ApiOperation({ summary: 'Define ou remove a chave PIX (validada e normalizada)' })
@@ -66,6 +70,7 @@ export class StoresController {
     return this.stores.updatePix(body);
   }
 
+  @BlockedInDemo()
   @Post('current/logo')
   @RequirePermissions(Permission.STORE_MANAGE)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES } }))
@@ -85,6 +90,7 @@ export class StoresController {
     return this.stores.getHours();
   }
 
+  @BlockedInDemo()
   @Put('current/hours')
   @RequirePermissions(Permission.STORE_MANAGE)
   @ApiOperation({ summary: 'Substitui os horários de funcionamento' })
@@ -99,6 +105,7 @@ export class StoresController {
     return { isOpen: await this.stores.isOpenNow() };
   }
 
+  @BlockedInDemo()
   @Post()
   @RequirePermissions(Permission.STORE_CREATE)
   @ApiOperation({ summary: 'Cria uma nova unidade na mesma organização' })

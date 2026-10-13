@@ -11,6 +11,7 @@ import {
 import { ApiZodBody, ZBody } from '../../core/validation/zod.js';
 import { RequirePermissions } from '../auth/auth.decorators.js';
 import { UsersService } from './users.service.js';
+import { BlockedInDemo } from '../../core/demo/demo-mode.js';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -25,6 +26,7 @@ export class UsersController {
     return this.users.list();
   }
 
+  @BlockedInDemo()
   @Post()
   @ApiOperation({ summary: 'Cria usuário ou dá acesso a um usuário existente' })
   @ApiZodBody(createUserSchema)
@@ -32,6 +34,7 @@ export class UsersController {
     return this.users.create(body);
   }
 
+  @BlockedInDemo()
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza papel, status ou dados do usuário' })
   @ApiZodBody(updateUserSchema)

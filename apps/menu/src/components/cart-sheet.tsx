@@ -722,12 +722,17 @@ export function CartSheet({
               </Label>
             </section>
 
+            {store.demo && (
+              <p role="status" className="rounded-lg bg-muted p-3 text-sm">
+                Cardápio de demonstração: dá para montar o pedido, mas ele não é enviado.
+              </p>
+            )}
             <Button
               type="submit"
               size="lg"
               className="w-full"
               loading={busy}
-              disabled={!preview?.canOrder}
+              disabled={!preview?.canOrder || store.demo}
             >
               Enviar pedido{preview ? ` · ${formatBRL(preview.totalCents)}` : ''}
             </Button>
