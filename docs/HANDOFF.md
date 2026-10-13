@@ -2,11 +2,11 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções e regras de trabalho em duas máquinas), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-13**, no **Surface** (WSL): ambiente atualizado (`.env` com as variáveis da plataforma, `pnpm install`, migrations, seed; plataforma 16/16 e teclado 7/7) e **proposta da hospedagem revisada** com o Postgres fora do Docker, na branch `docs/hosting-proposal-v2`, **aguardando aprovação**. Antes, em **2026-10-12**, no **desktop de casa**: **`feat/platform-admin` concluída e integrada na `main`** (D041–D044), depois a `fix/lan-admin` (painel da plataforma no celular; senha temporária do admin com troca obrigatória e validade de 24 h) e a **proposta da hospedagem salva em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), aguardando aprovação**. A próxima sessão é no **Surface**. Em 2026-10-11, decisões da hospedagem e plano dos marketplaces registrados. Em 2026-10-10, no desktop de casa (`D:\GastroHub_v2`, Windows): ambiente atualizado e **teste de reinicialização do agente de impressão concluído**. Antes disso (2026-10-09, Surface, no WSL), a `feat/redesign` foi aprovada, validada e integrada na `main`.
+> Atualizado em **2026-10-13**, no **Surface** (WSL): ambiente atualizado (`.env` com as variáveis da plataforma, `pnpm install`, migrations, seed), **proposta da hospedagem aprovada** (merge da `docs/hosting-proposal-v2`) e **código da hospedagem pronto e testado localmente na `chore/hosting`** (D045 modo demonstração, D046 arquitetura; ensaio local de produção 21/21). **Próximo passo: o Braian contrata a VM e cria as contas** (docs/DEPLOY.md, Parte 1). Antes, em **2026-10-12**, no **desktop de casa**: **`feat/platform-admin` concluída e integrada na `main`** (D041–D044), depois a `fix/lan-admin` (painel da plataforma no celular; senha temporária do admin com troca obrigatória e validade de 24 h) e a **proposta da hospedagem salva em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), aguardando aprovação**. A próxima sessão é no **Surface**. Em 2026-10-11, decisões da hospedagem e plano dos marketplaces registrados. Em 2026-10-10, no desktop de casa (`D:\GastroHub_v2`, Windows): ambiente atualizado e **teste de reinicialização do agente de impressão concluído**. Antes disso (2026-10-09, Surface, no WSL), a `feat/redesign` foi aprovada, validada e integrada na `main`.
 
 ## Estado atual
 
-- `main` tem tudo até o **painel da plataforma** (merge da `feat/platform-admin`, D041–D044) e o redesign (D039–D040). Todas as branches estão no GitHub. **Nenhuma frente em andamento**; qualquer branch nova pode alterar o schema.
+- `main` tem tudo até o **painel da plataforma** (merge da `feat/platform-admin`, D041–D044), o redesign (D039–D040) e a proposta da hospedagem aprovada. Todas as branches estão no GitHub. **Frente em andamento: `chore/hosting`** (código pronto; falta o ensaio na VM). Ela **alterou o schema** (migration `demo_mode`: `Store.demoMode`); até o merge, só ela altera o schema do Prisma. No desktop, ao trocar para ela: `pnpm --filter @app/api db:deploy`.
 - **Surface atualizado em 2026-10-13** (passos abaixo feitos; cópia do `.env` anterior em `.env.bak-2026-10-13`, fora do git). Referência dos passos:
   1. `git fetch`, `git checkout main`, `git pull`.
   2. `pnpm install` (app novo `apps/admin`) e, em `tools/ui-walkthrough`, `npm install`.
@@ -108,22 +108,27 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### Agora: hospedagem (`chore/hosting`) — aprovada em 2026-10-13, implementando o código
+### Agora: hospedagem (`chore/hosting`) — código pronto; o Braian contrata a VM e cria as contas
 
-A proposta está em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), **revisada em 2026-10-13** na branch `docs/hosting-proposal-v2` (**aguardando aprovação; nada implementado**), com a seção "O que mudou nesta revisão" e as decisões pendentes no fim. Pontos que a revisão cobriu (pedidos em 2026-10-12):
+Aprovada em 2026-10-13 ([PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), decisões no fim; D045 e D046). Passo a passo do servidor e roteiro de operação em [DEPLOY.md](DEPLOY.md).
 
-1. **Postgres de produção instalado direto na VM**, fora do Docker, como cluster próprio em `/mnt/dados` (Postgres 17 pelo PGDG, acesso dos containers pela rede do Docker com `listen_addresses` e `pg_hba.conf` restritos, 5432 nunca exposta, memória ajustada, atualizações, e o que muda em backup, restore, migrations e `compose.prod.yml`; verificar se `/mnt/dados` é disco separado ou pasta);
-2. imagens no GHCR públicas ou privadas (e a autenticação do servidor, se privadas);
-3. **modo demonstração** da unidade Demo (credenciais públicas: bloqueios e faixa "Ambiente de demonstração, restaurado toda noite");
-4. botão "copiar link do convite" (**aprovado**);
-5. snapshots da Contabo no DEPLOY.md;
-6. servidor em UTC e agendamentos no horário de Brasília;
-7. senha do Dozzle pelo `gen-secrets.sh`;
-8. execução no servidor provavelmente pelo Claude por SSH, com aprovação a cada passo, e o DEPLOY.md funcionando sozinho.
+**Feito na `chore/hosting` (testado localmente):**
 
-Apresentar a proposta revisada e **não começar a codar antes da aprovação**.
+- Apps chamam a API pelo **próprio endereço** (`NEXT_PUBLIC_*` vazios no build); o cardápio lê o endereço ao rodar.
+- **SMTP** com usuário, senha e TLS; a API **recusa iniciar em produção** com segredo de desenvolvimento, endereço local ou e-mail sem TLS.
+- **Seed** protegido (recusa produção e banco remoto) e **`demo-reset`** (só a unidade demo, 30 dias, aberta das 04:30 às 04:00, modo demonstração ligado); código da Demo em `apps/api/src/demo`.
+- **Modo demonstração** (D045) e botão **"Copiar link do convite"** no painel da plataforma.
+- Imagens: migrations como passo separado, imagem do admin, containers sem root; **workflow `images`** (GitHub Actions → GHCR), que por enquanto roda também na `chore/hosting` (tirar essa branch do workflow no merge).
+- `deploy/`: `compose.prod.yml`, `Caddyfile`, `server-setup.sh`, `gen-secrets.sh`, `db-setup.sh`, `deploy.sh`, `rollback.sh`, `healthcheck.sh`, `backup.sh`, `restore.sh`, `monitor.sh`, timers do systemd e `local-check.sh` (ensaio local de produção: 21/21; `prod-smoke.mjs` no navegador: 5/5). O ensaio achou e corrigiu: a imagem da API nunca montava com o Prisma 7 e o `.env` era lido como código de shell.
+- Validação (2026-10-13, Surface/WSL): `pnpm check` 27/27, `format:check`, e2e 131/131 (inclui `demo-mode.e2e` e o link do convite), os 11 roteiros visuais com seed limpo antes de cada um (auth 20, menu 15, orders 18, keyboard 7, pos 12, kds 8, delivery 16, digital-menu 11, printing 13, dashboard 12, platform-admin 16) e a acessibilidade em 86 telas, sem violação séria ou crítica.
 
-**Decisões já tomadas (2026-10-11; detalhes no ROADMAP, "Hospedagem: decisões"):** VM na **Contabo**, região **EUA (East)**, ~**US$ 20/mês**, configurada pelo Braian do zero com **Docker Compose**; primeiro uso como **demonstração, só com dados fictícios**; domínio ainda não definido, então a proposta deve funcionar com um **domínio provisório ou sslip.io** e permitir trocar depois; **backups diários do Postgres enviados para fora da VM** (ex.: Backblaze B2 ou Cloudflare R2).
+**Próximos passos (nesta ordem):**
+
+1. **Braian:** contas e VM (DEPLOY.md, Parte 1): chave SSH e chave `age` no computador; Contabo Cloud VPS 20 US East com Ubuntu 24.04 (ver se o pedido permite partição para `/mnt/dados`; anotar quantos snapshots o plano inclui); Backblaze B2 (bucket, regras por prefixo, chave sem apagar); Brevo; Healthchecks.io (dois checks); depois da primeira execução do workflow `images`, tornar os 4 pacotes do GHCR públicos.
+2. **Ensaio na VM** pelo DEPLOY.md, Parte 2, com o Claude por SSH e aprovação a cada passo, snapshot antes de cada etapa: `server-setup.sh`, fechar o SSH, segredos, banco (porta 5432 fechada de fora), rclone, primeiro deploy, `demo-reset` e primeiro admin, **teste de restauração**, timers, **reinício da VM**.
+3. Corrigir o DEPLOY.md com o que o ensaio mostrar; validação pelo celular; merge da `chore/hosting` (tirando a branch do workflow).
+
+**A conferir no ensaio na VM** (não dá para testar no Surface): o Postgres escutando em `172.30.0.1` depois do reinício (ordem do boot); a regra do ufw para `br-app`; o `unattended-upgrades` com a origem do PGDG; os certificados do sslip.io; o envio pela Brevo; o `rclone` com o B2 e a retenção por prefixo.
 
 ### Depois da hospedagem: integrações com marketplaces
 
@@ -147,13 +152,14 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-- Nenhuma sobre a hospedagem (aprovada em 2026-10-13; decisões no fim de [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md)). Quando o código estiver pronto, o Braian contrata a VM e cria as contas (B2, Brevo, Healthchecks).
+- Contratar a VM e criar as contas (DEPLOY.md, Parte 1) para o ensaio no servidor.
 - Textos dos termos de uso e da privacidade (`packages/shared/src/platform/legal.ts`): provisórios, **revisar com apoio jurídico** antes de clientes reais (mudar o texto exige mudar a versão, e os donos aceitam de novo).
 
 ## Lembretes de ambiente
 
 - **Testar no celular:** `pnpm start:lite --menu --lan` e `pnpm lan:links` (mesma rede Wi-Fi; regra do firewall em docs/SETUP.md). Prévia do link no WhatsApp: `pnpm tunnel:menu` (túnel temporário que se fecha em 30 min; expõe o ambiente de desenvolvimento).
 
+- Surface: o WSL está em **rede espelhada** (`networkingMode=mirrored` no `.wslconfig`, desde 2026-10-13) com a regra `AppDevLan` no firewall do Hyper-V, para outro aparelho abrir o `--lan` (docs/SETUP.md, "Testar no celular"). Mudar o tipo da rede do Wi-Fi reinicia o WSL (o Docker Desktop pode precisar de `docker desktop restart`).
 - Surface (8 GB, projeto no WSL limitado a 5 GB + 8 GB de troca pelo `C:\Users\braia\.wslconfig`): `.env` com `POSTGRES_PORT=5433`, `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1`. Playwright headless, um navegador, sem paralelismo; pare os servidores antes de builds.
 - Depois de reiniciar o Windows, abra o Docker Desktop antes do `pnpm test:e2e`/`start:lite` (o `global-setup` do e2e falha com "dockerDesktopLinuxEngine" se o engine estiver parado).
 - Roteiros visuais: `pnpm db:seed` antes de cada um (eles alteram pedidos e saídas).

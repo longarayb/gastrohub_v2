@@ -18,7 +18,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Dashboard e relatórios (dashboard do dia em tempo real com comparação e "Atenção agora"; vendas com curva ABC e mapa de calor; controle de perdas; tempos do KDS; rede para o dono; CSV e impressão; conciliação exata com o caixa; 90 dias de histórico no seed) | `feat/dashboard` | ✅ |
 | Redesign do painel (tema do [DESIGN.md](DESIGN.md) em todas as telas, escuro como padrão e claro equivalente; componentes base; KDS com a mesma paleta) | `feat/redesign` | ✅ concluído (2026-10-09; D039, D040) |
 | Painel admin da plataforma (app `admin` com login e 2FA próprios, clientes, planos, assinaturas, mensalidades manuais, inadimplência com somente leitura fora do expediente, acesso de suporte, aceite dos termos) | `feat/platform-admin` | ✅ concluído (2026-10-12; D041–D044) |
-| Hospedagem (servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações; decisões já tomadas em "Hospedagem: decisões") | `chore/hosting` | 🚧 proposta aprovada em 2026-10-13 ([PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md)); código em andamento |
+| Hospedagem (servidor, domínio, HTTPS, backups, monitoramento e publicação de atualizações; decisões já tomadas em "Hospedagem: decisões") | `chore/hosting` | 🚧 código pronto e testado localmente (D045, D046; [DEPLOY.md](DEPLOY.md)); falta contratar a VM e o ensaio no servidor |
 | Integração iFood (API própria) | `feat/ifood` | ⏳ depois da hospedagem (ver "Integrações com marketplaces") |
 | Adaptador Open Delivery (padrão da Abrasel; 99Food e Keeta) | `feat/open-delivery` | ⏳ depois do iFood |
 | Aiqfome | — | ⏳ a verificar (forma de integração ainda não levantada) |
@@ -52,6 +52,8 @@ Entram pelo ponto de extensão `MarketplaceAdapter` (pedidos com `source` e cód
 - **Organização em somente leitura** (inadimplência, `feat/platform-admin`): quando as integrações existirem, todas as unidades dela devem aparecer como **loja fechada** nas plataformas (sem receber pedidos novos), pelo mesmo horário em que o painel passa a somente leitura.
 
 ## Antes do lançamento (importante)
+
+- **Backup contínuo do banco** antes de dados reais de clientes: hoje o backup é diário (perda de até 24 h, aceitável para a demonstração); acrescentar envio contínuo do WAL para o B2 (pgBackRest ou WAL-G), com perda de minutos (D046).
 
 - **Assinatura de código do agente de impressão — requisito obrigatório** (`instalar-impressao.exe`, `print-agent.exe` e o `PrintAgentService.exe` do WinSW, que também não é assinado). Motivo (2026-10-08): o **Smart App Control do Windows 11** bloqueia executáveis sem assinatura nem reputação — no Surface ele passou a bloquear até o `pnpm-native.exe`. Num computador de restaurante com Windows 11 recém-instalado (o Smart App Control vem ligado em instalações novas), o agente pode simplesmente não rodar; não é mais só o aviso do SmartScreen. Antes do lançamento, pesquisar e decidir:
   - **Serviço de assinatura da Microsoft no Azure** (Trusted Signing, renomeado para Artifact Signing): verificar **se está disponível para empresas no Brasil** (no início era restrito a EUA, Canadá, UE e Reino Unido para organizações), o **custo mensal**, as exigências de validação da empresa (tempo de existência, documentos) e, principalmente, **se a assinatura dá reputação imediata no Smart App Control** (ou se ainda depende de reputação acumulada).

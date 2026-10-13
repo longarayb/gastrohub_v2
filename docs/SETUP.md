@@ -246,6 +246,14 @@ New-NetFirewallRule -DisplayName "App dev (rede local)" -Direction Inbound -Prot
 
 A regra vale só para redes **Privadas**: em Configurações › Rede e Internet › Wi-Fi › (sua rede), marque "Rede privada". Nunca use `-Profile Public` (Wi-Fi de café, aeroporto). Para remover depois: `Remove-NetFirewallRule -DisplayName "App dev (rede local)"`.
 
+**Com o projeto no WSL (Surface):** o WSL precisa usar o mesmo IP do Wi-Fi. Em `C:\Users\<você>\.wslconfig`, na seção `[wsl2]`, acrescente `networkingMode=mirrored` e rode `wsl --shutdown` (o Docker Desktop reinicia junto; se ficar em "unable to start", `docker desktop restart`). Libere também o firewall do WSL (PowerShell como administrador, uma vez):
+
+```powershell
+New-NetFirewallHyperVRule -Name "AppDevLan" -DisplayName "App dev (rede local, WSL)" -Direction Inbound -VMCreatorId '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -Protocol TCP -LocalPorts 3000,3001,3002,3333
+```
+
+No modo espelhado o próprio Windows não abre o sistema pelo IP (só por `localhost`); outros aparelhos abrem. Trocar a rede de Pública para Privada (ou mudar de rede) reinicia o WSL: suba os servidores de novo. Para remover: `Remove-NetFirewallHyperVRule -Name "AppDevLan"`. Configurado no Surface em 2026-10-13.
+
 Observações:
 
 - O modo `--lan` gera um build diferente (com o IP); ao voltar para `pnpm start:lite` sem `--lan`, ele recompila o painel e o cardápio.

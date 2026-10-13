@@ -8,6 +8,8 @@ Passam a qualquer hora: o seed deixa a unidade aberta e no mesmo dia de negócio
 
 **Capturas do redesign:** `SHOTS=<pasta> node screens.mjs` captura as telas principais nos dois temas, no computador e no celular (avisa rolagem lateral), em `docs/screenshots/redesign/<pasta>/` (fora do git). Com `SHOTS_DIR=../../docs/screenshots/final DEVICES=computador ONLY=login,painel,pedidos,pedidos-novo,caixa,mesas,kds,relatorios-vendas` grava o conjunto versionado.
 
+**Produção simulada:** `prod-smoke.mjs` abre num navegador o ensaio local de produção (`KEEP=1 bash deploy/local-check.sh`, com as imagens montadas): login e tempo real pelo endereço do próprio painel, bloqueio do modo demonstração, cardápio e admin (docs/DEPLOY.md).
+
 **Acessibilidade:** `npm run a11y` (precisa de `pnpm start:lite --menu`) passa o axe-core (WCAG 2.1 A e AA) nas telas principais, nos dois temas, no computador e no celular; falha com violação séria ou crítica (`ONLY=login,caixa` limita as telas).
 
 ```powershell
