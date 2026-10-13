@@ -108,7 +108,7 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### Agora: aprovação da proposta da hospedagem revisada (`chore/hosting`)
+### Agora: hospedagem (`chore/hosting`) — aprovada em 2026-10-13, implementando o código
 
 A proposta está em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), **revisada em 2026-10-13** na branch `docs/hosting-proposal-v2` (**aguardando aprovação; nada implementado**), com a seção "O que mudou nesta revisão" e as decisões pendentes no fim. Pontos que a revisão cobriu (pedidos em 2026-10-12):
 
@@ -147,7 +147,7 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-- Aprovar a proposta da hospedagem revisada ([PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), branch `docs/hosting-proposal-v2`) e as 8 decisões pendentes do fim do arquivo (Actions + deploy manual, GHCR público ou privado, B2 ou R2, domínio agora ou depois, restauração da demo, lista do modo demonstração, `/mnt/dados` pasta ou partição, ensaio na VM).
+- Nenhuma sobre a hospedagem (aprovada em 2026-10-13; decisões no fim de [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md)). Quando o código estiver pronto, o Braian contrata a VM e cria as contas (B2, Brevo, Healthchecks).
 - Textos dos termos de uso e da privacidade (`packages/shared/src/platform/legal.ts`): provisórios, **revisar com apoio jurídico** antes de clientes reais (mudar o texto exige mudar a versão, e os donos aceitam de novo).
 
 ## Lembretes de ambiente

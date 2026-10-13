@@ -1,6 +1,6 @@
 # Proposta: hospedagem (`chore/hosting`)
 
-> **Status: revisada em 2026-10-13 (Surface), aguardando aprovação.** Nada foi implementado. A primeira versão (2026-10-12, desktop de casa) foi revista com os oito pontos pedidos pelo Braian; o principal é o **Postgres instalado direto na VM, fora do Docker, com os dados em `/mnt/dados`**. A seção "O que mudou nesta revisão" resume as diferenças.
+> **Status: aprovada em 2026-10-13**, com as decisões no fim deste arquivo; implementação na branch `chore/hosting`. A primeira versão (2026-10-12, desktop de casa) foi revista com os oito pontos pedidos pelo Braian; o principal é o **Postgres instalado direto na VM, fora do Docker, com os dados em `/mnt/dados`**. A seção "O que mudou nesta revisão" resume as diferenças.
 
 Decisões já tomadas (2026-10-11, ROADMAP "Hospedagem: decisões"): VM na **Contabo**, região **EUA (East)**, cerca de **US$ 20/mês**, configurada do zero com **Docker Compose**; primeiro uso como **demonstração, só com dados fictícios**; **domínio provisório ou sslip.io**, trocável depois; **backup diário do Postgres fora da VM**.
 
@@ -226,13 +226,13 @@ O Postgres no host não muda o custo. Preços de 2026-10-12; conferir nos sites 
 3. **Ensaio na VM nova** (só dados fictícios), seguindo o DEPLOY.md, com snapshot antes de cada etapa: servidor, Postgres, primeiro deploy, backup, **restauração**, `rollback.sh` e **reinício da VM** (Postgres e containers voltam sozinhos, nessa ordem).
 4. Monitoramento e alertas conferidos, validação pelo celular e o DEPLOY.md corrigido com o que o ensaio mostrar.
 
-## Decisões pendentes
+## Decisões (aprovadas em 2026-10-13)
 
-1. Montar as imagens no **GitHub Actions** e publicar com `deploy.sh` manual no servidor? (recomendado: sim)
-2. **GHCR público** (recomendado) ou privado?
-3. **B2** (recomendado) ou R2?
-4. Comprar um domínio agora, ou começar com sslip.io e o botão "copiar link do convite"?
-5. Restauração da demo **toda noite às 04:00** (recomendado)?
-6. Modo demonstração: aprovar a lista acima, incluindo o **bloqueio de envio de imagens** (sugestão minha)?
-7. **`/mnt/dados` como pasta** no disco do plano (o mais provável na Contabo) ou, se o pedido permitir, **partição própria**?
-8. **Ensaio direto na VM nova** em vez da produção simulada no desktop?
+1. Imagens montadas no **GitHub Actions**; publicação com `deploy.sh` manual no servidor.
+2. Imagens **públicas** no GHCR (sem token no servidor).
+3. Backup no **Backblaze B2**.
+4. **sslip.io** por enquanto, com o botão **"copiar link do convite"**; domínio próprio depois.
+5. Restauração da demonstração **toda noite às 04:00** de Brasília.
+6. **Modo demonstração como proposto**, incluindo o **bloqueio de envio de imagens**.
+7. **`/mnt/dados` em partição própria se o pedido da VM permitir; senão, pasta no disco principal.** Nos dois casos, tudo o que é dado (cluster do Postgres e, se fizer sentido, as imagens enviadas) fica só debaixo de `/mnt/dados`, e o Postgres depende só do ponto de montagem (`RequiresMountsFor=/mnt/dados`). Mudar para um disco separado no futuro = parar o Postgres, copiar `/mnt/dados` para o disco novo, montá-lo em `/mnt/dados` e subir; nenhum caminho de configuração muda. O passo fica no roteiro de operação.
+8. **Ensaio direto na VM nova**, com **snapshot antes de cada etapa**.
