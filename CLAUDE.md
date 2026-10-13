@@ -48,6 +48,7 @@ O usuário alterna o projeto entre dois computadores, **um por vez**: o **Surfac
   1. Commit e push de **todas** as branches com trabalho (nada fica só local; o `.env` nunca vai para o git).
   2. `docs/HANDOFF.md` atualizado: o que foi feito, o que está em andamento (branch e ponto exato), os próximos passos exatos e as pendências de decisão do usuário. Commit e push dele também.
   3. Parar servidores de dev e containers **sem apagar volumes**: `pnpm infra:down` (equivale a `docker compose down`, que preserva os volumes). Nunca `docker compose down -v`.
+- **Surface = servidor temporário da rede de casa** (até a publicação na Contabo; docs/SETUP.md, "Servidor temporário no Surface"): `~/servidor/GastroHub_v2` é um clone **só da `main`**, separado de `~/projetos/GastroHub_v2`; nunca editar nem trocar de branch lá. Comandos `pnpm servidor:subir|parar|atualizar|status|logs|demo|tunel` (`scripts/servidor.mjs`, projeto `servidor` do Docker com banco, Redis e Mailpit próprios; seed e e2e do desenvolvimento nunca o alcançam). **Servidor e desenvolvimento não rodam juntos no Surface** (memória e portas): pare um antes de subir o outro. Ao trocar de máquina com o servidor no ar, ele pode continuar rodando (o desktop usa `http://<IP do Surface>:3000`); antes de programar no Surface, `pnpm servidor:parar`. Para levar uma mudança ao servidor: merge na `main`, push e `pnpm servidor:atualizar`.
 - **Nunca trabalhar direto na `main`:** todo trabalho em branch (`feat/`, `fix/`, `chore/`, `docs/`); a `main` só recebe merge `--no-ff`.
 - **Frentes em paralelo:** se houver mais de uma branch em andamento, o `HANDOFF.md` ganha a seção "Frentes em andamento", com cada branch, seu estado e **qual delas pode alterar o schema do Prisma** (só uma por vez, para não gerar migrations conflitantes).
 
@@ -87,6 +88,7 @@ pnpm start:lite --admin       # idem, com o painel da plataforma (3002; admin e 
 pnpm start:lite --menu --lan  # idem, acessível pelo celular na mesma rede (pnpm lan:links mostra os links)
 pnpm dev --lan                # desenvolvimento acessível pelo celular (o pnpm dev comum compila com localhost)
 pnpm tunnel:menu              # túnel HTTPS temporário (30 min) só para testar a prévia do link no WhatsApp
+pnpm servidor:subir           # servidor da rede de casa no Surface (só a main; também :parar :atualizar :status :logs :demo :tunel)
 pnpm dev:lite                 # watch só de API, painel e pacotes (sem o cardápio digital); rode infra:up antes
 pnpm --filter @app/print-agent build && pnpm --filter @app/print-agent start:virtual   # agente de impressão virtual (página em 127.0.0.1:9180)
 pnpm infra:up / infra:down    # apenas a infraestrutura Docker

@@ -30,7 +30,14 @@
     "clean": "turbo run clean && rimraf node_modules .turbo",
     "check:imports": "node scripts/check-tracked-imports.mjs",
     "lan:links": "node scripts/lan-links.mjs",
-    "tunnel:menu": "node scripts/tunnel-menu.mjs"
+    "tunnel:menu": "node scripts/tunnel-menu.mjs",
+    "servidor:subir": "node scripts/servidor.mjs subir",
+    "servidor:parar": "node scripts/servidor.mjs parar",
+    "servidor:atualizar": "node scripts/servidor.mjs atualizar",
+    "servidor:status": "node scripts/servidor.mjs status",
+    "servidor:logs": "node scripts/servidor.mjs logs",
+    "servidor:demo": "node scripts/servidor.mjs demo",
+    "servidor:tunel": "node scripts/servidor.mjs tunel"
   },
   "devDependencies": {
     "@app/config": "workspace:*",

@@ -15,6 +15,14 @@ export class AppConfig {
     return this.get('NODE_ENV') === 'production';
   }
 
+  /**
+   * Session cookies only over HTTPS in production, except on a home network server (LAN_SERVER),
+   * which serves plain http on the local network (browsers drop Secure cookies over http).
+   */
+  get secureCookies(): boolean {
+    return this.isProduction && !this.get('LAN_SERVER');
+  }
+
   get isTest(): boolean {
     return this.get('NODE_ENV') === 'test';
   }

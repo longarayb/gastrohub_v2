@@ -6,7 +6,7 @@
 
 ## Estado atual
 
-- `main` tem tudo até o **código da hospedagem** (merge da `chore/hosting`, D045–D046), o painel da plataforma (D041–D044) e o redesign (D039–D040). Todas as branches estão no GitHub. **Frente em andamento: `chore/home-server`** (servidor temporário no Surface; não altera o schema do Prisma). A `main` ganhou a migration `demo_mode` (`Store.demoMode`): no desktop, `pnpm --filter @app/api db:deploy`.
+- `main` tem tudo até o **servidor temporário no Surface** (merge da `chore/home-server`, D047) e o código da hospedagem (D045–D046). Todas as branches estão no GitHub. **Nenhuma frente de código em andamento**; próxima: a proposta da `feat/dispatch`. A `main` ganhou a migration `demo_mode` (`Store.demoMode`): no desktop, `pnpm --filter @app/api db:deploy`.
 - **Surface atualizado em 2026-10-13** (passos abaixo feitos; cópia do `.env` anterior em `.env.bak-2026-10-13`, fora do git). Referência dos passos:
   1. `git fetch`, `git checkout main`, `git pull`.
   2. `pnpm install` (app novo `apps/admin`) e, em `tools/ui-walkthrough`, `npm install`.
@@ -110,8 +110,9 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ### Nova ordem (2026-10-13)
 
-1. **Agora: servidor temporário no Surface** (`chore/home-server`): o Surface serve o sistema na rede de casa (detalhes abaixo).
-2. **`feat/dispatch`**: tela de despacho com mapa e rotas, acompanhamento em tempo real e app do entregador com localização. Apresentar a proposta e **esperar a aprovação** antes de codar.
+1. **Servidor temporário no Surface** (`chore/home-server`, D047): pronto. O Surface serve o sistema na rede de casa a partir de `~/servidor/GastroHub_v2` (só a `main`), com `pnpm servidor:subir|parar|atualizar|status|logs|demo|tunel` (docs/SETUP.md, "Servidor temporário no Surface"). **Servidor e desenvolvimento nunca juntos no Surface:** para programar no Surface, `pnpm servidor:parar` antes; com o servidor no ar, programe no desktop e abra `http://<IP do Surface>:3000`. Para levar uma mudança ao servidor: merge na `main`, push e `pnpm servidor:atualizar` no Surface.
+   - Falta do lado do Braian: reservar o IP do Surface no roteador, deixar o Surface sem suspender na tomada, restringir a regra `AppDevLan` a redes privadas (`Set-NetFirewallHyperVRule -Name "AppDevLan" -Profiles Private`) e instalar o `cloudflared` no Windows para o `servidor:tunel` (`winget install --id Cloudflare.cloudflared`; ainda não testado por falta dele).
+2. **Agora: `feat/dispatch`**: tela de despacho com mapa e rotas, acompanhamento em tempo real e app do entregador com localização. Apresentar a proposta (`docs/PROPOSTA_DISPATCH.md`) e **esperar a aprovação**; não codar antes.
 3. **Laboratório de receitas.**
 4. **Publicação na Contabo**, quando o Braian decidir.
 5. **Integrações com marketplaces.**

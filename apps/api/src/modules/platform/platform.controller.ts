@@ -190,7 +190,7 @@ export class PlatformAuthController {
   private cookieOptions(): CookieOptions {
     return {
       httpOnly: true,
-      secure: this.config.isProduction,
+      secure: this.config.secureCookies,
       sameSite: 'strict',
       path: '/api/platform/auth',
     };

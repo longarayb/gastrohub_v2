@@ -19,6 +19,14 @@ export const envSchema = z.object({
     .transform((v) => v || BRAND.name)
     .default(BRAND.name),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  /**
+   * Production build serving a home network over plain http (the Surface server, docs/SETUP.md):
+   * cookies without Secure and e-mail to the local Mailpit. Development secrets are still refused.
+   */
+  LAN_SERVER: z
+    .enum(['true', 'false', ''])
+    .default('false')
+    .transform((v) => v === 'true'),
   API_PORT: z.coerce.number().int().default(3333),
   /** Login attempts per minute and IP (brute force protection). Production: 10. */
   LOGIN_RATE_LIMIT_PER_MINUTE: z.preprocess(
@@ -118,8 +126,10 @@ export function productionProblems(env: Env): string[] {
   ] as const) {
     if (isLocal(env[key])) problems.push(`${key}: endereço local (${env[key]})`);
   }
-  if (env.SMTP_TLS === 'none')
+  // The home network server sends to its own Mailpit (no TLS); a real server never does.
+  if (env.SMTP_TLS === 'none' && !env.LAN_SERVER) {
     problems.push('SMTP_TLS: e-mail sem criptografia (use starttls ou tls)');
+  }
   return problems;
 }
 

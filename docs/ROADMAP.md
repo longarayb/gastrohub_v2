@@ -19,7 +19,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Redesign do painel (tema do [DESIGN.md](DESIGN.md) em todas as telas, escuro como padrão e claro equivalente; componentes base; KDS com a mesma paleta) | `feat/redesign` | ✅ concluído (2026-10-09; D039, D040) |
 | Painel admin da plataforma (app `admin` com login e 2FA próprios, clientes, planos, assinaturas, mensalidades manuais, inadimplência com somente leitura fora do expediente, acesso de suporte, aceite dos termos) | `feat/platform-admin` | ✅ concluído (2026-10-12; D041–D044) |
 | Hospedagem: código (imagens, scripts do servidor, backups, monitoramento, modo demonstração; [DEPLOY.md](DEPLOY.md)) | `chore/hosting` | ✅ concluído (2026-10-13; D045, D046) |
-| Servidor temporário no Surface (rede de casa: pasta própria só com a `main`, banco e Redis próprios, `servidor:*`) | `chore/home-server` | 🚧 em andamento |
+| Servidor temporário no Surface (rede de casa: pasta própria só com a `main`, banco e Redis próprios, `servidor:*`) | `chore/home-server` | ✅ concluído (2026-10-13; D047) |
 | Despacho com mapa e rotas (tela de despacho, rota sugerida, acompanhamento em tempo real, app do entregador com localização) | `feat/dispatch` | ⏳ proposta a apresentar |
 | Laboratório de receitas | — | ⏳ |
 | Publicação na Contabo (DEPLOY.md, Partes 1 e 2) | — | ⏳ quando o Braian decidir (contas e VM pendentes por decisão dele) |

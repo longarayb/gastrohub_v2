@@ -73,6 +73,20 @@ describe('production settings', () => {
     }
   });
 
+  it('home network server (LAN_SERVER): its Mailpit without TLS, but never development secrets', () => {
+    const lan = {
+      ...production,
+      LAN_SERVER: 'true',
+      SMTP_TLS: 'none',
+      WEB_PUBLIC_URL: 'http://192.168.0.92:3000',
+    };
+    expect(productionProblems(validateEnv(lan))).toEqual([]);
+    expect(() =>
+      validateEnv({ ...lan, JWT_ACCESS_SECRET: 'dev-only-access-secret-change-me-please' }),
+    ).toThrow(/JWT_ACCESS_SECRET/);
+    expect(validateEnv(production).LAN_SERVER).toBe(false);
+  });
+
   it('refuses the development database password, local addresses and e-mail without TLS', () => {
     expect(() =>
       validateEnv({ ...production, DATABASE_URL: 'postgresql://app:app_dev@localhost/app_db' }),
