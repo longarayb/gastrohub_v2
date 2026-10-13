@@ -2,12 +2,12 @@
 
 > **Leia este arquivo primeiro** ao iniciar uma sessão. Depois: [CLAUDE.md](../CLAUDE.md) (convenções e regras de trabalho em duas máquinas), [PROMPT_INICIAL.md](PROMPT_INICIAL.md) (requisitos completos), [DECISOES.md](DECISOES.md) e [ROADMAP.md](ROADMAP.md).
 >
-> Atualizado em **2026-10-12**, no **desktop de casa**: **`feat/platform-admin` concluída e integrada na `main`** (D041–D044), depois a `fix/lan-admin` (painel da plataforma no celular; senha temporária do admin com troca obrigatória e validade de 24 h) e a **proposta da hospedagem salva em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), aguardando aprovação**. A próxima sessão é no **Surface**. Em 2026-10-11, decisões da hospedagem e plano dos marketplaces registrados. Em 2026-10-10, no desktop de casa (`D:\GastroHub_v2`, Windows): ambiente atualizado e **teste de reinicialização do agente de impressão concluído**. Antes disso (2026-10-09, Surface, no WSL), a `feat/redesign` foi aprovada, validada e integrada na `main`.
+> Atualizado em **2026-10-13**, no **Surface** (WSL): ambiente atualizado (`.env` com as variáveis da plataforma, `pnpm install`, migrations, seed; plataforma 16/16 e teclado 7/7) e **proposta da hospedagem revisada** com o Postgres fora do Docker, na branch `docs/hosting-proposal-v2`, **aguardando aprovação**. Antes, em **2026-10-12**, no **desktop de casa**: **`feat/platform-admin` concluída e integrada na `main`** (D041–D044), depois a `fix/lan-admin` (painel da plataforma no celular; senha temporária do admin com troca obrigatória e validade de 24 h) e a **proposta da hospedagem salva em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), aguardando aprovação**. A próxima sessão é no **Surface**. Em 2026-10-11, decisões da hospedagem e plano dos marketplaces registrados. Em 2026-10-10, no desktop de casa (`D:\GastroHub_v2`, Windows): ambiente atualizado e **teste de reinicialização do agente de impressão concluído**. Antes disso (2026-10-09, Surface, no WSL), a `feat/redesign` foi aprovada, validada e integrada na `main`.
 
 ## Estado atual
 
 - `main` tem tudo até o **painel da plataforma** (merge da `feat/platform-admin`, D041–D044) e o redesign (D039–D040). Todas as branches estão no GitHub. **Nenhuma frente em andamento**; qualquer branch nova pode alterar o schema.
-- **No Surface, antes de rodar** (a última `main` usada lá é a de antes do painel da plataforma):
+- **Surface atualizado em 2026-10-13** (passos abaixo feitos; cópia do `.env` anterior em `.env.bak-2026-10-13`, fora do git). Referência dos passos:
   1. `git fetch`, `git checkout main`, `git pull`.
   2. `pnpm install` (app novo `apps/admin`) e, em `tools/ui-walkthrough`, `npm install`.
   3. **`.env` do Surface — variáveis novas** (copiar os valores de desenvolvimento do `.env.example`, mantendo `POSTGRES_PORT=5433`, `CHECK_CONCURRENCY=1` e `NEXT_BUILD_CPUS=1`):
@@ -108,9 +108,9 @@ Abrir o Claude Code dentro do WSL (docs/SETUP.md, passo 10): no Ubuntu, `cd ~/pr
 
 ## Próximos passos (nesta ordem)
 
-### Agora: revisar a proposta da hospedagem (`chore/hosting`) com a mudança do banco fora do Docker e aguardar a aprovação do Braian
+### Agora: hospedagem (`chore/hosting`) — aprovada em 2026-10-13, implementando o código
 
-A proposta completa está em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md) (**aguardando aprovação; nada implementado**). Na retomada, revisá-la com a seção "Pontos a revisar na retomada" do mesmo arquivo:
+A proposta está em [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md), **revisada em 2026-10-13** na branch `docs/hosting-proposal-v2` (**aguardando aprovação; nada implementado**), com a seção "O que mudou nesta revisão" e as decisões pendentes no fim. Pontos que a revisão cobriu (pedidos em 2026-10-12):
 
 1. **Postgres de produção instalado direto na VM**, fora do Docker, como cluster próprio em `/mnt/dados` (Postgres 17 pelo PGDG, acesso dos containers pela rede do Docker com `listen_addresses` e `pg_hba.conf` restritos, 5432 nunca exposta, memória ajustada, atualizações, e o que muda em backup, restore, migrations e `compose.prod.yml`; verificar se `/mnt/dados` é disco separado ou pasta);
 2. imagens no GHCR públicas ou privadas (e a autenticação do servidor, se privadas);
@@ -147,7 +147,7 @@ Mostrar o modelo e as regras ao usuário, esperar aprovação e seguir a ordem d
 
 ## Pendências de decisão do usuário
 
-- Aprovar a proposta da hospedagem revisada ([PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md)), com as decisões pendentes listadas no arquivo (Actions + deploy manual, B2 ou R2, domínio agora ou depois, imagens públicas ou privadas).
+- Nenhuma sobre a hospedagem (aprovada em 2026-10-13; decisões no fim de [PROPOSTA_HOSPEDAGEM.md](PROPOSTA_HOSPEDAGEM.md)). Quando o código estiver pronto, o Braian contrata a VM e cria as contas (B2, Brevo, Healthchecks).
 - Textos dos termos de uso e da privacidade (`packages/shared/src/platform/legal.ts`): provisórios, **revisar com apoio jurídico** antes de clientes reais (mudar o texto exige mudar a versão, e os donos aceitam de novo).
 
 ## Lembretes de ambiente
