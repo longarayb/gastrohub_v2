@@ -2,7 +2,8 @@
  * Demo delivery data (D029–D031): areas by neighborhood (with name variations, one paused) and
  * by radius, couriers (one signed in to the courier app), a settled morning route, a route back
  * at the store waiting for the settlement (a cash delivery with change and a failed one), a
- * route on the road now and neighborhoods no area covers. Areas, pay and settlement come from
+ * route on the road now, the simulated courier walking its fixed loop on the dispatch map
+ * (D048) and neighborhoods no area covers. Areas, pay and settlement come from
  * the same pure functions the API uses.
  */
 import {
@@ -12,8 +13,30 @@ import {
   effectivePayRule,
   resolveDeliveryArea,
   settlementSummary,
+  straightGeometry,
 } from '@app/shared';
 import type { PrismaClient } from '../generated/prisma/client.js';
+import {
+  DEMO_SIMULATED_LEGS,
+  DEMO_SIMULATED_ROUTE,
+  DEMO_SIMULATED_ROUTE_METERS,
+  DEMO_SIMULATED_ROUTE_SECONDS,
+} from './simulated-route.js';
+
+/**
+ * Where the demo addresses are (looked up once in OpenStreetMap, never at seed time). Rua Frei
+ * Caneca is left out on purpose: that order shows up in "Marcar no mapa".
+ */
+const DEMO_POINTS: Record<string, { latitude: number; longitude: number; house: boolean }> = {
+  'Avenida Paulista|1500': { latitude: -23.5617698, longitude: -46.6553299, house: true },
+  'Rua Haddock Lobo|595': { latitude: -23.5580209, longitude: -46.6616788, house: true },
+  'Rua Augusta|800': { latitude: -23.5544366, longitude: -46.6562818, house: false },
+  'Rua Treze de Maio|120': { latitude: -23.5540263, longitude: -46.6469669, house: true },
+  'Alameda Santos|2000': { latitude: -23.5612957, longitude: -46.6586039, house: false },
+  'Rua Pamplona|1200': { latitude: -23.5675268, longitude: -46.6577562, house: true },
+};
+const pointOf = (a: { street?: string | null; number?: string | null } | null) =>
+  a ? (DEMO_POINTS[`${a.street}|${a.number}`] ?? null) : null;
 
 const minutesAgo = (now: Date, minutes: number) => new Date(now.getTime() - minutes * 60_000);
 
@@ -87,6 +110,21 @@ export async function seedDelivery(
     data: { perDeliveryCents: 500, dailyCents: 0 },
   });
 
+  // ---- Saved addresses with their point (the dispatch map starts right) ----
+  for (const address of await prisma.customerAddress.findMany({ where: { tenantId } })) {
+    const point = pointOf(address);
+    if (!point) continue;
+    await prisma.customerAddress.update({
+      where: { id: address.id },
+      data: {
+        latitude: point.latitude,
+        longitude: point.longitude,
+        geoSource: 'GEOCODER',
+        geoPrecision: point.house ? 'HOUSE' : 'STREET',
+      },
+    });
+  }
+
   // ---- Delivery data of every delivery order (area resolved from the address) ----
   const orders = await prisma.order.findMany({
     where: { tenantId, type: 'DELIVERY' },
@@ -103,10 +141,17 @@ export async function seedDelivery(
         ? resolveDeliveryArea(address, areas, { store: storePoint, now })
         : null;
     const area = resolved?.ok ? resolved.area : null;
+    const point = pointOf(address);
     await prisma.orderDelivery.create({
       data: {
         tenantId,
         orderId: o.id,
+        latitude: point?.latitude ?? null,
+        longitude: point?.longitude ?? null,
+        geoSource: point ? 'GEOCODER' : null,
+        geoPrecision: point ? (point.house ? 'HOUSE' : 'STREET') : null,
+        // Already tried: without a point, the order waits in "Marcar no mapa".
+        geocodedAt: address ? now : null,
         areaId: area?.id ?? null,
         areaName: area?.name ?? null,
         areaSource: area ? 'AUTO' : 'NONE',
@@ -314,6 +359,46 @@ export async function seedDelivery(
     },
   });
   await stopFor(runC.id, onRoad.id, 1, { dispatchedAt: runC.departedAt });
+  const julianaPoint = pointOf(onRoad.deliveryAddress as Address | null);
+  if (storePoint && julianaPoint) {
+    await prisma.deliveryRun.update({
+      where: { id: runC.id },
+      data: {
+        routeGeometry: straightGeometry([storePoint, julianaPoint]),
+        routeSource: 'STRAIGHT',
+      },
+    });
+  }
+
+  // ---- The simulated courier on its loop (positions come from the API, never from here) ----
+  const simulated = await prisma.courier.findFirstOrThrow({ where: { tenantId, simulated: true } });
+  const loopOrders = [find('Rafael Lima', 'DISPATCHED'), find('Otávio Nunes', 'DISPATCHED')];
+  const runD = await prisma.deliveryRun.create({
+    data: {
+      tenantId,
+      courierId: simulated.id,
+      openCourierId: simulated.id,
+      businessDate: loopOrders[0]!.businessDate,
+      status: 'OUT',
+      departedAt: loopOrders[0]!.dispatchedAt ?? minutesAgo(now, 5),
+      createdById: users.cashierId,
+      routeGeometry: DEMO_SIMULATED_ROUTE,
+      routeDistanceMeters: DEMO_SIMULATED_ROUTE_METERS,
+      routeDurationSeconds: DEMO_SIMULATED_ROUTE_SECONDS,
+      routeSource: 'OSRM',
+    },
+  });
+  let clock = runD.departedAt.getTime();
+  for (const [i, order] of loopOrders.entries()) {
+    const leg = DEMO_SIMULATED_LEGS[i]!;
+    clock += leg.durationSeconds * 1000 + (i > 0 ? 180_000 : 0);
+    await stopFor(runD.id, order.id, i + 1, {
+      dispatchedAt: runD.departedAt,
+      legDistanceMeters: leg.distanceMeters,
+      legDurationSeconds: leg.durationSeconds,
+      etaAt: new Date(clock),
+    });
+  }
 
   // ---- Neighborhoods of recent customers no area covers ("Bairros sem área") ----
   for (const [name, phone, neighborhood, street] of [
@@ -343,5 +428,5 @@ export async function seedDelivery(
     });
   }
 
-  return { areas: areas.length, runs: 3 };
+  return { areas: areas.length, runs: 4 };
 }

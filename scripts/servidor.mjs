@@ -426,7 +426,9 @@ async function subir() {
 function parar() {
   ensureDocker();
   if (!existsSync(ENV)) fail('O servidor ainda não foi instalado (pnpm servidor:subir).');
-  dc(['stop']);
+  // `down` (never `-v`): stopped containers with a restart policy came back after a Docker
+  // restart and took the development ports; the volumes (database, Redis) stay.
+  dc(['down']);
   log('Servidor parado. Banco, Redis e imagens enviadas continuam guardados.');
 }
 

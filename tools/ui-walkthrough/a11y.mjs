@@ -44,6 +44,18 @@ const SCREENS = [
   },
   { name: 'caixa', url: `${WEB}/caixa`, user: 'caixa', mobile: true },
   { name: 'mesas', url: `${WEB}/mesas`, user: 'dono', mobile: true },
+  {
+    name: 'despacho',
+    url: `${WEB}/despacho`,
+    user: 'caixa',
+    mobile: true,
+    prepare: async (page) => {
+      // Phone: the map tab opens first; the list is checked too.
+      const listTab = page.getByRole('tab', { name: 'Lista' });
+      if (await listTab.isVisible()) await listTab.click();
+      await page.getByRole('heading', { name: /Prontos/ }).waitFor();
+    },
+  },
   { name: 'entregas', url: `${WEB}/entregas`, user: 'entregador', mobile: true, phoneOnly: true },
   {
     name: 'kds',

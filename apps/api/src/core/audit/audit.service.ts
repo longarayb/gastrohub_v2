@@ -33,6 +33,7 @@ export const AuditAction = {
   KDS_DEVICE_REVOKED: 'kds.device_revoked',
   DELIVERY_FEE_CHANGED: 'delivery.fee_changed',
   DELIVERY_FAILED: 'delivery.failed',
+  DELIVERY_LOCATION_CORRECTED: 'delivery.location_corrected',
   DELIVERY_AREA_PAUSED: 'delivery.area_paused',
   DELIVERY_AREA_RESUMED: 'delivery.area_resumed',
   COURIER_PAY_CHANGED: 'courier.pay_changed',

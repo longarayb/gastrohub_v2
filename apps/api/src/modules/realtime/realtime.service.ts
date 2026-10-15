@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { type OrderEvent, REALTIME_EVENTS } from '@app/shared';
+import { type CourierPositionEvent, type OrderEvent, REALTIME_EVENTS } from '@app/shared';
 import {
   RealtimeGateway,
   deviceRoom,
@@ -69,6 +69,11 @@ export class RealtimeService {
   /** The manager revoked a print agent: its socket is dropped (HTTP calls get 401). */
   printAgentRevoked(agentId: string): void {
     this.gateway.emit(printAgentRoom(agentId), REALTIME_EVENTS.DEVICE_REVOKED, {});
+  }
+
+  /** Where a courier is (dispatch map, D048): only to the unit's room, never to customers. */
+  courierPosition(tenantId: string, event: CourierPositionEvent): void {
+    this.gateway.emit(tenantRoom(tenantId), REALTIME_EVENTS.COURIER_POSITION, event);
   }
 
   deliveryUpdated(tenantId: string): void {

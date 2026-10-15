@@ -20,7 +20,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Painel admin da plataforma (app `admin` com login e 2FA próprios, clientes, planos, assinaturas, mensalidades manuais, inadimplência com somente leitura fora do expediente, acesso de suporte, aceite dos termos) | `feat/platform-admin` | ✅ concluído (2026-10-12; D041–D044) |
 | Hospedagem: código (imagens, scripts do servidor, backups, monitoramento, modo demonstração; [DEPLOY.md](DEPLOY.md)) | `chore/hosting` | ✅ concluído (2026-10-13; D045, D046) |
 | Servidor temporário no Surface (rede de casa: pasta própria só com a `main`, banco e Redis próprios, `servidor:*`) | `chore/home-server` | ✅ concluído (2026-10-13; D047) |
-| Despacho com mapa e rotas (tela de despacho, rota sugerida, acompanhamento em tempo real, app do entregador com localização) | `feat/dispatch` | 🚧 aprovada em 2026-10-15 ([PROPOSTA_DISPATCH.md](PROPOSTA_DISPATCH.md)); fase 1 (despacho e rota com a simulação) em andamento |
+| Despacho com mapa e rotas (tela de despacho, rota sugerida, acompanhamento em tempo real, app do entregador com localização) | `feat/dispatch` | 🚧 aprovada em 2026-10-15 ([PROPOSTA_DISPATCH.md](PROPOSTA_DISPATCH.md)); fase 1 (despacho e rota com a simulação) concluída; fase 2 (tempo real e PWA) a seguir |
 | Laboratório de receitas | — | ⏳ |
 | Publicação na Contabo (DEPLOY.md, Partes 1 e 2) | — | ⏳ quando o Braian decidir (contas e VM pendentes por decisão dele) |
 | Integração iFood (API própria) | `feat/ifood` | ⏳ depois da publicação na Contabo (ver "Integrações com marketplaces") |
