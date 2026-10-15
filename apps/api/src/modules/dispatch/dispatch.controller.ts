@@ -77,9 +77,10 @@ export class DispatchController {
     await this.simulation.start(id, body.speed);
   }
 
+  // Stopping a simulation is part of trying the dispatch (D045).
+  @AllowedInDemo()
   @Delete('runs/:id/simulate')
   @HttpCode(204)
-  @AllowedInDemo()
   @RequirePermissions(Permission.DELIVERY_OPERATE)
   @ApiOperation({ summary: 'Para o entregador simulado' })
   stopSimulation(@Param('id') id: string) {
