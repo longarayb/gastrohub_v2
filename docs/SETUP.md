@@ -407,6 +407,7 @@ Até a publicação na Contabo, o Surface serve o sistema para a rede de casa. D
 | `pnpm servidor:status` | Versão no ar, serviços, se cada endereço responde e a memória. |
 | `pnpm servidor:logs [api]` | Acompanha os logs (todos ou de um serviço: `api`, `web`, `menu`, `admin`, `caddy`, `postgres`). |
 | `pnpm servidor:demo` | Restaura a Demo quando quiser. |
+| `pnpm servidor:admin create --email <e-mail> --name "<nome>"` | Cria um administrador do painel da plataforma (o servidor não tem o admin de demonstração do seed): mostra uma senha temporária de 24 h; no primeiro acesso, cadastre o 2FA e troque a senha. Também `reset-password` e `reset-2fa` (com `--reason`). |
 | `pnpm servidor:tunel [painel\|cardapio]` | Endereço https temporário (veja abaixo). |
 
 **Acesso pela rede de casa (uma vez):**

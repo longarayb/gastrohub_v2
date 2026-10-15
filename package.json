@@ -37,6 +37,7 @@
     "servidor:status": "node scripts/servidor.mjs status",
     "servidor:logs": "node scripts/servidor.mjs logs",
     "servidor:demo": "node scripts/servidor.mjs demo",
+    "servidor:admin": "node scripts/servidor.mjs admin",
     "servidor:tunel": "node scripts/servidor.mjs tunel"
   },
   "devDependencies": {
