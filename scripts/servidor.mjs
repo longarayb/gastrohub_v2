@@ -8,6 +8,7 @@
 //   pnpm servidor:status                  version, health, memory
 //   pnpm servidor:logs [api|web|...]      follows the logs
 //   pnpm servidor:demo                    restores the Demo (demo-reset)
+//   pnpm servidor:admin create --email <e-mail> --name "<nome>"   platform admins (the CLI)
 //   pnpm servidor:tunel [painel|cardapio] temporary https address (courier GPS on a phone)
 //
 // Production images built locally (local/app-*:<commit>) and deploy/compose.prod.yml with
@@ -493,6 +494,23 @@ function logs() {
   });
 }
 
+/**
+ * Platform admins of the server (the Demo has none: demo-reset never creates one). Same CLI as in
+ * production: create (temporary password, 2FA on first login), reset-password, reset-2fa.
+ */
+function admin() {
+  ensureDocker();
+  const args = rest.filter((a) => a !== '--');
+  if (!args.length) {
+    fail(
+      'Uso: pnpm servidor:admin create --email <e-mail> --name "<nome>"\n' +
+        '     pnpm servidor:admin reset-password --email <e-mail> --reason "<motivo>"\n' +
+        '     pnpm servidor:admin reset-2fa --email <e-mail> --reason "<motivo>"',
+    );
+  }
+  dc(['run', '--rm', '--no-deps', 'api', 'node', 'dist/cli/platform-admin.js', ...args]);
+}
+
 function demo() {
   ensureDocker();
   dc(['run', '--rm', '--no-deps', 'api', 'node', 'dist/cli/demo-reset.js', '--yes']);
@@ -558,7 +576,7 @@ async function tunel() {
   });
 }
 
-const commands = { subir, parar, atualizar, status, logs, demo, tunel };
+const commands = { subir, parar, atualizar, status, logs, demo, admin, tunel };
 if (!commands[command]) {
   fail(`Comando desconhecido: ${command ?? '(nenhum)'}. Use: ${Object.keys(commands).join(', ')}`);
 }
