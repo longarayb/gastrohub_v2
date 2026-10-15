@@ -5,6 +5,7 @@ import {
   NominatimGeocodingProvider,
   NoopGeocodingProvider,
 } from './geocoding.js';
+import { GeocodingService } from './geocoding.service.js';
 
 @Global()
 @Module({
@@ -17,7 +18,8 @@ import {
           ? new NominatimGeocodingProvider(config)
           : new NoopGeocodingProvider(),
     },
+    GeocodingService,
   ],
-  exports: [GEOCODING_PROVIDER],
+  exports: [GEOCODING_PROVIDER, GeocodingService],
 })
 export class GeocodingModule {}

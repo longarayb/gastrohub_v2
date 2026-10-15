@@ -82,6 +82,10 @@ export const envSchema = z.object({
   GEOCODING_PROVIDER: z.enum(['nominatim', 'none']).default('nominatim'),
   NOMINATIM_URL: z.url().default('https://nominatim.openstreetmap.org'),
   NOMINATIM_EMAIL: z.string().default(''),
+  /** Routes and travel times (D048): OSRM, or none (straight-line estimate). */
+  ROUTING_PROVIDER: z.enum(['osrm', 'none']).default('osrm'),
+  /** Public server only for development and the demo; production runs its own (region extract). */
+  OSRM_URL: z.url().default('https://router.project-osrm.org'),
 });
 
 export type Env = z.infer<typeof envSchema>;

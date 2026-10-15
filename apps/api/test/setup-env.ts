@@ -10,6 +10,7 @@ process.env.NODE_ENV = 'test';
 process.env.THROTTLE_DISABLED = 'true';
 // Never call the real geocoder from tests (addresses carry coordinates when a test needs them).
 process.env.GEOCODING_PROVIDER = 'none';
+process.env.ROUTING_PROVIDER = 'none';
 // No calls to the menu app from tests (its cache refresh is fire-and-forget).
 process.env.MENU_REVALIDATE_SECRET = '';
 // Own queue keys: a dev API running on the same Redis must not take the tests' jobs (e-mails).

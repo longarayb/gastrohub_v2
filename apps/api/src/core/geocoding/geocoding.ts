@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { Coordinates } from '@app/shared';
+import type { Coordinates, GeoPrecision } from '@app/shared';
 import { AppConfig } from '../config/app-config.service.js';
 
 /** Only the address goes to the provider: never the customer's name or phone (D029, LGPD). */
@@ -17,15 +17,20 @@ export interface GeocodeQuery {
  * needs a paid service or a self-hosted Nominatim behind the same interface (docs/DECISOES.md).
  * Never throws: `null` means "not found / unavailable" and the operator picks the area by hand.
  */
+/** Coordinates and how precise they are (HOUSE: the house; STREET: only the street). */
+export interface GeocodeResult extends Coordinates {
+  precision: GeoPrecision;
+}
+
 export interface GeocodingProvider {
-  geocode(query: GeocodeQuery): Promise<Coordinates | null>;
+  geocode(query: GeocodeQuery): Promise<GeocodeResult | null>;
 }
 
 export const GEOCODING_PROVIDER = Symbol('GEOCODING_PROVIDER');
 export const InjectGeocoding = () => Inject(GEOCODING_PROVIDER);
 
 export class NoopGeocodingProvider implements GeocodingProvider {
-  async geocode(): Promise<Coordinates | null> {
+  async geocode(): Promise<GeocodeResult | null> {
     return null;
   }
 }
@@ -42,13 +47,13 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
 
   constructor(private readonly config: AppConfig) {}
 
-  geocode(query: GeocodeQuery): Promise<Coordinates | null> {
+  geocode(query: GeocodeQuery): Promise<GeocodeResult | null> {
     const run = this.queue.then(() => this.request(query));
     this.queue = run.catch(() => undefined);
     return run;
   }
 
-  private async request(query: GeocodeQuery): Promise<Coordinates | null> {
+  private async request(query: GeocodeQuery): Promise<GeocodeResult | null> {
     const wait = this.lastRequestAt + MIN_INTERVAL_MS - Date.now();
     if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
     this.lastRequestAt = Date.now();
@@ -56,6 +61,7 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
     const url = new URL('/search', this.config.get('NOMINATIM_URL'));
     url.searchParams.set('format', 'jsonv2');
     url.searchParams.set('limit', '1');
+    url.searchParams.set('addressdetails', '1');
     url.searchParams.set('countrycodes', 'br');
     url.searchParams.set('street', `${query.number} ${query.street}`);
     url.searchParams.set('city', query.city);
@@ -72,12 +78,18 @@ export class NominatimGeocodingProvider implements GeocodingProvider {
         this.logger.warn(`Nominatim respondeu ${response.status}`);
         return null;
       }
-      const [hit] = (await response.json()) as { lat: string; lon: string }[];
+      const [hit] = (await response.json()) as {
+        lat: string;
+        lon: string;
+        address?: { house_number?: string };
+      }[];
       if (!hit) return null;
       const latitude = Number(hit.lat);
       const longitude = Number(hit.lon);
+      // Nominatim falls back to the street when it does not know the number.
+      const precision: GeoPrecision = hit.address?.house_number ? 'HOUSE' : 'STREET';
       return Number.isFinite(latitude) && Number.isFinite(longitude)
-        ? { latitude, longitude }
+        ? { latitude, longitude, precision }
         : null;
     } catch (error) {
       this.logger.warn(`Geocodificação indisponível: ${(error as Error).message}`);

@@ -148,6 +148,8 @@ export const REALTIME_EVENTS = {
   DEVICE_REVOKED: 'device.revoked',
   /** Routes, settlements, courier balances or delivery areas changed (no personal data). */
   DELIVERY_UPDATED: 'delivery.updated',
+  /** Where a courier is, during an open run (dispatch map, D048). */
+  COURIER_POSITION: 'courier.position',
   /** Public tracking page of one order (namespace /tracking, room = tracking token). */
   TRACKING_UPDATED: 'tracking.updated',
   /** Sent only to print agents (room of the agent): new jobs to lease. No content. */

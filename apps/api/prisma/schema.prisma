@@ -675,8 +675,8 @@ model Customer {
 }
 
 model CustomerAddress {
-  id           String   @id @default(cuid())
-  tenantId     String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  id           String        @id @default(cuid())
+  tenantId     String        @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   customerId   String
   label        String?
   cep          String
@@ -689,8 +689,11 @@ model CustomerAddress {
   reference    String?
   latitude     Float?
   longitude    Float?
-  isDefault    Boolean  @default(false)
-  createdAt    DateTime @default(now())
+  isDefault    Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  /// Where the coordinates came from (a pin moved by the operator wins over the geocoder).
+  geoSource    GeoSource?
+  geoPrecision GeoPrecision?
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
@@ -710,6 +713,8 @@ model Courier {
   feeShareBps      Int?
   dailyCents       Int?
   createdAt        DateTime @default(now())
+  /// Simulated courier (tests and the public demo): always shown as "simulado".
+  simulated        Boolean  @default(false)
 
   orders      Order[]
   runs        DeliveryRun[]
@@ -1373,6 +1378,11 @@ model OrderDelivery {
   suggestedFeeCents Int?
   feeChangeReason   String?
   attempts          Int                @default(0)
+  /// Where the coordinates came from and how precise they are (dispatch map, D048).
+  geoSource         GeoSource?
+  geoPrecision      GeoPrecision?
+  /// Geocoding attempted (one try per order; the operator pins it on the map otherwise).
+  geocodedAt        DateTime?
 
   order Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   area  DeliveryArea? @relation(fields: [areaId], references: [id], onDelete: SetNull)
@@ -1382,17 +1392,23 @@ model OrderDelivery {
 
 /// A courier leaving with one or more orders on the same route.
 model DeliveryRun {
-  id            String            @id @default(cuid())
-  tenantId      String            @default(dbgenerated("current_setting('app.tenant_id'::text)"))
-  courierId     String
-  businessDate  String
-  status        DeliveryRunStatus @default(OUT)
+  id                   String            @id @default(cuid())
+  tenantId             String            @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  courierId            String
+  businessDate         String
+  status               DeliveryRunStatus @default(OUT)
   /// courierId while OUT: one open route per courier (unique).
-  openCourierId String?
-  departedAt    DateTime          @default(now())
-  returnedAt    DateTime?
-  settlementId  String?
-  createdById   String?
+  openCourierId        String?
+  departedAt           DateTime          @default(now())
+  returnedAt           DateTime?
+  settlementId         String?
+  createdById          String?
+  /// Planned route (D048): GeoJSON line [lng, lat][], totals and where it came from (OSRM or
+  /// straight line). The simulated courier walks it without asking the routing service again.
+  routeGeometry        Json?
+  routeDistanceMeters  Int?
+  routeDurationSeconds Int?
+  routeSource          RouteSource?
 
   courier    Courier            @relation(fields: [courierId], references: [id])
   settlement CourierSettlement? @relation(fields: [settlementId], references: [id])
@@ -1405,24 +1421,28 @@ model DeliveryRun {
 
 /// One delivery attempt of an order in a route: times, what the customer paid, or why not.
 model DeliveryStop {
-  id              String                 @id @default(cuid())
+  id                 String                 @id @default(cuid())
   /// Creation order from the database (D040): lists sort by it, never by a clock.
-  seq             BigInt                 @default(autoincrement())
-  tenantId        String                 @default(dbgenerated("current_setting('app.tenant_id'::text)"))
-  runId           String
-  orderId         String
-  sequence        Int
-  dispatchedAt    DateTime               @default(now())
-  deliveredAt     DateTime?
-  failedAt        DateTime?
-  failureReason   DeliveryFailureReason?
-  failureNote     String?
+  seq                BigInt                 @default(autoincrement())
+  tenantId           String                 @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  runId              String
+  orderId            String
+  sequence           Int
+  dispatchedAt       DateTime               @default(now())
+  deliveredAt        DateTime?
+  failedAt           DateTime?
+  failureReason      DeliveryFailureReason?
+  failureNote        String?
   /// Declared by the courier ("como o cliente pagou"), confirmed at the settlement.
-  collectedMethod PaymentMethod?
-  collectedCents  Int?
-  receivedCents   Int?
-  changeCents     Int?
-  collectedNote   String?
+  collectedMethod    PaymentMethod?
+  collectedCents     Int?
+  receivedCents      Int?
+  changeCents        Int?
+  collectedNote      String?
+  /// Planned leg to this stop and expected arrival (recalculated on the way, phase 2).
+  legDistanceMeters  Int?
+  legDurationSeconds Int?
+  etaAt              DateTime?
 
   run   DeliveryRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   order Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -1824,4 +1844,63 @@ model SupportSession {
 
   @@index([storeId, endsAt])
   @@index([adminId, startedAt])
+}
+
+/// Where coordinates came from (D048).
+enum GeoSource {
+  /// Geocoding service (Nominatim; Google later).
+  GEOCODER
+  /// Pin placed or moved by the operator on the dispatch map.
+  MANUAL
+  /// Sent by a marketplace or the customer's device.
+  EXTERNAL
+}
+
+enum GeoPrecision {
+  /// The house itself.
+  HOUSE
+  /// Only the street (the number was not found): check the pin.
+  STREET
+}
+
+enum RouteSource {
+  OSRM
+  /// Routing service off or failed: crow-flies estimate, order by distance.
+  STRAIGHT
+}
+
+/// Address -> coordinates, one geocoding per normalized address of the unit (Nominatim usage
+/// policy: no repeated or bulk queries). Misses are kept too (latitude null) for a while.
+model GeocodeCache {
+  id        String        @id @default(cuid())
+  tenantId  String        @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  key       String
+  latitude  Float?
+  longitude Float?
+  precision GeoPrecision?
+  source    GeoSource
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([tenantId, key])
+}
+
+/// Courier location during an open run (D048): only while out, kept 7 days (LGPD).
+model CourierPosition {
+  id             String   @id @default(cuid())
+  tenantId       String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  runId          String
+  courierId      String
+  latitude       Float
+  longitude      Float
+  accuracyMeters Float?
+  speedMps       Float?
+  heading        Float?
+  /// The simulated courier (tests, demo), never a person.
+  simulated      Boolean  @default(false)
+  recordedAt     DateTime
+  receivedAt     DateTime @default(now())
+
+  @@index([tenantId, runId, recordedAt])
+  @@index([recordedAt])
 }

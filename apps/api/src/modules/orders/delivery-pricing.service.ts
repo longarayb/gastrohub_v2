@@ -16,7 +16,7 @@ import {
 } from '@app/shared';
 import { AuditAction, AuditService } from '../../core/audit/audit.service.js';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../core/errors/domain-error.js';
-import { type GeocodingProvider, InjectGeocoding } from '../../core/geocoding/geocoding.js';
+import { GeocodingService } from '../../core/geocoding/geocoding.service.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';
 import { type Db, type DbTx, InjectDb } from '../../core/tenancy/db.provider.js';
 import { TenantContext } from '../../core/tenancy/tenant-context.js';
@@ -43,7 +43,7 @@ export class DeliveryPricingService {
     private readonly prisma: PrismaService,
     private readonly ctx: TenantContext,
     private readonly audit: AuditService,
-    @InjectGeocoding() private readonly geocoder: GeocodingProvider,
+    private readonly geocoder: GeocodingService,
   ) {}
 
   private async store() {
@@ -111,7 +111,7 @@ export class DeliveryPricingService {
       state: address.state,
       cep: address.cep,
     });
-    return found ? { ...address, ...found } : address;
+    return found ? { ...address, latitude: found.latitude, longitude: found.longitude } : address;
   }
 
   /** Quote for the order composer: area, fee, time, minimum (and areas for a manual choice). */

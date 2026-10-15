@@ -9,6 +9,7 @@ import { AppConfigModule } from './core/config/config.module.js';
 import { DemoModule } from './core/demo/demo.module.js';
 import { AllExceptionsFilter } from './core/errors/all-exceptions.filter.js';
 import { GeocodingModule } from './core/geocoding/geocoding.module.js';
+import { RoutingModule } from './core/routing/routing.module.js';
 import { MailModule } from './core/mail/mail.module.js';
 import { PrismaModule } from './core/prisma/prisma.module.js';
 import { QueueModule } from './core/queue/queue.module.js';
@@ -16,6 +17,7 @@ import { StorageModule } from './core/storage/storage.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { CashModule } from './modules/cash/cash.module.js';
 import { DeliveryModule } from './modules/delivery/delivery.module.js';
+import { DispatchModule } from './modules/dispatch/dispatch.module.js';
 import { DigitalMenuModule } from './modules/digital-menu/digital-menu.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { KdsModule } from './modules/kds/kds.module.js';
@@ -67,6 +69,7 @@ const isTest = process.env.NODE_ENV === 'test';
     QueueModule,
     MailModule,
     GeocodingModule,
+    RoutingModule,
     AuditModule,
     StorageModule,
     DemoModule,
@@ -80,6 +83,7 @@ const isTest = process.env.NODE_ENV === 'test';
     CashModule,
     KdsModule,
     DeliveryModule,
+    DispatchModule,
     DigitalMenuModule,
     PrintingModule,
     ReportsModule,
