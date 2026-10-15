@@ -12,6 +12,7 @@ import {
   MapPinned,
   Navigation,
   Printer,
+  Route,
   MonitorPlay,
   ReceiptText,
   ShieldAlert,
@@ -83,6 +84,13 @@ export const NAV: NavGroup[] = [
         label: 'Minhas entregas',
         icon: Navigation,
         permissions: [Permission.COURIER_APP],
+      },
+      {
+        href: '/despacho',
+        module: 'DELIVERY',
+        label: 'Despacho',
+        icon: Route,
+        permissions: [Permission.DELIVERY_OPERATE],
       },
       {
         href: '/entregadores',

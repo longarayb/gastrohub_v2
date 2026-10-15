@@ -1,6 +1,6 @@
 'use client';
 
-import { type OrderEvent, REALTIME_EVENTS } from '@app/shared';
+import { type CourierPositionEvent, type OrderEvent, REALTIME_EVENTS } from '@app/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { type Socket, io } from 'socket.io-client';
@@ -9,6 +9,7 @@ import { API_URL, getAccessToken, refreshSession } from './api';
 import { useAuth } from './auth';
 import { cashKeys } from './cash';
 import { deliveryKeys } from './delivery';
+import { dispatchKeys } from './dispatch';
 import { orderKeys } from './orders';
 import { printKeys } from './printing';
 import { reportKeys } from './reports';
@@ -16,11 +17,14 @@ import { reportKeys } from './reports';
 export type RealtimeStatus = 'connecting' | 'online' | 'offline';
 
 type Listener = (event: OrderEvent) => void;
+type PositionListener = (event: CourierPositionEvent) => void;
 
 interface RealtimeContextValue {
   status: RealtimeStatus;
   /** Subscribes to order.created events (sound alert, toasts). Returns the unsubscribe. */
   onOrderCreated: (listener: Listener) => () => void;
+  /** Courier positions during open runs (dispatch map). Returns the unsubscribe. */
+  onCourierPosition: (listener: PositionListener) => () => void;
 }
 
 const RealtimeContext = createContext<RealtimeContextValue | null>(null);
@@ -36,6 +40,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<RealtimeStatus>('connecting');
   const listeners = useRef(new Set<Listener>());
+  const positionListeners = useRef(new Set<PositionListener>());
   const socketRef = useRef<Socket | null>(null);
   const storeId = session?.store.id ?? null;
   const token = session?.accessToken ?? null;
@@ -95,7 +100,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       void queryClient.invalidateQueries({ queryKey: orderKeys.detail(event.id) });
       void queryClient.invalidateQueries({ queryKey: orderKeys.tables });
       void queryClient.invalidateQueries({ queryKey: cashKeys.receivables });
+      void queryClient.invalidateQueries({ queryKey: dispatchKeys.board });
       refreshReports();
+    });
+    // Positions are not queries: the dispatch map moves the courier's marker directly.
+    socket.on(REALTIME_EVENTS.COURIER_POSITION, (event: CourierPositionEvent) => {
+      for (const listener of positionListeners.current) listener(event);
     });
     socket.on(REALTIME_EVENTS.CASH_UPDATED, () => {
       void queryClient.invalidateQueries({ queryKey: cashKeys.all });
@@ -144,6 +154,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       onOrderCreated: (listener) => {
         listeners.current.add(listener);
         return () => void listeners.current.delete(listener);
+      },
+      onCourierPosition: (listener) => {
+        positionListeners.current.add(listener);
+        return () => void positionListeners.current.delete(listener);
       },
     }),
     [status],

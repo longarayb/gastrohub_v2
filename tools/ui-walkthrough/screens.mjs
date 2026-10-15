@@ -32,6 +32,7 @@ const SCREENS = [
   { name: 'mesas', path: '/mesas', user: 'dono', mobile: true, tablet: true },
   { name: 'entregas', path: '/entregas', user: 'entregador', mobile: true, phoneOnly: true },
   { name: 'kds', path: '/kds', user: 'dono' },
+  { name: 'despacho', path: '/despacho', user: 'caixa', mobile: true, tablet: true },
   { name: 'entregadores', path: '/entregadores', user: 'dono' },
   { name: 'entregadores-relatorio', path: '/entregadores/relatorio', user: 'dono' },
   { name: 'areas-entrega', path: '/areas-entrega', user: 'dono' },

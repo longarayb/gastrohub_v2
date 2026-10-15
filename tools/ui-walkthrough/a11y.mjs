@@ -44,6 +44,15 @@ const SCREENS = [
   },
   { name: 'caixa', url: `${WEB}/caixa`, user: 'caixa', mobile: true },
   { name: 'mesas', url: `${WEB}/mesas`, user: 'dono', mobile: true },
+  {
+    name: 'despacho',
+    url: `${WEB}/despacho`,
+    user: 'caixa',
+    mobile: true,
+    prepare: async (page) => {
+      await page.getByRole('heading', { name: /Prontos/ }).waitFor();
+    },
+  },
   { name: 'entregas', url: `${WEB}/entregas`, user: 'entregador', mobile: true, phoneOnly: true },
   {
     name: 'kds',
