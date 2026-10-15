@@ -50,6 +50,9 @@ const SCREENS = [
     user: 'caixa',
     mobile: true,
     prepare: async (page) => {
+      // Phone: the map tab opens first; the list is checked too.
+      const listTab = page.getByRole('tab', { name: 'Lista' });
+      if (await listTab.isVisible()) await listTab.click();
       await page.getByRole('heading', { name: /Prontos/ }).waitFor();
     },
   },

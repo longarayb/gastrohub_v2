@@ -98,6 +98,12 @@ export class DispatchBoardService {
         },
       },
     });
+    // A demo reset (or seed) leaves the looping courier stopped until the next scan.
+    const idle = runs.some(
+      (r) =>
+        couriers.find((c) => c.id === r.courierId)?.simulated && !this.simulation.isWalking(r.id),
+    );
+    if (idle) await this.simulation.scanLoops();
     const latest = await this.positions.latest(runs.map((r) => r.id));
     const result: DispatchCourierDto[] = couriers.map((courier) => {
       const run = runs.find((r) => r.courierId === courier.id);

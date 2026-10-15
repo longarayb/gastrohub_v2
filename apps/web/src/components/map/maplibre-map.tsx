@@ -140,6 +140,8 @@ export default function MaplibreMap({
       const marker = new maplibregl.Marker({ element, draggable: !!pin.draggable })
         .setLngLat(at)
         .addTo(map);
+      // Our content is the control (button with the label); the wrapper must not be one too.
+      for (const attr of ['role', 'tabindex', 'aria-label']) element.removeAttribute(attr);
       marker.on('dragstart', () => {
         dragged.current = true;
       });
