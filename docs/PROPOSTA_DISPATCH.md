@@ -1,6 +1,6 @@
 # Proposta: despacho com mapa e rotas (`feat/dispatch`)
 
-> **Status: aguardando aprovação** (apresentada em 2026-10-13, Surface). Nada foi implementado. As decisões pendentes estão no fim.
+> **Status: aprovada em 2026-10-15**, com as decisões no fim deste arquivo. Implementação na branch `feat/dispatch`, em 3 fases com aprovação visual ao fim de cada uma.
 
 ## 0. O que já existe e continua valendo
 
@@ -127,12 +127,26 @@ Um **entregador simulado** que anda pela rota, para testar e demonstrar sem ning
 2. **Acompanhamento e PWA:** posição ao vivo no despacho, previsões recalculadas, `/entregas` com rota, navegação, aviso de rastreamento e localização enquanto aberto (testado pelo túnel no seu celular), Web Push.
 3. **App nativo Android (Expo):** login do entregador, rota com notificação, navegação, entregue/não entregue, localização em segundo plano só durante a rota, aceite do rastreamento; teste no seu celular.
 
-## Decisões pendentes
+## OSRM próprio na produção: memória e disco
 
-1. **Mapa**: MapLibre com OpenFreeMap (recomendado, sem conta e sem custo por carregamento)?
-2. **Geocodificação**: começar com Nominatim e pino arrastável (sem cartão) e deixar o **Google** como opção quando houver conta com cartão? Ou criar a conta do Google Cloud já?
-3. **Rotas e ordem**: OSRM (servido por nós em produção; servidor de demonstração no desenvolvimento) com a ordem calculada por função nossa (recomendado)?
-4. **App do entregador**: app **nativo Android com Expo** para o rastreamento (recomendado), mantendo o `/entregas` como alternativa? Ou só PWA, aceitando que a posição não chega com o Waze na frente?
-5. **Retenção das posições**: 7 dias?
-6. **Simulação na Demo pública**: deixar uma saída sempre em andamento com o entregador simulado?
-7. **Fases**: as três acima, nessa ordem?
+Tamanhos atuais no Geofabrik (2026-10-14): **Região Sul 407 MB**, **Brasil 1,95 GB** (`.osm.pbf`). Regras práticas da comunidade do OSRM (perfil de carro): o **preparo** (extract, partition, customize) chega a cerca de **5 vezes** o tamanho do arquivo em memória, e o **servidor no ar** usa mais ou menos o tamanho dos arquivos preparados (bem menos que o preparo) ([wiki do OSRM](https://github-wiki-see.page/m/Project-OSRM/osrm-backend/wiki/Disk-and-Memory-Requirements), [relato de operador](https://lists.openstreetmap.org/pipermail/osrm-talk/2021-May/001997.html), [estimativa de 2x a 5x](https://ask.openrouteservice.org/t/requirements-based-on-osm-data/2016)).
+
+| | Região Sul | Brasil inteiro |
+|---|---|---|
+| Arquivo do Geofabrik | 0,4 GB | 2 GB |
+| Preparo (pico de memória) | ~2 GB | ~10 GB |
+| Disco dos arquivos preparados | ~1,5–2 GB | ~8–10 GB |
+| Memória do servidor no ar | ~1–1,5 GB | ~5–6 GB |
+| Cabe na VM planejada (12 GB, com ~2 GB de containers e ~2 GB do Postgres)? | **sim**, inclusive o preparo | o servidor no ar fica apertado; o preparo **não cabe** junto com o sistema (prepararia em outra máquina e enviaria os arquivos) |
+
+**Recomendação para a produção:** só o extrato da região atendida (a Sul, ou um estado), preparado mensalmente (o mapa do OSM muda) e trocado sem parar o serviço. Os números acima são estimativas: medir no desktop com o extrato da Sul antes da publicação na Contabo. No desenvolvimento e na demonstração, o servidor público do OSRM.
+
+## Decisões (aprovadas em 2026-10-15)
+
+1. **Mapa:** MapLibre com OpenFreeMap (estilo público, sem chave nem conta, com a atribuição do OpenStreetMap), atrás de uma interface que permita trocar o provedor de mapas depois.
+2. **Geocodificação:** Nominatim com **cache** por endereço e **pino arrastável**, salvando a correção no cadastro do cliente; Google como opção futura. **Política de uso do Nominatim público:** no máximo 1 consulta por segundo (fila única na API), identificação própria (User-Agent da aplicação e e-mail de contato), nada de geocodificação em lote, resultado guardado no cache.
+3. **Rotas:** OSRM, com a **ordem calculada pela nossa função**, atrás de uma interface `RoutingProvider`. O servidor público do OSRM só no desenvolvimento e na demonstração. **Se o serviço de rotas falhar**, o despacho continua funcionando com **estimativa em linha reta e ordem pela distância**.
+4. **App do entregador:** nativo Android com Expo, mantendo o `/entregas` como alternativa. Para começar, **distribuição pelo APK**, sem a Play Store. A publicação na Play Store (com a justificativa exigida para localização em segundo plano) e o app para iPhone ficam como etapas futuras (ROADMAP).
+5. **Posições:** guardadas por **7 dias**.
+6. **Entregador simulado na Demo pública:** sim, **identificado como "simulado"** na tela, **sem consumir** geocodificação nem rotas a cada volta (rota pré-calculada e guardada).
+7. **Fases**, com aprovação visual ao fim de cada uma: **1) despacho e rota com a simulação; 2) tempo real e PWA; 3) app Android.** Ao fim de cada fase: merge na `main`, `pnpm servidor:atualizar` e os endereços para testar de outra máquina.

@@ -20,7 +20,7 @@ Legenda: ✅ feito · 🚧 em andamento · ⏳ pendente
 | Painel admin da plataforma (app `admin` com login e 2FA próprios, clientes, planos, assinaturas, mensalidades manuais, inadimplência com somente leitura fora do expediente, acesso de suporte, aceite dos termos) | `feat/platform-admin` | ✅ concluído (2026-10-12; D041–D044) |
 | Hospedagem: código (imagens, scripts do servidor, backups, monitoramento, modo demonstração; [DEPLOY.md](DEPLOY.md)) | `chore/hosting` | ✅ concluído (2026-10-13; D045, D046) |
 | Servidor temporário no Surface (rede de casa: pasta própria só com a `main`, banco e Redis próprios, `servidor:*`) | `chore/home-server` | ✅ concluído (2026-10-13; D047) |
-| Despacho com mapa e rotas (tela de despacho, rota sugerida, acompanhamento em tempo real, app do entregador com localização) | `feat/dispatch` | 📝 proposta em [PROPOSTA_DISPATCH.md](PROPOSTA_DISPATCH.md), aguardando aprovação |
+| Despacho com mapa e rotas (tela de despacho, rota sugerida, acompanhamento em tempo real, app do entregador com localização) | `feat/dispatch` | 🚧 aprovada em 2026-10-15 ([PROPOSTA_DISPATCH.md](PROPOSTA_DISPATCH.md)); fase 1 (despacho e rota com a simulação) em andamento |
 | Laboratório de receitas | — | ⏳ |
 | Publicação na Contabo (DEPLOY.md, Partes 1 e 2) | — | ⏳ quando o Braian decidir (contas e VM pendentes por decisão dele) |
 | Integração iFood (API própria) | `feat/ifood` | ⏳ depois da publicação na Contabo (ver "Integrações com marketplaces") |
@@ -75,6 +75,9 @@ Entram pelo ponto de extensão `MarketplaceAdapter` (pedidos com `source` e cód
 Especificação validada em [DESIGN.md](DESIGN.md) (2026-10-08); os componentes do dashboard já seguem a estrutura. O layout será refeito trocando o tema (`packages/ui/src/styles/globals.css`), sem reescrever as telas. Referência pedida pelo usuário (imagem não versionada, pois contém dados reais): dashboard escuro em azul-marinho, cards de KPI com borda lateral colorida, gráficos de barras e de rosca, tipografia limpa e bastante espaço entre os blocos. As telas usam apenas tokens do tema (`bg-card`, `text-muted-foreground`, `status-*`, `w-kanban-column`, raios de `--radius`).
 
 ## Fase 2+ (arquitetura preparada, não implementado)
+
+- **App do entregador na Play Store** (depois da `feat/dispatch`, que distribui pelo APK): conta de desenvolvedor (US$ 25), política de privacidade publicada e a **justificativa da localização em segundo plano** exigida pela Google (formulário de permissões e vídeo mostrando o uso), além da revisão do app.
+- **App do entregador para iPhone** (iOS): conta Apple Developer (US$ 99/ano), localização em segundo plano com as regras da Apple e push pelo APNs.
 
 - Integrações com marketplaces: planejadas como etapas logo depois da hospedagem (ver "Integrações com marketplaces" acima)
 - Emissão fiscal NFC-e/NF-e via `FiscalProvider`
