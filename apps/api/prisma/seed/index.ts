@@ -91,7 +91,7 @@ async function main(): Promise<void> {
       `✔ Caixas: ${orders.cashSessions} (gerente: fechado com diferença; caixa: aberto) · PIX pix@demo.local`,
     );
     console.log(
-      `✔ Entregas: ${delivery.areas} áreas (uma suspensa) · ${delivery.runs} saídas (uma acertada, uma aguardando acerto, uma em rota) · app do entregador: entregador@demo.local`,
+      `✔ Entregas: ${delivery.areas} áreas (uma suspensa) · ${delivery.runs} saídas (uma acertada, uma aguardando acerto, duas em rota, uma com o entregador simulado) · app do entregador: entregador@demo.local`,
     );
     console.log(
       `✔ Cardápio digital: http://localhost:3001/${store.slug} · ${digital.menuOrders} pedidos pelo cardápio · telefone bloqueado (11) 90000-0000`,
