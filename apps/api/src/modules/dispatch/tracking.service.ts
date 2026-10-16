@@ -9,6 +9,7 @@ import {
   shouldStorePosition,
 } from '@app/shared';
 import { AuditAction, AuditService } from '../../core/audit/audit.service.js';
+import { AppConfig } from '../../core/config/app-config.service.js';
 import { ForbiddenError, ValidationError } from '../../core/errors/domain-error.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';
 import { type Db, InjectDb } from '../../core/tenancy/db.provider.js';
@@ -38,6 +39,7 @@ export class TrackingService {
     private readonly positions: PositionsService,
     private readonly liveEta: LiveEtaService,
     private readonly audit: AuditService,
+    private readonly config: AppConfig,
   ) {}
 
   private async courier(): Promise<Courier> {
@@ -46,6 +48,24 @@ export class TrackingService {
     const courier = await this.db.courier.findFirst({ where: { userId, isActive: true } });
     if (!courier) throw new ForbiddenError('Seu usuário não está vinculado a um entregador');
     return courier;
+  }
+
+  /**
+   * The public demo never receives a real person's location (any visitor could sign in as the
+   * cashier and see it): its map has the simulated courier. The home network server (private)
+   * and development allow it, to test with a real phone.
+   */
+  private async assertRealLocationAllowed(): Promise<void> {
+    if (!this.config.isProduction || this.config.get('LAN_SERVER')) return;
+    const store = await this.prisma.store.findUnique({
+      where: { id: this.ctx.tenantId },
+      select: { demoMode: true },
+    });
+    if (store?.demoMode) {
+      throw new ForbiddenError(
+        'Na demonstração pública a localização real não é enviada: veja o entregador simulado no despacho',
+      );
+    }
   }
 
   async trackingOf(courier: Courier): Promise<CourierTrackingDto> {
@@ -66,6 +86,7 @@ export class TrackingService {
     if (version !== TRACKING_CONSENT_VERSION) {
       throw new ValidationError('O texto do compartilhamento mudou: leia de novo e aceite');
     }
+    await this.assertRealLocationAllowed();
     const courier = await this.courier();
     const updated = await this.db.courier.update({
       where: { id: courier.id },
@@ -81,6 +102,7 @@ export class TrackingService {
   }
 
   async ingest(input: CourierPositionsInput, now = new Date()): Promise<PositionsAcceptedDto> {
+    await this.assertRealLocationAllowed();
     const courier = await this.courier();
     if (courier.trackingConsentVersion !== TRACKING_CONSENT_VERSION) {
       throw new ForbiddenError('Aceite o compartilhamento da localização antes de enviar');

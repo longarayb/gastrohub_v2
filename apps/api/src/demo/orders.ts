@@ -884,9 +884,10 @@ export async function seedOrders(
     userId: cashierId,
   });
   // Waiting on the dispatch map: one with a pin, one the operator marks on the map (D048).
-  for (const [customer, age, payment] of [
-    [bruna, 14, 'CREDIT_CARD'],
-    [sofia, 10, 'DEBIT_CARD'],
+  // Drinks and payment unlike the other open orders: the walkthroughs find those by them.
+  for (const [customer, age, payment, drink] of [
+    [bruna, 14, 'CREDIT_CARD', item('Suco natural', { size: '500 ml' })],
+    [sofia, 10, 'CREDIT_CARD', item('Refrigerante cola lata')],
   ] as const) {
     await createOrder({
       type: 'DELIVERY',
@@ -896,7 +897,7 @@ export async function seedOrders(
         {
           sent: true,
           age,
-          items: [{ pricing: pizza('Média', ['Marguerita']) }, { pricing: item('Guaraná lata') }],
+          items: [{ pricing: pizza('Média', ['Marguerita']) }, { pricing: drink }],
         },
       ],
       customer,
