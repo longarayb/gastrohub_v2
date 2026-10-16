@@ -435,6 +435,12 @@ async function atualizar() {
       }
     }
   }
+  // The build cache grew ~12 GB in a few updates and filled the Surface disk (2026-10-16):
+  // keep at most 3 GB of it (enough for the next build to stay fast).
+  sh('docker', ['builder', 'prune', '-f', '--max-used-space', '3gb'], {
+    stdio: 'ignore',
+    allowFail: true,
+  });
   addresses(ip);
 }
 
