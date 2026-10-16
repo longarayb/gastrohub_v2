@@ -19,8 +19,11 @@ allowBuilds:
   # firebase-admin (D050): postinstall scripts not needed to send messages.
   '@firebase/util': false
   protobufjs: false
+# pnpm only installs versions published at least 1 day ago (minimumReleaseAge, 1440 min by default).
+# These exact Expo SDK 58 versions are the ones `expo install` requires for apps/courier and were
+# published on 2026-10-15/16 (D050). Only exact versions, never ranges or package names.
+# Remove this list after 2026-10-17 07:00 UTC, when all of them pass the limit (see docs/ROADMAP.md).
 minimumReleaseAgeExclude:
-  - lucide-react@1.52.0
   - '@expo/cli@58.1.10'
   - '@expo/metro-config@58.0.14'
   - '@expo/package-manager@1.14.2'
