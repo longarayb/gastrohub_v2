@@ -1,4 +1,6 @@
+import type { AddressInfo } from 'node:net';
 import { TRACKING_CONSENT_VERSION } from '@app/shared';
+import { io, type Socket } from 'socket.io-client';
 import { LiveEtaService } from '../src/modules/dispatch/live-eta.service.js';
 import {
   bearer,
@@ -31,6 +33,7 @@ describe('Courier tracking and push (e2e)', () => {
   let other: RegisteredStore;
   let owner: Headers;
   let courier: Headers;
+  let courierToken: string;
   const ids: Record<string, string> = {};
   const orders: Order[] = [];
 
@@ -101,7 +104,8 @@ describe('Courier tracking and push (e2e)', () => {
       .post('/api/auth/login')
       .send({ email: 'moto.rastreio@teste.com', password: 'Senha1234' })
       .expect(200);
-    courier = bearer(login.body.accessToken);
+    courierToken = login.body.accessToken;
+    courier = bearer(courierToken);
 
     await post(owner, '/api/delivery/areas', {
       name: 'Centro',
@@ -251,5 +255,40 @@ describe('Courier tracking and push (e2e)', () => {
       [north(1).longitude, north(1).latitude],
       [north(2).longitude, north(2).latitude],
     ]);
+  });
+
+  it('positions reach only who operates deliveries (never the couriers or other units)', async () => {
+    await ctx.app.listen(0);
+    const { port } = ctx.app.getHttpServer().address() as AddressInfo;
+    const connect = (token: string): Socket =>
+      io(`http://127.0.0.1:${port}/realtime`, {
+        auth: { token },
+        transports: ['websocket'],
+        reconnection: false,
+      });
+    const staff = connect(store.accessToken);
+    const rider = connect(courierToken);
+    const foreign = connect(other.accessToken);
+    try {
+      await Promise.all(
+        [staff, rider, foreign].map(
+          (s) => new Promise<void>((resolve) => s.on('ready', () => resolve())),
+        ),
+      );
+      const leaked: unknown[] = [];
+      rider.on('courier.position', (e) => leaked.push(e));
+      foreign.on('courier.position', (e) => leaked.push(e));
+      const seen = new Promise<{ courierId: string; latitude: number }>((resolve) =>
+        staff.on('courier.position', resolve),
+      );
+      await send([{ ...north(1.2), accuracyMeters: 10, recordedAt: ago(0) }]).expect(200);
+      expect(await seen).toMatchObject({ courierId: ids.moto, latitude: north(1.2).latitude });
+      await new Promise((r) => setTimeout(r, 300));
+      expect(leaked).toEqual([]);
+    } finally {
+      staff.close();
+      rider.close();
+      foreign.close();
+    }
   });
 });
