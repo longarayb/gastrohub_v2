@@ -1,0 +1,43 @@
+{
+  "name": "@app/courier",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "apk": "node scripts/build-apk.mjs",
+    "keystore": "node scripts/keystore.mjs",
+    "clean": "rimraf android .expo dist"
+  },
+  "dependencies": {
+    "@app/shared": "workspace:*",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "12.0.1",
+    "expo": "~58.0.12",
+    "expo-application": "~58.1.1",
+    "expo-battery": "~58.0.3",
+    "expo-build-properties": "~58.0.10",
+    "expo-crypto": "~58.0.6",
+    "expo-device": "~58.0.5",
+    "expo-intent-launcher": "~58.0.3",
+    "expo-linking": "~58.0.13",
+    "expo-location": "~58.0.16",
+    "expo-notifications": "~58.1.4",
+    "expo-secure-store": "~58.0.2",
+    "expo-status-bar": "~58.0.3",
+    "expo-task-manager": "~58.0.12",
+    "react": "19.3.0",
+    "react-native": "0.88.0"
+  },
+  "devDependencies": {
+    "@app/config": "workspace:*",
+    "@types/react": "~19.3.0",
+    "eslint": "^10.12.0",
+    "rimraf": "^6.0.1",
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.5"
+  }
+}

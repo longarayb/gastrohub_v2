@@ -95,13 +95,13 @@ export const collectionSchema = z
   });
 export type CollectionInput = z.input<typeof collectionSchema>;
 
-/** Courier app "Entregue": how the customer paid (required when the order has a balance). */
 /** Courier app (D050): id of the action (offline queue, never applied twice) and when it happened. */
 const appAction = {
   actionId: z.string().min(8).max(64).optional(),
   occurredAt: z.iso.datetime().optional(),
 };
 
+/** Courier app "Entregue": how the customer paid (required when the order has a balance). */
 export const courierDeliverSchema = z.object({
   collection: collectionSchema.optional().nullable(),
   ...appAction,
