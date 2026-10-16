@@ -439,3 +439,42 @@ Até a publicação na Contabo, o Surface serve o sistema para a rede de casa. D
 **HTTPS para o celular (GPS do entregador):** o navegador só libera a localização em https. `pnpm servidor:tunel` abre um túnel temporário da Cloudflare até o painel do servidor (`pnpm servidor:tunel cardapio` para o cardápio) e mostra o endereço `https://…trycloudflare.com`; o entregador abre `<endereço>/entregas`. **Atenção:** enquanto o túnel está aberto, o sistema do servidor de casa fica acessível pela internet (com as senhas conhecidas da Demo); ele fecha sozinho em 30 minutos (`--minutos N`), e nunca deve ser usado com dados reais. Precisa do `cloudflared` (`winget install --id Cloudflare.cloudflared` no Windows; o script usa o do Windows a partir do WSL).
 
 **Testar o entregador no celular (D049):** com o túnel aberto, entre no celular em `<endereço>/entregas` com `entregador@demo.local` / `Demo1234` (o Gustavo tem uma saída aberta na Demo). Toque em "Compartilhar localização", leia e aceite; abra o despacho no computador (`http://<IP do Surface>:3000/despacho`, caixa) e veja o Gustavo andar com você. Para os avisos: no Android, "Ativar avisos" direto no Chrome; no iPhone (iOS 16.4 ou mais novo), Compartilhar › Adicionar à Tela de Início, abrir pelo ícone, entrar e "Ativar avisos". Depois despache um pedido para o Gustavo no computador: chega "N entregas na sua rota". O endereço do túnel muda a cada vez, então no iPhone o ícone da Tela de Início vale só para aquele túnel. Com a tela apagada ou outro app na frente, o celular para de enviar a posição (o despacho mostra "sem sinal há N min"): isso só muda com o app Android da fase 3.
+
+## App do entregador (Android, D050)
+
+App nativo em `apps/courier` (Expo SDK 58), distribuído por APK, sem Play Store. O `/entregas` no navegador continua como alternativa. Roteiro de teste: [TESTE_APP_ENTREGADOR.md](TESTE_APP_ENTREGADOR.md).
+
+### Preparar a máquina (uma vez, Linux ou WSL, sem `sudo`)
+
+```bash
+bash scripts/android-sdk.sh            # JDK 17 em ~/.local/jdk-17 e Android SDK em ~/Android/Sdk (aceita as licenças do SDK)
+pnpm --filter @app/courier keystore    # chave de assinatura em ~/.config/app-courier (só uma vez na vida do app)
+```
+
+**Chave de assinatura:** o `keystore` cria `~/.config/app-courier/release.jks` e `signing.env` (senha e alias, permissão 600) e mostra a impressão digital SHA-256. **Guarde uma cópia dos dois arquivos no gerenciador de senhas** (o `.jks` como anexo ou em base64: `base64 -w0 ~/.config/app-courier/release.jks`). Para montar o APK em outra máquina, copie os dois para o mesmo lugar. **Se a chave for perdida**, nenhum celular aceita mais atualizações do app: seria preciso uma chave nova e cada entregador desinstalaria e instalaria de novo (perdendo a fila sem sinal); na Play Store, perder a chave impede atualizar o mesmo app. Nunca no repositório (o `.gitignore` e o script de commit recusam `.jks` e `signing.env`).
+
+### Firebase (avisos de "rota nova") — o que você cria
+
+Gratuito, **sem cartão** (plano Spark; o FCM não tem custo).
+
+1. Em [console.firebase.google.com](https://console.firebase.google.com), **Criar projeto** (ex.: "app-entregas"); o Google Analytics pode ficar desligado.
+2. Na página do projeto, **Adicionar app › Android**: nome do pacote **`app.foodservice.entregas`** (exatamente), apelido à vontade, **Registrar app**, **Baixar google-services.json**. Os passos seguintes do assistente (SDK) podem ser pulados.
+3. **Configurações do projeto › Contas de serviço › Gerar nova chave privada**: baixa um JSON. **Este é secreto** (permite enviar avisos em nome do projeto).
+4. Salve os dois no Surface, em `\wsl.localhost\Ubuntu-24.04\home\braian\.config\app-courier\`:
+   - `google-services.json` (entra no APK: monte o APK de novo);
+   - `firebase-service-account.json` (o `pnpm servidor:subir`/`atualizar` coloca no `.env` do servidor como `FCM_SERVICE_ACCOUNT`, em base64).
+5. Guarde a cópia da conta de serviço no gerenciador de senhas. Na Contabo, o mesmo valor vai no `FCM_SERVICE_ACCOUNT` do `.env`.
+
+Sem o Firebase o app funciona igual, só não avisa de rota nova (a tela se atualiza sozinha a cada 30 s com o app aberto).
+
+### Montar e publicar o APK
+
+```bash
+pnpm servidor:parar                    # o build precisa da memória (8 GB)
+pnpm --filter @app/courier apk         # APK assinado em apps/courier/dist (20–40 min na primeira vez)
+pnpm servidor:subir && pnpm servidor:apk
+```
+
+- Cada APK novo precisa de `versionCode` maior em `apps/courier/release.json` (e `versionName`/`notes` para a tela de versão nova).
+- Só ARM64 (celulares Android dos últimos anos); `android/` é gerado pelo `expo prebuild` e nunca vai para o git.
+- O app aceita `http` (o servidor de casa); fora da rede de casa use `https`.

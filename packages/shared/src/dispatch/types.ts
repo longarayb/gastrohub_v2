@@ -123,9 +123,23 @@ export interface PositionsAcceptedDto {
   accepted: number;
   /** Positions kept (moved enough or enough time passed). */
   stored: number;
+  /** Stops still to deliver: 0 = the app stops sharing by itself (D050). */
+  pendingStops: number;
+}
+
+/** Latest Android courier app published on this server (D050, servidor:apk). */
+export interface CourierAppReleaseDto {
+  versionCode: number;
+  versionName: string;
+  notes: string | null;
+  /** Path of the APK on this server's API (`/api/courier-app/download`). */
+  downloadPath: string;
+  publishedAt: string;
 }
 
 export interface PushConfigDto {
   /** VAPID public key; null = push not configured on this server. */
   publicKey: string | null;
+  /** Android app notices (Firebase) configured on this server. */
+  fcm: boolean;
 }

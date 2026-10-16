@@ -265,7 +265,10 @@ export class CourierAppController {
     @Param('id') id: string,
     @ZBody(courierDeliverSchema) body: z.output<typeof courierDeliverSchema>,
   ) {
-    return this.app.deliver(id, body.collection ?? null);
+    return this.app.deliver(id, body.collection ?? null, {
+      actionId: body.actionId,
+      occurredAt: body.occurredAt,
+    });
   }
 
   @Put('stops/:id/collection')
@@ -287,7 +290,11 @@ export class CourierAppController {
     @Param('id') id: string,
     @ZBody(deliveryFailureSchema) body: z.output<typeof deliveryFailureSchema>,
   ) {
-    return this.app.fail(id, { reason: body.reason, note: body.note ?? null });
+    return this.app.fail(
+      id,
+      { reason: body.reason, note: body.note ?? null },
+      { actionId: body.actionId, occurredAt: body.occurredAt },
+    );
   }
 
   @Post('return')

@@ -214,6 +214,8 @@ model RefreshToken {
   replacedAt DateTime?
   userAgent  String?
   ip         String?
+  /// "courier-app" (D050): token kept by the native app; a reuse within seconds is tolerated.
+  client     String?
   createdAt  DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1442,6 +1444,9 @@ model DeliveryStop {
   receivedCents      Int?
   changeCents        Int?
   collectedNote      String?
+  /// Action of the courier app that concluded this stop (D050): a resend from the offline queue
+  /// with the same id is answered as done, never applied twice.
+  closedActionId     String?
   /// Planned leg to this stop and expected arrival (recalculated on the way, phase 2).
   legDistanceMeters  Int?
   legDurationSeconds Int?
@@ -1910,16 +1915,23 @@ model CourierPosition {
 
 /// Web Push of a browser or installed app (D049): today the courier's "rota nova".
 model PushSubscription {
-  id            String    @id @default(cuid())
-  tenantId      String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  id            String      @id @default(cuid())
+  tenantId      String      @default(dbgenerated("current_setting('app.tenant_id'::text)"))
   userId        String
+  /// WEB: browser (VAPID); FCM: the Android app (D050), with the device token in `endpoint`.
+  channel       PushChannel @default(WEB)
   endpoint      String
-  p256dh        String
-  auth          String
+  p256dh        String?
+  auth          String?
   userAgent     String?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime    @default(now())
   lastSuccessAt DateTime?
 
   @@unique([tenantId, endpoint])
   @@index([tenantId, userId])
+}
+
+enum PushChannel {
+  WEB
+  FCM
 }

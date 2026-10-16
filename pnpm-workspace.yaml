@@ -16,8 +16,23 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   '@scarf/scarf': false
+  # firebase-admin (D050): postinstall scripts not needed to send messages.
+  '@firebase/util': false
+  protobufjs: false
 minimumReleaseAgeExclude:
   - lucide-react@1.52.0
+  - '@expo/cli@58.1.10'
+  - '@expo/metro-config@58.0.14'
+  - '@expo/package-manager@1.14.2'
+  - '@expo/prebuild-config@58.0.14'
+  - '@expo/router-server@58.0.14'
+  - babel-preset-expo@58.0.16
+  - expo-asset@58.0.16
+  - expo-modules-core@58.0.20
+  - expo-modules-jsi@58.0.14
+  - expo@58.0.12
+  - expo-task-manager@58.0.12
+  - expo-system-ui@58.0.6
 
 # Few parallel install scripts: this machine has little commit memory.
 childConcurrency: 2

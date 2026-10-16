@@ -7,7 +7,8 @@
     "./tsconfig/*.json": "./tsconfig/*.json",
     "./eslint/base": "./eslint/base.js",
     "./eslint/nest": "./eslint/nest.js",
-    "./eslint/next": "./eslint/next.js"
+    "./eslint/next": "./eslint/next.js",
+    "./eslint/react": "./eslint/react.js"
   },
   "dependencies": {
     "@eslint/js": "^10.0.1",

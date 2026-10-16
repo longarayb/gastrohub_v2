@@ -113,4 +113,11 @@ export interface AuthSession {
   memberships: SessionMembership[];
   /** Platform support session (D041): shown in the banner; no refresh, ends at `endsAt`. */
   support?: { reason: string; mode: 'READ_ONLY' | 'READ_WRITE'; endsAt: string };
+  /** Native courier app only (D050, header X-App-Client): the refresh token goes in the body. */
+  refreshToken?: string;
+  refreshExpiresAt?: string;
 }
+
+/** Header the Android courier app sends: refresh token in the body instead of a cookie (D050). */
+export const APP_CLIENT_HEADER = 'x-app-client';
+export const COURIER_APP_CLIENT = 'courier-app';

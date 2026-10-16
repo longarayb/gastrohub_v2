@@ -164,6 +164,7 @@ describe('Courier tracking and push (e2e)', () => {
   it('push: the courier subscribes and gets "rota nova" when orders leave', async () => {
     expect((await get(courier, '/api/push/config').expect(200)).body).toEqual({
       publicKey: 'test-public-key',
+      fcm: true,
     });
     const subscription = {
       endpoint: 'https://push.example.com/send/abc',
@@ -219,7 +220,7 @@ describe('Courier tracking and push (e2e)', () => {
       { ...north(0.5), recordedAt: new Date(Date.now() + 10 * 60_000).toISOString() },
       { ...north(0.3), accuracyMeters: 10, recordedAt: ago(2) },
     ]).expect(200);
-    expect(res.body).toEqual({ accepted: 3, stored: 2 });
+    expect(res.body).toEqual({ accepted: 3, stored: 2, pendingStops: 2 });
 
     const board = (await get(owner, '/api/dispatch/board').expect(200)).body;
     const run = board.couriers.find((c: { id: string }) => c.id === ids.moto).run;

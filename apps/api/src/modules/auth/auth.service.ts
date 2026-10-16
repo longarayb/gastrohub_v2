@@ -30,6 +30,8 @@ import { type IssuedRefreshToken, TokenService, sha256 } from './token.service.j
 export interface RequestMeta {
   userAgent?: string;
   ip?: string;
+  /** "courier-app": the native app (D050). */
+  client?: string;
 }
 
 export interface SessionWithRefresh {

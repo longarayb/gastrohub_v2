@@ -5,6 +5,7 @@ import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/core/prisma/prisma.service.js';
 import { MAIL_PROVIDER, type MailMessage, type MailProvider } from '../src/core/mail/mail.types.js';
 import {
+  FCM_PROVIDER,
   PUSH_PROVIDER,
   type PushMessage,
   type PushProvider,
@@ -47,6 +48,8 @@ export async function createTestApp(): Promise<TestContext> {
     .overrideProvider(MAIL_PROVIDER)
     .useValue(mail)
     .overrideProvider(PUSH_PROVIDER)
+    .useValue(push)
+    .overrideProvider(FCM_PROVIDER)
     .useValue(push)
     .compile();
   const app = moduleRef.createNestApplication();
