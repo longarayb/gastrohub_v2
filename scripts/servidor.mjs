@@ -538,9 +538,13 @@ async function tunel() {
   const port = target === 'cardapio' ? 3001 : 3000;
   const i = rest.indexOf('--minutos');
   const minutes = Math.min(Math.max(Number(rest[i + 1]) || 30, 1), 120);
-  const bin = ['cloudflared', 'cloudflared.exe'].find(
-    (b) => spawnSync(b, ['--version'], { stdio: 'ignore' }).status === 0,
-  );
+  // WSL inherits the Windows PATH only when it starts: also the winget install folders.
+  const bin = [
+    'cloudflared',
+    'cloudflared.exe',
+    '/mnt/c/Program Files (x86)/cloudflared/cloudflared.exe',
+    '/mnt/c/Program Files/cloudflared/cloudflared.exe',
+  ].find((b) => spawnSync(b, ['--version'], { stdio: 'ignore' }).status === 0);
   if (!bin) {
     fail(
       'cloudflared não está instalado. No PowerShell do Windows (uma vez):\n' +
