@@ -191,12 +191,12 @@ await step('checkout: delivery area fee, PIX, privacy consent, order sent', asyn
   await sheet.getByLabel('Nome', { exact: true }).fill('Ana Cardápio');
   await sheet.getByLabel('Celular com DDD', { exact: true }).fill('11977776666');
   // Typed by hand (works without ViaCEP).
-  await sheet.getByLabel('Número', { exact: true }).fill('300');
-  await sheet.getByLabel('Rua', { exact: true }).fill('Rua Treze de Maio');
+  await sheet.getByLabel('Número', { exact: true }).fill('520');
+  await sheet.getByLabel('Rua', { exact: true }).fill('Rua Jaceguai');
   await sheet.getByLabel('Bairro', { exact: true }).fill('Bixiga');
   await sheet.getByLabel('Cidade', { exact: true }).fill('São Paulo');
   await sheet.getByLabel('UF', { exact: true }).fill('SP');
-  await sheet.getByLabel('CEP', { exact: true }).fill('01327000');
+  await sheet.getByLabel('CEP', { exact: true }).fill('01315010');
   await sheet
     .getByRole('region', { name: 'Resumo' })
     .getByText(/Entrega · Centro expandido/)

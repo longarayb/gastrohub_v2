@@ -7,9 +7,31 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { MapLineTone, MapPin, MapViewProps } from './map-view';
 
-/** OpenFreeMap (no key, OpenStreetMap attribution) unless the environment names another style. */
+/**
+ * OpenFreeMap (no key, OpenStreetMap attribution) unless the environment names other styles. The
+ * dark style follows the panel's dark theme (street names light on a dark background).
+ */
 const STYLE_URL =
   process.env.NEXT_PUBLIC_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/liberty';
+const DARK_STYLE_URL =
+  process.env.NEXT_PUBLIC_MAP_STYLE_DARK_URL || 'https://tiles.openfreemap.org/styles/dark';
+
+const isDark = () => document.documentElement.classList.contains('dark');
+
+/**
+ * The dark base style draws street and place names dim: on the panel they must read at a
+ * glance, so every label gets the theme's foreground with a dark halo.
+ */
+function brightenLabels(map: MlMap): void {
+  const text = tokenColor('--foreground');
+  const halo = tokenColor('--background');
+  for (const layer of map.getStyle().layers ?? []) {
+    if (layer.type !== 'symbol' || !layer.layout?.['text-field']) continue;
+    map.setPaintProperty(layer.id, 'text-color', text);
+    map.setPaintProperty(layer.id, 'text-halo-color', halo);
+    map.setPaintProperty(layer.id, 'text-halo-width', 1.5);
+  }
+}
 
 const TONE_TOKENS: Record<MapLineTone, string> = {
   primary: '--primary',
@@ -85,20 +107,28 @@ export default function MaplibreMap({
   clickRef.current = onMapClick;
   const initialCenter = useRef(center);
   const theme = useThemeVersion();
+  // Bumped when a style finished loading: the lines are added again (a new style drops them).
+  const [styleVersion, setStyleVersion] = useState(0);
+  const styleDark = useRef<boolean | null>(null);
 
   useEffect(() => {
     const el = container.current;
     if (!el) return;
     const instance = new maplibregl.Map({
       container: el,
-      style: STYLE_URL,
+      style: isDark() ? DARK_STYLE_URL : STYLE_URL,
       center: [initialCenter.current.longitude, initialCenter.current.latitude],
       zoom: 14,
       attributionControl: { compact: true },
       cooperativeGestures: false,
     });
     instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    styleDark.current = isDark();
     instance.on('load', () => setLoaded(true));
+    instance.on('style.load', () => {
+      if (styleDark.current) brightenLabels(instance);
+      setStyleVersion((v) => v + 1);
+    });
     instance.on('click', (e) =>
       clickRef.current?.({ latitude: e.lngLat.lat, longitude: e.lngLat.lng }),
     );
@@ -164,41 +194,54 @@ export default function MaplibreMap({
     if (changed) setMounted([...entries.current]);
   }, [map, pins]);
 
+  // Theme switch: the base map follows (light or dark style).
+  useEffect(() => {
+    if (!map || styleDark.current === null) return;
+    const dark = isDark();
+    if (dark === styleDark.current) return;
+    styleDark.current = dark;
+    map.setStyle(dark ? DARK_STYLE_URL : STYLE_URL);
+  }, [map, theme]);
+
   // Lines: one GeoJSON source and layer each, redrawn when they or the theme change.
   const lineIds = useRef(new Set<string>());
   useEffect(() => {
     if (!map || !loaded) return;
-    for (const id of lineIds.current) {
-      if (map.getLayer(id)) map.removeLayer(id);
-      if (map.getSource(id)) map.removeSource(id);
+    try {
+      for (const id of lineIds.current) {
+        if (map.getLayer(id)) map.removeLayer(id);
+        if (map.getSource(id)) map.removeSource(id);
+      }
+      lineIds.current.clear();
+      for (const line of lines) {
+        if (line.coordinates.length < 2) continue;
+        const id = `line-${line.id}`;
+        const data = {
+          type: 'Feature' as const,
+          properties: {},
+          geometry: { type: 'LineString' as const, coordinates: line.coordinates },
+        };
+        const source = map.getSource(id) as GeoJSONSource | undefined;
+        if (source) source.setData(data);
+        else map.addSource(id, { type: 'geojson', data });
+        map.addLayer({
+          id,
+          type: 'line',
+          source: id,
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': tokenColor(TONE_TOKENS[line.tone]),
+            'line-width': line.tone === 'muted' ? 3 : 5,
+            'line-opacity': 0.85,
+            ...(line.dashed && { 'line-dasharray': [1.5, 1.5] }),
+          },
+        });
+        lineIds.current.add(id);
+      }
+    } catch {
+      // A new style is still loading (theme switch): its `style.load` draws the lines again.
     }
-    lineIds.current.clear();
-    for (const line of lines) {
-      if (line.coordinates.length < 2) continue;
-      const id = `line-${line.id}`;
-      const data = {
-        type: 'Feature' as const,
-        properties: {},
-        geometry: { type: 'LineString' as const, coordinates: line.coordinates },
-      };
-      const source = map.getSource(id) as GeoJSONSource | undefined;
-      if (source) source.setData(data);
-      else map.addSource(id, { type: 'geojson', data });
-      map.addLayer({
-        id,
-        type: 'line',
-        source: id,
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: {
-          'line-color': tokenColor(TONE_TOKENS[line.tone]),
-          'line-width': line.tone === 'muted' ? 3 : 5,
-          'line-opacity': 0.85,
-          ...(line.dashed && { 'line-dasharray': [1.5, 1.5] }),
-        },
-      });
-      lineIds.current.add(id);
-    }
-  }, [map, loaded, lines, theme]);
+  }, [map, loaded, lines, theme, styleVersion]);
 
   // Fit everything in view when the caller says so (first load, new suggestion).
   const latestGeometry = useRef({ pins, lines });
