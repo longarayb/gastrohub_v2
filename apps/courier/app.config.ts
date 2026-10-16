@@ -44,6 +44,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     blockedPermissions: ['android.permission.RECORD_AUDIO'],
   },
   plugins: [
+    // Release APK signed with the app's own key (never the debug key).
+    './plugins/with-release-signing',
     'expo-secure-store',
     [
       'expo-location',
@@ -65,8 +67,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           usesCleartextTraffic: true,
           // Phones of the last years are all 64-bit ARM: a smaller APK and a lighter build.
           buildArchs: ['arm64-v8a'],
-          enableMinifyInReleaseBuilds: true,
-          enableShrinkResourcesInReleaseBuilds: true,
+          // R8 needs more memory than the 8 GB Surface has for WSL during the build.
+          enableMinifyInReleaseBuilds: false,
         },
       },
     ],

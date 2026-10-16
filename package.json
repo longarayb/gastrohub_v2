@@ -38,7 +38,8 @@
     "servidor:logs": "node scripts/servidor.mjs logs",
     "servidor:demo": "node scripts/servidor.mjs demo",
     "servidor:admin": "node scripts/servidor.mjs admin",
-    "servidor:tunel": "node scripts/servidor.mjs tunel"
+    "servidor:tunel": "node scripts/servidor.mjs tunel",
+    "servidor:apk": "node scripts/servidor.mjs apk"
   },
   "devDependencies": {
     "@app/config": "workspace:*",

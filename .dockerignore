@@ -9,3 +9,8 @@
 .git
 apps/api/uploads
 apps/api/src/generated
+
+# Courier app build output (D050)
+apps/courier/android
+apps/courier/dist
+apps/courier/.expo

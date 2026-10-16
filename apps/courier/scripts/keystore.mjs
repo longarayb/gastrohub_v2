@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- terminal script */
 // Creates, ONCE, the signing key of the courier app APK (D050), outside the repository:
 //   ~/.config/app-courier/release.jks     the key (keystore)
 //   ~/.config/app-courier/signing.env     its passwords and alias (mode 600)

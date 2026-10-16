@@ -32,6 +32,7 @@ minimumReleaseAgeExclude:
   - expo-modules-jsi@58.0.14
   - expo@58.0.12
   - expo-task-manager@58.0.12
+  - expo-system-ui@58.0.6
 
 # Few parallel install scripts: this machine has little commit memory.
 childConcurrency: 2

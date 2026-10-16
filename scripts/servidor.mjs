@@ -10,13 +10,22 @@
 //   pnpm servidor:demo                    restores the Demo (demo-reset)
 //   pnpm servidor:admin create --email <e-mail> --name "<nome>"   platform admins (the CLI)
 //   pnpm servidor:tunel [painel|cardapio] temporary https address (courier GPS on a phone)
+//   pnpm servidor:apk [arquivo.apk]       publishes the courier app APK (the app offers the update)
 //
 // Production images built locally (local/app-*:<commit>) and deploy/compose.prod.yml with
 // deploy/home/compose.home.yml (project "servidor": own Postgres, Redis, Mailpit and volumes;
 // the database port is not published, so development seed and e2e cannot reach it).
 import { generateKeyPairSync } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fail, lanAddress, log } from './lib.mjs';
@@ -215,6 +224,12 @@ function ensureEnv(ip) {
     ]);
     setEnv({ VAPID_PUBLIC_KEY: pub.toString('base64url'), VAPID_PRIVATE_KEY: jwk.d });
     log('Chaves de push (VAPID) criadas no .env do servidor.');
+  }
+  // Firebase (D050): the service account saved by the owner goes to the .env once (base64).
+  const firebase = path.join(os.homedir(), '.config', 'app-courier', 'firebase-service-account.json');
+  if (existsSync(firebase) && !readEnv().FCM_SERVICE_ACCOUNT) {
+    setEnv({ FCM_SERVICE_ACCOUNT: readFileSync(firebase).toString('base64') });
+    log('Firebase: conta de serviço adicionada ao .env do servidor (avisos de rota nova no app).');
   }
   // The uploads folder belongs to the node user of the API image.
   sh(
@@ -597,7 +612,52 @@ async function tunel() {
   });
 }
 
-const commands = { subir, parar, atualizar, status, logs, demo, admin, tunel };
+/**
+ * Publishes the courier app APK (D050): the newest of apps/courier/dist (or the file given) goes
+ * to the server's uploads with latest.json; the app on the phones offers the download.
+ */
+function apk() {
+  const app = path.join(import.meta.dirname, '..', 'apps', 'courier');
+  const release = JSON.parse(readFileSync(path.join(app, 'release.json'), 'utf8'));
+  let file = rest.find((r) => r.endsWith('.apk'));
+  if (!file) {
+    const dist = path.join(app, 'dist');
+    const apks = existsSync(dist)
+      ? readdirSync(dist)
+          .filter((f) => f.endsWith('.apk'))
+          .map((f) => path.join(dist, f))
+          .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)
+      : [];
+    file = apks[0];
+  }
+  if (!file || !existsSync(file)) fail('Nenhum APK: pnpm --filter @app/courier apk');
+  const target = path.join(DATA, 'uploads', 'courier-app');
+  mkdirSync(target, { recursive: true });
+  const name = `entregas-${release.versionCode}.apk`;
+  copyFileSync(file, path.join(target, name));
+  writeFileSync(
+    path.join(target, 'latest.json'),
+    JSON.stringify(
+      {
+        versionCode: release.versionCode,
+        versionName: release.versionName,
+        notes: release.notes ?? null,
+        file: name,
+        publishedAt: new Date().toISOString(),
+      },
+      null,
+      2,
+    ),
+  );
+  const ip = lanAddress();
+  log(`App do entregador ${release.versionName} (${release.versionCode}) publicado.`);
+  console.log(`
+  Baixar no celular (mesmo Wi-Fi): http://${ip}:3000/api/courier-app/download
+  Endereço do servidor para digitar no app: ${ip}:3000
+`);
+}
+
+const commands = { subir, parar, atualizar, status, logs, demo, admin, tunel, apk };
 if (!commands[command]) {
   fail(`Comando desconhecido: ${command ?? '(nenhum)'}. Use: ${Object.keys(commands).join(', ')}`);
 }
