@@ -42,6 +42,9 @@ const BRANCH = process.env.SERVIDOR_BRANCH ?? 'main';
 const PROJECT = process.env.SERVIDOR_PROJETO ?? 'servidor';
 const APPS = ['api', 'web', 'menu', 'admin'];
 const PG = `${PROJECT}-postgres-1`;
+const API = `${PROJECT}-api-1`;
+// Marker in the uploads folder: the API container must see it (see ensureUploadsMounted).
+const UPLOADS_MARKER = '.servidor-montado';
 
 const [command, ...rest] = process.argv.slice(2);
 const flag = (name) => rest.includes(name);
@@ -178,6 +181,7 @@ function ensureNetwork() {
 /** .env of the server: secrets generated once (gen-secrets.sh); addresses from the current IP. */
 function ensureEnv(ip) {
   mkdirSync(path.join(DATA, 'uploads'), { recursive: true });
+  writeFileSync(path.join(DATA, 'uploads', UPLOADS_MARKER), 'pasta de uploads do servidor\n');
   mkdirSync(BACKUPS, { recursive: true });
   if (!existsSync(ENV)) {
     log('Primeira vez: gerando os segredos do servidor (deploy/gen-secrets.sh)...');
@@ -374,6 +378,30 @@ function currentIp() {
   return ip;
 }
 
+const uploadsVisible = () =>
+  sh('docker', ['exec', API, 'test', '-f', `/data/uploads/${UPLOADS_MARKER}`], {
+    stdio: 'ignore',
+    allowFail: true,
+  });
+
+/**
+ * When Docker Desktop starts before the Ubuntu distro (after a Windows restart), the containers
+ * brought back by the restart policy see the uploads folder empty (2026-10-16: "Versão do app não
+ * encontrada", product photos missing). Restarting the API container mounts the folder again.
+ */
+function ensureUploadsMounted() {
+  if (uploadsVisible()) return;
+  log(
+    'A API não enxergava a pasta de arquivos (Docker aberto antes do Ubuntu): reiniciando a API...',
+  );
+  sh('docker', ['restart', API], { stdio: 'ignore' });
+  if (!uploadsVisible()) {
+    fail(
+      `A API continua sem enxergar ${DATA}/uploads: feche e abra o Docker Desktop e rode de novo.`,
+    );
+  }
+}
+
 async function ensureDemo() {
   if (psql(`SELECT count(*) FROM "Store" WHERE slug = 'demo'`) === '0') {
     log('Primeira vez: criando a Demo (demo-reset)...');
@@ -425,6 +453,7 @@ async function atualizar() {
     }
     fail('Atualização com problema: veja pnpm servidor:logs api');
   }
+  ensureUploadsMounted();
   await ensureDemo();
   // Keeps the images of this version and the previous one (to go back).
   for (const app of APPS) {
@@ -459,6 +488,7 @@ async function subir() {
   ensureEnv(ip);
   dbSetup();
   dc(['up', '-d', '--remove-orphans']);
+  ensureUploadsMounted();
   if (!(await health())) fail('O servidor não respondeu: veja pnpm servidor:logs');
   await ensureDemo();
   addresses(ip);
@@ -493,6 +523,12 @@ async function status() {
   for (const [name, url] of URLS()) {
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) }).catch(() => null);
     console.log(`    ${res?.ok ? 'ok  ' : 'NÃO '} ${name}`);
+  }
+  if (running.includes('api')) {
+    const visible = uploadsVisible();
+    console.log(
+      `    ${visible ? 'ok  ' : 'NÃO '} Pasta de arquivos na API${visible ? '' : ' (rode pnpm servidor:subir)'}`,
+    );
   }
   const stats = out('docker', [
     'stats',
