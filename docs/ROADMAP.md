@@ -77,6 +77,8 @@ Especificação validada em [DESIGN.md](DESIGN.md) (2026-10-08); os componentes 
 ## Fase 2+ (arquitetura preparada, não implementado)
 
 - **App do entregador na Play Store** (depois da `feat/dispatch`, que distribui pelo APK): conta de desenvolvedor (US$ 25), política de privacidade publicada e a **justificativa da localização em segundo plano** exigida pela Google (formulário de permissões e vídeo mostrando o uso), além da revisão do app.
+  - **Antes da publicação: definir de vez o nome do pacote** (hoje `app.foodservice.entregas`, provisório) **junto com o nome comercial do produto**. Na Play Store o nome do pacote não muda depois do primeiro envio; trocá-lo antes também quebra a atualização dos APKs já instalados (cada entregador desinstala e instala de novo) e exige refazer o app Android no Firebase (`google-services.json`).
+- **Remover as exceções de idade mínima do pnpm** (`minimumReleaseAgeExclude` no `pnpm-workspace.yaml`: versões exatas do Expo SDK 58 publicadas em 2026-10-15/16 e exigidas pelo `apps/courier`): depois de **2026-10-17 07:00 UTC** todas passam do limite de 1 dia do pnpm. Apague a lista e rode `pnpm install`; o lockfile não deve mudar.
 - **App do entregador para iPhone** (iOS): conta Apple Developer (US$ 99/ano), localização em segundo plano com as regras da Apple e push pelo APNs.
 
 - Integrações com marketplaces: planejadas como etapas logo depois da hospedagem (ver "Integrações com marketplaces" acima)

@@ -451,7 +451,31 @@ bash scripts/android-sdk.sh            # JDK 17 em ~/.local/jdk-17 e Android SDK
 pnpm --filter @app/courier keystore    # chave de assinatura em ~/.config/app-courier (só uma vez na vida do app)
 ```
 
-**Chave de assinatura:** o `keystore` cria `~/.config/app-courier/release.jks` e `signing.env` (senha e alias, permissão 600) e mostra a impressão digital SHA-256. **Guarde uma cópia dos dois arquivos no gerenciador de senhas** (o `.jks` como anexo ou em base64: `base64 -w0 ~/.config/app-courier/release.jks`). Para montar o APK em outra máquina, copie os dois para o mesmo lugar. **Se a chave for perdida**, nenhum celular aceita mais atualizações do app: seria preciso uma chave nova e cada entregador desinstalaria e instalaria de novo (perdendo a fila sem sinal); na Play Store, perder a chave impede atualizar o mesmo app. Nunca no repositório (o `.gitignore` e o script de commit recusam `.jks` e `signing.env`).
+**Chave de assinatura:** o `keystore` cria `~/.config/app-courier/release.jks` e `signing.env` (senha e alias, permissão 600) e mostra a impressão digital SHA-256. **Guarde uma cópia dos dois no gerenciador de senhas** (veja abaixo). Para montar o APK em outra máquina, copie os dois para o mesmo lugar. **Se a chave for perdida**, nenhum celular aceita mais atualizações do app: seria preciso uma chave nova e cada entregador desinstalaria e instalaria de novo (perdendo a fila sem sinal); na Play Store, perder a chave impede atualizar o mesmo app. Nunca no repositório (o `.gitignore` e o script de commit recusam `.jks` e `signing.env`).
+
+#### Cópia da chave em texto (gerenciador de senhas sem anexos, como o Bitwarden gratuito)
+
+O texto em base64 da chave tem ~5.800 caracteres e cabe numa nota segura do Bitwarden (limite de 10.000). Gere-o **só** dentro da pasta `~/.config/app-courier`, nunca no repositório nem em outra pasta:
+
+```bash
+umask 077
+base64 -w0 ~/.config/app-courier/release.jks > ~/.config/app-courier/release.jks.base64.txt
+sha256sum ~/.config/app-courier/release.jks   # anote na nota, para conferir a cópia
+```
+
+Na nota segura, cole o conteúdo de `release.jks.base64.txt`, o de `signing.env` e o SHA-256 do arquivo. Conferida a nota, o `.txt` pode ser apagado (o `release.jks` continua).
+
+**Reconstruir a chave a partir da nota** (Linux ou WSL). O texto entra pela entrada do comando, não pela linha de comando, para não ficar no histórico do shell:
+
+```bash
+mkdir -p ~/.config/app-courier && chmod 700 ~/.config/app-courier
+umask 077
+base64 -d > ~/.config/app-courier/release.jks
+# cole o texto da nota, Enter, depois Ctrl+D
+sha256sum ~/.config/app-courier/release.jks   # tem de ser igual ao anotado na nota
+```
+
+O `signing.env` volta do mesmo jeito: crie `~/.config/app-courier/signing.env` com o texto da nota e rode `chmod 600` nele. No Windows (PowerShell), com o texto da chave copiado da nota: `[IO.File]::WriteAllBytes("$PWD\release.jks", [Convert]::FromBase64String((Get-Clipboard -Raw).Trim()))`, e confira com `Get-FileHash release.jks`.
 
 ### Firebase (avisos de "rota nova") — o que você cria
 
