@@ -7,6 +7,8 @@ import type {
 import type { OrderStatus } from '../domain/order-status.js';
 import type { PaymentMethod } from '../orders/schemas.js';
 import type { Address } from '../schemas/common.js';
+import type { LineString } from '../domain/dispatch.js';
+import type { CourierTrackingDto, GeoPointDto } from '../dispatch/types.js';
 
 /** Response DTOs of delivery (D029–D031). Dates are ISO strings; money in cents. */
 
@@ -132,11 +134,23 @@ export interface CourierAppStopDto {
   failureReason: DeliveryFailureReason | null;
   /** The customer said they paid by PIX: confirm, do not charge again. */
   pixReportedAt: string | null;
+  /** Point on the route map (D048) and expected arrival (recalculated on the way, D049). */
+  location: GeoPointDto | null;
+  etaAt: string | null;
 }
 
 export interface CourierAppDto {
   courier: { id: string; name: string } | null;
-  run: { id: string; departedAt: string; stops: CourierAppStopDto[] } | null;
+  run: {
+    id: string;
+    departedAt: string;
+    stops: CourierAppStopDto[];
+    /** Route line from the store (or the last position) through the pending stops. */
+    geometry: LineString | null;
+    store: GeoPointDto | null;
+  } | null;
+  /** Location sharing (null without a courier). */
+  tracking: CourierTrackingDto | null;
 }
 
 export interface SettlementStopDto {

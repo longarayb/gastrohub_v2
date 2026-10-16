@@ -106,3 +106,26 @@ export interface OrderLocationResultDto {
   outsideArea: string | null;
   savedToCustomer: boolean;
 }
+
+/** Location sharing of the signed-in courier (/entregas). */
+export interface CourierTrackingDto {
+  /** Store shown in "Localização compartilhada com …". */
+  storeName: string;
+  /** Version the courier accepted (null = never); sharing needs the current one. */
+  consentVersion: string | null;
+  consentAt: string | null;
+  /** Positions of this courier kept now (deleted after 7 days). */
+  storedPositions: number;
+}
+
+export interface PositionsAcceptedDto {
+  /** Positions accepted (inside the open run and precise enough). */
+  accepted: number;
+  /** Positions kept (moved enough or enough time passed). */
+  stored: number;
+}
+
+export interface PushConfigDto {
+  /** VAPID public key; null = push not configured on this server. */
+  publicKey: string | null;
+}

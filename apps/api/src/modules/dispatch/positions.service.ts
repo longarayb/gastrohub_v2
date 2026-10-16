@@ -59,8 +59,11 @@ export class PositionsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** Sends the position to the unit's room; `store` also keeps it (the simulator skips most). */
-  async record(input: PositionInput, store = true): Promise<void> {
+  /**
+   * Keeps the position (`store`) and sends it to the unit's room (`emit`): the simulator and the
+   * phone skip storing most of them; a batch from the phone emits only the latest.
+   */
+  async record(input: PositionInput, store = true, emit = true): Promise<void> {
     if (store) {
       await this.prisma.courierPosition.create({
         data: {
@@ -77,6 +80,7 @@ export class PositionsService implements OnModuleInit, OnModuleDestroy {
         },
       });
     }
+    if (!emit) return;
     this.realtime.courierPosition(input.tenantId, {
       courierId: input.courierId,
       runId: input.runId,
@@ -85,6 +89,11 @@ export class PositionsService implements OnModuleInit, OnModuleDestroy {
       recordedAt: input.recordedAt.toISOString(),
       simulated: input.simulated,
     });
+  }
+
+  /** Positions of a courier kept now (shown to the courier, LGPD). */
+  countOf(courierId: string): Promise<number> {
+    return this.db.courierPosition.count({ where: { courierId } });
   }
 
   /** Last stored position of each run (inside a tenant context). */

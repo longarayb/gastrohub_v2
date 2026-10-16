@@ -40,6 +40,7 @@ export const PUBLIC_DEMO_HOURS: BusinessHour[] = [0, 1, 2, 3, 4, 5, 6].map((week
 /** Tenant tables in deletion order (children first). A new tenant table must be added here. */
 export const TENANT_TABLES = [
   'CourierPosition',
+  'PushSubscription',
   'GeocodeCache',
   'PrintJob',
   'Printer',

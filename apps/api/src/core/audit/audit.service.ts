@@ -34,6 +34,7 @@ export const AuditAction = {
   DELIVERY_FEE_CHANGED: 'delivery.fee_changed',
   DELIVERY_FAILED: 'delivery.failed',
   DELIVERY_LOCATION_CORRECTED: 'delivery.location_corrected',
+  COURIER_TRACKING_CONSENT: 'courier.tracking_consent',
   DELIVERY_AREA_PAUSED: 'delivery.area_paused',
   DELIVERY_AREA_RESUMED: 'delivery.area_resumed',
   COURIER_PAY_CHANGED: 'courier.pay_changed',

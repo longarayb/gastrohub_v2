@@ -20,6 +20,7 @@ import { type Db, InjectDb } from '../../core/tenancy/db.provider.js';
 import { TenantContext } from '../../core/tenancy/tenant-context.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { OrdersService } from '../orders/orders.service.js';
+import { PushService } from '../push/push.service.js';
 import { ProductionService } from '../orders/production.service.js';
 
 const OPEN = ['QUEUED', 'PREPARING'] as const;
@@ -87,6 +88,7 @@ export class KdsService {
     private readonly orders: OrdersService,
     private readonly production: ProductionService,
     private readonly audit: AuditService,
+    private readonly push: PushService,
   ) {}
 
   private async device() {
@@ -461,6 +463,7 @@ export class KdsService {
       ),
     );
     await this.publish([orderId]);
+    void this.push.courierRun(input.courierId);
   }
 
   // ---------------------------------------------------------------------------

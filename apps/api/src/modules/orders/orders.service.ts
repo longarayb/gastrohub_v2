@@ -48,6 +48,7 @@ import { Prisma } from '../../generated/prisma/client.js';
 import { MenuContext } from '../menu/menu-common.js';
 import { PrintQueueService } from '../printing/print-queue.service.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
+import { PushService } from '../push/push.service.js';
 import { DeliveryPricingService } from './delivery-pricing.service.js';
 import { DispatchService } from './dispatch.service.js';
 import { OrderPricingService, type PricedOrderItem } from './order-pricing.service.js';
@@ -99,6 +100,7 @@ export class OrdersService {
     private readonly deliveryPricing: DeliveryPricingService,
     private readonly dispatch: DispatchService,
     private readonly printQueue: PrintQueueService,
+    private readonly push: PushService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -1127,6 +1129,8 @@ export class OrdersService {
     await this.db.$transaction((tx) => this.dispatchInTx(tx, input, 'Saída'));
     const result: OrderDetailDto[] = [];
     for (const id of ids) result.push(await this.publish(id));
+    // "Rota nova" on the courier's phone (D049); never delays or fails the dispatch.
+    void this.push.courierRun(input.courierId);
     return result;
   }
 

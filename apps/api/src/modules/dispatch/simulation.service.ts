@@ -14,6 +14,7 @@ import { TenantContext } from '../../core/tenancy/tenant-context.js';
 import { OrdersService } from '../orders/orders.service.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
 import { PositionsService } from './positions.service.js';
+import { LiveEtaService } from './live-eta.service.js';
 import { RoutePlannerService } from './route-planner.service.js';
 
 /** Average speed of a motorcycle in the city (~22 km/h), times the chosen speed-up. */
@@ -63,6 +64,7 @@ export class SimulationService implements OnModuleInit, OnModuleDestroy {
     private readonly planner: RoutePlannerService,
     private readonly orders: OrdersService,
     private readonly realtime: RealtimeService,
+    private readonly liveEta: LiveEtaService,
   ) {}
 
   onModuleInit(): void {
@@ -187,7 +189,13 @@ export class SimulationService implements OnModuleInit, OnModuleDestroy {
         },
         !walk.loop || walk.ticks % LOOP_STORE_EVERY === 0,
       );
-      if (!walk.loop) await this.deliverReached(walk);
+      if (!walk.loop) {
+        await this.deliverReached(walk);
+        // Same recalculation as a real courier (the demo loop keeps its fixed route).
+        if (this.walks.has(walk.runId)) {
+          await this.ctx.run(walk.tenantId, () => this.liveEta.onPosition(walk.runId, point, now));
+        }
+      }
     } catch (error) {
       this.logger.warn(`Simulação da saída ${walk.runId}: ${(error as Error).message}`);
       this.stop(walk.runId);
@@ -224,6 +232,7 @@ export class SimulationService implements OnModuleInit, OnModuleDestroy {
             },
           });
         }
+        this.liveEta.stopConcluded(walk.runId);
         this.realtime.deliveryUpdated(walk.tenantId);
       });
     }

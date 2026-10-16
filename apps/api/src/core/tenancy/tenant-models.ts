@@ -48,6 +48,7 @@ export const TENANT_MODELS = new Set<string>([
   'DeliveryRun',
   'DeliveryStop',
   'CourierPosition',
+  'PushSubscription',
   'GeocodeCache',
   'CourierSettlement',
   'CourierLedgerEntry',
