@@ -79,15 +79,30 @@ export function StopPin({ number, status }: { number: number; status: DispatchSt
   );
 }
 
-export function CourierPin({ name, simulated }: { name: string; simulated: boolean }) {
+/** `lost`: no position for a while ("sem sinal"): dashed and faded, with the text. */
+export function CourierPin({
+  name,
+  simulated,
+  lost = false,
+}: {
+  name: string;
+  simulated: boolean;
+  lost?: boolean;
+}) {
   return (
-    <span className="flex flex-col items-center gap-0.5">
-      <span className="flex size-9 items-center justify-center rounded-full border-[3px] border-status-dispatched bg-card shadow-md">
+    <span className={cn('flex flex-col items-center gap-0.5', lost && 'opacity-70')}>
+      <span
+        className={cn(
+          'flex size-9 items-center justify-center rounded-full border-[3px] bg-card shadow-md',
+          lost ? 'border-dashed border-signal-attention' : 'border-status-dispatched',
+        )}
+      >
         <Bike className="size-5 text-foreground" aria-hidden />
       </span>
       <span className="rounded bg-card px-1.5 text-[11px] font-bold whitespace-nowrap text-foreground shadow">
         {name.split(' ')[0]}
         {simulated && ' · simulado'}
+        {lost && ' · sem sinal'}
       </span>
     </span>
   );

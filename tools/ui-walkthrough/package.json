@@ -14,6 +14,7 @@
     "printing": "node printing.mjs",
     "dashboard": "node dashboard.mjs",
     "dispatch": "node dispatch.mjs",
+    "tracking": "node tracking.mjs",
     "screens": "node screens.mjs",
     "keyboard": "node keyboard.mjs",
     "a11y": "node a11y.mjs",

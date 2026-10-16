@@ -169,7 +169,7 @@ await step('composer: takeout burger with required modifier and extra', async ()
 await step('composer: half-and-half pizza for delivery with saved customer', async () => {
   await page.getByRole('link', { name: 'Novo pedido' }).click();
   await page.getByRole('tab', { name: 'Delivery' }).click();
-  await page.getByLabel('Telefone').fill('(11) 9912');
+  await page.getByLabel('Telefone').fill('(11) 90000-0021');
   await page
     .getByLabel('Clientes encontrados')
     .getByRole('button', { name: /Mariana/ })

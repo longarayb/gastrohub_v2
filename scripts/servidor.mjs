@@ -14,6 +14,7 @@
 // Production images built locally (local/app-*:<commit>) and deploy/compose.prod.yml with
 // deploy/home/compose.home.yml (project "servidor": own Postgres, Redis, Mailpit and volumes;
 // the database port is not published, so development seed and e2e cannot reach it).
+import { generateKeyPairSync } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
@@ -200,6 +201,20 @@ function ensureEnv(ip) {
       HC_MONITOR_URL: '',
       DEMO_RESET_ENABLED: 'true',
     });
+  }
+  // Web Push keys (D049) for a server installed before them; generated once, kept after.
+  const vapid = readEnv().VAPID_PUBLIC_KEY;
+  if (!vapid || vapid === '<gerado>') {
+    const jwk = generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).privateKey.export({
+      format: 'jwk',
+    });
+    const pub = Buffer.concat([
+      Buffer.from([4]),
+      Buffer.from(jwk.x, 'base64url'),
+      Buffer.from(jwk.y, 'base64url'),
+    ]);
+    setEnv({ VAPID_PUBLIC_KEY: pub.toString('base64url'), VAPID_PRIVATE_KEY: jwk.d });
+    log('Chaves de push (VAPID) criadas no .env do servidor.');
   }
   // The uploads folder belongs to the node user of the API image.
   sh(

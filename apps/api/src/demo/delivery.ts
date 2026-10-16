@@ -14,6 +14,7 @@ import {
   resolveDeliveryArea,
   settlementSummary,
   straightGeometry,
+  straightLineMatrix,
 } from '@app/shared';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import {
@@ -363,11 +364,25 @@ export async function seedDelivery(
   await stopFor(runC.id, onRoad.id, 1, { dispatchedAt: runC.departedAt });
   const julianaPoint = pointOf(onRoad.deliveryAddress as Address | null);
   if (storePoint && julianaPoint) {
+    // Straight-line estimate, as the API without a routing service (D048).
+    const { distances, durations } = straightLineMatrix([storePoint, julianaPoint]);
+    const meters = distances[0]![1]!;
+    const seconds = durations[0]![1]!;
     await prisma.deliveryRun.update({
       where: { id: runC.id },
       data: {
         routeGeometry: straightGeometry([storePoint, julianaPoint]),
         routeSource: 'STRAIGHT',
+        routeDistanceMeters: meters,
+        routeDurationSeconds: seconds,
+      },
+    });
+    await prisma.deliveryStop.updateMany({
+      where: { runId: runC.id },
+      data: {
+        legDistanceMeters: meters,
+        legDurationSeconds: seconds,
+        etaAt: new Date(runC.departedAt.getTime() + seconds * 1000),
       },
     });
   }
