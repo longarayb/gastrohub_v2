@@ -31,7 +31,7 @@ export class WebPushProvider implements PushProvider {
   }
 
   async send(target: PushTarget, message: PushMessage): Promise<'sent' | 'gone' | 'failed'> {
-    if (!this.publicKey || !this.privateKey) return 'failed';
+    if (!this.publicKey || !this.privateKey || !target.p256dh || !target.auth) return 'failed';
     try {
       await webpush.sendNotification(
         { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },

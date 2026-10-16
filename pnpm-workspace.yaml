@@ -16,6 +16,9 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   '@scarf/scarf': false
+  # firebase-admin (D050): postinstall scripts not needed to send messages.
+  '@firebase/util': false
+  protobufjs: false
 minimumReleaseAgeExclude:
   - lucide-react@1.52.0
 

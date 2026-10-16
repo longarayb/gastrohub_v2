@@ -95,6 +95,14 @@ export const envSchema = z.object({
   VAPID_PRIVATE_KEY: z.string().default(''),
   /** Contact the push services may use (mailto: or https:); default: MAIL_FROM_ADDRESS. */
   VAPID_SUBJECT: z.string().default(''),
+
+  /**
+   * Android courier app (D050): service account JSON of the Firebase project, in base64, for the
+   * "rota nova" notices (FCM). Empty: no notices (the app still refreshes the route by itself).
+   */
+  FCM_SERVICE_ACCOUNT: z.string().default(''),
+  /** Where the courier app APK and its latest.json live (servidor:apk copies them here). */
+  COURIER_APP_DIR: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

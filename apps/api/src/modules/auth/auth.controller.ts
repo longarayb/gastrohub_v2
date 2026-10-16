@@ -2,6 +2,8 @@ import { Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import {
+  APP_CLIENT_HEADER,
+  COURIER_APP_CLIENT,
   type AuthSession,
   type ChangePasswordInput,
   type ForgotPasswordInput,
@@ -84,7 +86,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthSession> {
-    return this.respond(res, await this.auth.login(body, meta(req)));
+    return this.respond(res, await this.auth.login(body, meta(req)), req);
   }
 
   @Public()
@@ -96,7 +98,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthSession> {
     try {
-      return this.respond(res, await this.auth.refresh(readRefresh(req), meta(req)));
+      return this.respond(res, await this.auth.refresh(readRefresh(req), meta(req)), req);
     } catch (error) {
       res.clearCookie(REFRESH_COOKIE, this.cookieOptions());
       throw error;
@@ -167,7 +169,19 @@ export class AuthController {
     await this.auth.changePassword(user.sub, body);
   }
 
-  private respond(res: Response, { session, refresh }: SessionWithRefresh): AuthSession {
+  private respond(
+    res: Response,
+    { session, refresh }: SessionWithRefresh,
+    req?: Request,
+  ): AuthSession {
+    // The Android courier app keeps the token itself (D050): no cookie, token in the body.
+    if (req && isCourierApp(req)) {
+      return {
+        ...session,
+        refreshToken: refresh.token,
+        refreshExpiresAt: refresh.expiresAt.toISOString(),
+      };
+    }
     res.cookie(REFRESH_COOKIE, refresh.token, {
       ...this.cookieOptions(),
       expires: refresh.expiresAt,
@@ -185,11 +199,24 @@ export class AuthController {
   }
 }
 
-function meta(req: Request): RequestMeta {
-  return { userAgent: req.headers['user-agent'], ip: req.ip };
+function isCourierApp(req: Request): boolean {
+  return req.headers[APP_CLIENT_HEADER] === COURIER_APP_CLIENT;
 }
 
+function meta(req: Request): RequestMeta {
+  return {
+    userAgent: req.headers['user-agent'],
+    ip: req.ip,
+    client: isCourierApp(req) ? COURIER_APP_CLIENT : undefined,
+  };
+}
+
+/** The cookie (panel) or, for the courier app, `{ refreshToken }` in the body (D050). */
 function readRefresh(req: Request): string | undefined {
+  if (isCourierApp(req)) {
+    const token = (req.body as { refreshToken?: unknown } | undefined)?.refreshToken;
+    return typeof token === 'string' ? token : undefined;
+  }
   const cookies = req.cookies as Record<string, string | undefined> | undefined;
   return cookies?.[REFRESH_COOKIE];
 }

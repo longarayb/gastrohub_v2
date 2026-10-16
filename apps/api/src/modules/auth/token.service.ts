@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { AccessTokenPayload } from '@app/shared';
+import { type AccessTokenPayload, COURIER_APP_CLIENT } from '@app/shared';
 import { AppConfig } from '../../core/config/app-config.service.js';
 import { UnauthorizedError } from '../../core/errors/domain-error.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';
@@ -16,6 +16,9 @@ export function ttlToSeconds(ttl: string): number {
   const unit = { '': 1, s: 1, m: 60, h: 3600, d: 86400 }[match[2] as '' | 's' | 'm' | 'h' | 'd'];
   return value * unit;
 }
+
+/** A rotated token of the courier app may come again within this time (lost answer). */
+const APP_REUSE_GRACE_MS = 30_000;
 
 export interface IssuedRefreshToken {
   token: string;
@@ -49,7 +52,7 @@ export class TokenService {
 
   async issueRefreshToken(
     userId: string,
-    meta: { userAgent?: string; ip?: string },
+    meta: { userAgent?: string; ip?: string; client?: string },
     familyId: string = randomUUID(),
   ): Promise<IssuedRefreshToken> {
     const token = randomBytes(48).toString('base64url');
@@ -62,6 +65,7 @@ export class TokenService {
         expiresAt,
         userAgent: meta.userAgent?.slice(0, 255),
         ip: meta.ip,
+        client: meta.client ?? null,
       },
     });
     return { token, expiresAt };
@@ -70,13 +74,28 @@ export class TokenService {
   /** Validates and rotates a refresh token. Returns the user id and the new token. */
   async rotateRefreshToken(
     token: string,
-    meta: { userAgent?: string; ip?: string },
+    meta: { userAgent?: string; ip?: string; client?: string },
   ): Promise<{ userId: string; refresh: IssuedRefreshToken }> {
     const stored = await this.prisma.refreshToken.findUnique({
       where: { tokenHash: sha256(token) },
     });
     if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
       throw new UnauthorizedError();
+    }
+
+    // The courier app on a mobile network may lose the answer of a renewal and send the same
+    // token again right after (D050): within a few seconds that is a retry, not a theft.
+    if (
+      stored.replacedAt &&
+      stored.client === COURIER_APP_CLIENT &&
+      Date.now() - stored.replacedAt.getTime() < APP_REUSE_GRACE_MS
+    ) {
+      const refresh = await this.issueRefreshToken(
+        stored.userId,
+        { ...meta, client: COURIER_APP_CLIENT },
+        stored.familyId,
+      );
+      return { userId: stored.userId, refresh };
     }
 
     if (stored.replacedAt) {
@@ -93,7 +112,11 @@ export class TokenService {
     });
     if (count === 0) throw new UnauthorizedError();
 
-    const refresh = await this.issueRefreshToken(stored.userId, meta, stored.familyId);
+    const refresh = await this.issueRefreshToken(
+      stored.userId,
+      { ...meta, client: stored.client ?? meta.client },
+      stored.familyId,
+    );
     return { userId: stored.userId, refresh };
   }
 

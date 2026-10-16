@@ -23,6 +23,15 @@ import { RealtimeService } from '../realtime/realtime.service.js';
 
 type Collection = z.output<typeof collectionSchema>;
 
+/** Action of the Android app (D050): resent from the offline queue with the same id. */
+export interface AppAction {
+  actionId?: string;
+  occurredAt?: string;
+}
+
+/** Clock slack for the time the phone says an action happened. */
+const ACTION_CLOCK_SLACK_MS = 60_000;
+
 const collectionData = (c: Collection) => ({
   collectedMethod: c.method,
   collectedCents: c.amountCents,
@@ -151,9 +160,39 @@ export class CourierAppService {
     };
   }
 
+  /**
+   * The app's action id and time (D050): an action already applied with the same id is answered
+   * as done (offline queue resend); the time the phone recorded counts when it is plausible
+   * (after the departure, not in the future), so a delivery made without signal keeps its hour.
+   */
+  private async markAppAction(
+    stop: { id: string; dispatchedAt: Date },
+    field: 'deliveredAt' | 'failedAt',
+    action: AppAction,
+  ): Promise<void> {
+    if (!action.actionId && !action.occurredAt) return;
+    const at = action.occurredAt ? new Date(action.occurredAt) : null;
+    const plausible =
+      at &&
+      at.getTime() >= stop.dispatchedAt.getTime() &&
+      at.getTime() <= Date.now() + ACTION_CLOCK_SLACK_MS;
+    await this.db.deliveryStop.update({
+      where: { id: stop.id },
+      data: {
+        ...(action.actionId && { closedActionId: action.actionId }),
+        ...(plausible && { [field]: at }),
+      },
+    });
+  }
+
   /** "Entregue", optionally with how the customer paid. */
-  async deliver(stopId: string, collection: Collection | null): Promise<CourierAppDto> {
+  async deliver(
+    stopId: string,
+    collection: Collection | null,
+    action: AppAction = {},
+  ): Promise<CourierAppDto> {
     const stop = await this.ownStop(stopId);
+    if (action.actionId && stop.closedActionId === action.actionId) return this.me();
     if (stop.deliveredAt || stop.failedAt)
       throw new ValidationError('Esta entrega já foi encerrada');
     const balance = Math.max(stop.order.totalCents - stop.order.paidCents, 0);
@@ -171,6 +210,7 @@ export class CourierAppService {
         data: collectionData(collection),
       });
     }
+    await this.markAppAction(stop, 'deliveredAt', action);
     this.liveEta.stopConcluded(stop.runId);
     this.realtime.deliveryUpdated(this.ctx.tenantId);
     return this.me();
@@ -188,11 +228,14 @@ export class CourierAppService {
   async fail(
     stopId: string,
     input: { reason: DeliveryFailureReason; note: string | null },
+    action: AppAction = {},
   ): Promise<CourierAppDto> {
     const stop = await this.ownStop(stopId);
+    if (action.actionId && stop.closedActionId === action.actionId) return this.me();
     if (stop.deliveredAt || stop.failedAt)
       throw new ValidationError('Esta entrega já foi encerrada');
     await this.db.$transaction((tx) => this.dispatch.fail(tx, stop.orderId, input));
+    await this.markAppAction(stop, 'failedAt', action);
     await this.orders.publish(stop.orderId);
     this.liveEta.stopConcluded(stop.runId);
     this.realtime.deliveryUpdated(this.ctx.tenantId);

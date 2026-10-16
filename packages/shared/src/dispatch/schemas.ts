@@ -43,10 +43,18 @@ export const trackingConsentSchema = z.object({ version: z.string().min(1).max(4
 export type TrackingConsentInput = z.input<typeof trackingConsentSchema>;
 
 /** Web Push subscription of this browser (PushSubscription.toJSON()). */
-export const pushSubscriptionSchema = z.object({
+const webPushSubscription = z.object({
+  channel: z.literal('WEB').optional(),
   endpoint: z.url().max(2000),
   keys: z.object({ p256dh: z.string().min(1).max(500), auth: z.string().min(1).max(500) }),
 });
+/** The Android app (D050): Firebase Cloud Messaging token of the device. */
+const fcmSubscription = z.object({
+  channel: z.literal('FCM'),
+  token: z.string().min(20).max(4096),
+});
+export const pushSubscriptionSchema = z.union([fcmSubscription, webPushSubscription]);
 export type PushSubscriptionInput = z.input<typeof pushSubscriptionSchema>;
 
-export const pushUnsubscribeSchema = z.object({ endpoint: z.url().max(2000) });
+/** The browser endpoint or the app's FCM token. */
+export const pushUnsubscribeSchema = z.object({ endpoint: z.string().min(1).max(4096) });

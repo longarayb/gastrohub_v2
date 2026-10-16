@@ -120,7 +120,10 @@ export class TrackingService {
         return t >= from && t <= until;
       })
       .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
-    if (!accepted.length) return { accepted: 0, stored: 0 };
+    const pendingStops = await this.db.deliveryStop.count({
+      where: { runId: run.id, deliveredAt: null, failedAt: null },
+    });
+    if (!accepted.length) return { accepted: 0, stored: 0, pendingStops };
 
     let last: PositionSample | null = this.lastStored.get(run.id) ?? null;
     if (!last) {
@@ -159,6 +162,6 @@ export class TrackingService {
     if (last) this.lastStored.set(run.id, last);
     const latest = accepted.at(-1)!;
     await this.liveEta.onPosition(run.id, latest, now);
-    return { accepted: accepted.length, stored };
+    return { accepted: accepted.length, stored, pendingStops };
   }
 }
