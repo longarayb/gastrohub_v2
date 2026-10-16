@@ -4,6 +4,12 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/core/prisma/prisma.service.js';
 import { MAIL_PROVIDER, type MailMessage, type MailProvider } from '../src/core/mail/mail.types.js';
+import {
+  PUSH_PROVIDER,
+  type PushMessage,
+  type PushProvider,
+  type PushTarget,
+} from '../src/core/push/push.types.js';
 import { setupApp } from '../src/setup-app.js';
 
 /** Captures e-mails instead of sending them. */
@@ -14,24 +20,40 @@ export class FakeMailProvider implements MailProvider {
   }
 }
 
+/** Captures Web Push messages; endpoints in `gone` answer as deleted by the push service. */
+export class FakePushProvider implements PushProvider {
+  readonly publicKey = 'test-public-key';
+  readonly sent: { target: PushTarget; message: PushMessage }[] = [];
+  readonly gone = new Set<string>();
+  async send(target: PushTarget, message: PushMessage): Promise<'sent' | 'gone' | 'failed'> {
+    if (this.gone.has(target.endpoint)) return 'gone';
+    this.sent.push({ target, message });
+    return 'sent';
+  }
+}
+
 export interface TestContext {
   app: INestApplication;
   prisma: PrismaService;
   mail: FakeMailProvider;
+  push: FakePushProvider;
   http: () => ReturnType<typeof request>;
 }
 
 export async function createTestApp(): Promise<TestContext> {
   const mail = new FakeMailProvider();
+  const push = new FakePushProvider();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(MAIL_PROVIDER)
     .useValue(mail)
+    .overrideProvider(PUSH_PROVIDER)
+    .useValue(push)
     .compile();
   const app = moduleRef.createNestApplication();
   setupApp(app);
   await app.init();
   const prisma = app.get(PrismaService);
-  return { app, prisma, mail, http: () => request(app.getHttpServer()) };
+  return { app, prisma, mail, push, http: () => request(app.getHttpServer()) };
 }
 
 /** Removes all data (keeps the schema). */
@@ -70,7 +92,7 @@ export async function openSignupForTests(prisma: PrismaService): Promise<void> {
 }
 
 let counter = 0;
-const VALID_CNPJS = ['11222333000181', '11444777000161', '45723174000110', '04252011000110'];
+const VALID_CNPJS = ['99999999000191', '99999998000147', '99999997000100', '99999996000158'];
 
 export interface RegisteredStore {
   accessToken: string;

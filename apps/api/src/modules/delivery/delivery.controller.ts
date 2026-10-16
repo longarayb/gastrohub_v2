@@ -5,6 +5,7 @@ import {
   addNeighborhoodSchema,
   collectionSchema,
   courierDeliverSchema,
+  courierPositionsSchema,
   courierPaySchema,
   courierPayoutSchema,
   courierUpdateSchema,
@@ -14,6 +15,7 @@ import {
   deliveryReportQuerySchema,
   pauseAreaSchema,
   settlementSchema,
+  trackingConsentSchema,
 } from '@app/shared';
 import { z } from 'zod';
 import { RequiresModule } from '../platform/billing.decorators.js';
@@ -26,6 +28,8 @@ import { DeliveryAreasService } from './delivery-areas.service.js';
 import { DeliveryReportService } from './delivery-report.service.js';
 import { SettlementsService } from './settlements.service.js';
 import { BlockedInDemo } from '../../core/demo/demo-mode.js';
+import { Throttle } from '@nestjs/throttler';
+import { TrackingService } from '../dispatch/tracking.service.js';
 
 const courierQuery = z.object({ courierId: z.string().min(1, 'Escolha o entregador') });
 const optionalCourierQuery = z.object({ courierId: z.string().optional() });
@@ -222,7 +226,30 @@ export class DeliveryController {
 @RequiresModule('DELIVERY')
 @Controller('courier')
 export class CourierAppController {
-  constructor(private readonly app: CourierAppService) {}
+  constructor(
+    private readonly app: CourierAppService,
+    private readonly tracking: TrackingService,
+  ) {}
+
+  @Post('tracking/consent')
+  @HttpCode(200)
+  @RequirePermissions(Permission.COURIER_APP)
+  @ApiOperation({ summary: 'Aceite do compartilhamento da localização (versão do texto)' })
+  @ApiZodBody(trackingConsentSchema)
+  consent(@ZBody(trackingConsentSchema) body: z.output<typeof trackingConsentSchema>) {
+    return this.tracking.consent(body.version);
+  }
+
+  // The phone sends every ~10 s (a few at once after a moment without network).
+  @Post('positions')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @RequirePermissions(Permission.COURIER_APP)
+  @ApiOperation({ summary: 'Posições do entregador durante a saída aberta' })
+  @ApiZodBody(courierPositionsSchema)
+  positions(@ZBody(courierPositionsSchema) body: z.output<typeof courierPositionsSchema>) {
+    return this.tracking.ingest(body);
+  }
 
   @Get('me')
   @RequirePermissions(Permission.COURIER_APP)

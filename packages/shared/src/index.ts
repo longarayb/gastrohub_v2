@@ -25,6 +25,7 @@ export * from './digital-menu/types.js';
 export * from './delivery/types.js';
 export * from './dispatch/schemas.js';
 export * from './dispatch/types.js';
+export * from './dispatch/tracking.js';
 export * from './errors.js';
 export * from './kds/schemas.js';
 export * from './kds/types.js';

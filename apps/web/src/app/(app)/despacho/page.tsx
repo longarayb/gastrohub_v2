@@ -12,6 +12,7 @@ import {
   formatBRL,
   formatTime,
   showsBalanceFlag,
+  signalLostMinutes,
 } from '@app/shared';
 import { Badge } from '@app/ui/components/badge';
 import { Button } from '@app/ui/components/button';
@@ -33,6 +34,7 @@ import {
   Route,
   Square,
   Wallet,
+  WifiOff,
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -142,12 +144,14 @@ function ReadyRow({
 function CourierCard({
   courier,
   position,
+  now,
   simulationAllowed,
   onSimulate,
   onStopSimulation,
 }: {
   courier: DispatchCourierDto;
   position: CourierPositionDto | null;
+  now: Date;
   simulationAllowed: boolean;
   onSimulate: (speed: number) => void;
   onStopSimulation: () => void;
@@ -155,6 +159,7 @@ function CourierCard({
   const run = courier.run;
   const pending = run?.stops.filter((s) => s.status === 'PENDING') ?? [];
   const lastEta = pending.at(-1)?.etaAt ?? null;
+  const lost = run && position ? signalLostMinutes(position.recordedAt, now) : null;
   return (
     <li
       className="space-y-2 rounded-card border bg-card p-3"
@@ -173,7 +178,7 @@ function CourierCard({
                 (lastEta ? ` · última por volta de ${formatTime(lastEta)}` : '')
               : 'Livre'}
           </span>
-          {run && position && (
+          {run && position && lost == null && (
             <span className="block text-xs text-muted-foreground">
               Posição às {formatTime(position.recordedAt)}
             </span>
@@ -181,6 +186,11 @@ function CourierCard({
         </span>
         <Badge variant={run ? 'info' : 'success'}>{run ? 'Em rota' : 'Livre'}</Badge>
       </div>
+      {lost != null && (
+        <CardFlag tone="attention" icon={WifiOff}>
+          Sem sinal há {lost} min (última posição às {formatTime(position!.recordedAt)})
+        </CardFlag>
+      )}
       {courier.simulated && run ? (
         <p className="text-sm text-muted-foreground">
           Entregador de demonstração: percorre a rota sem parar.
@@ -413,11 +423,16 @@ export default function DispatchPage() {
       }
       const position = positions[run.id] ?? run.position;
       if (position) {
+        const lost = signalLostMinutes(position.recordedAt, now);
         list.push({
           id: `courier-${courier.id}`,
           position,
-          label: `${courier.name}${courier.simulated ? ' (simulado)' : ''}, posição às ${formatTime(position.recordedAt)}`,
-          content: <CourierPin name={courier.name} simulated={courier.simulated} />,
+          label:
+            `${courier.name}${courier.simulated ? ' (simulado)' : ''}, posição às ${formatTime(position.recordedAt)}` +
+            (lost != null ? `, sem sinal há ${lost} min` : ''),
+          content: (
+            <CourierPin name={courier.name} simulated={courier.simulated} lost={lost != null} />
+          ),
           layer: 4,
         });
       }
@@ -749,6 +764,7 @@ export default function DispatchPage() {
                   position={
                     courier.run ? (positions[courier.run.id] ?? courier.run.position) : null
                   }
+                  now={now}
                   simulationAllowed={!!data?.simulationAllowed}
                   onSimulate={(speed) => void simulate(courier.run!.id, speed)}
                   onStopSimulation={() => void simulate(courier.run!.id, null)}

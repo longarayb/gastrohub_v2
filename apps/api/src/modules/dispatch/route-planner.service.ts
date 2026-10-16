@@ -107,11 +107,12 @@ export class RoutePlannerService {
   }
 
   /**
-   * Route of an open run from the store through its pending stops, in their sequence: saved on
-   * the run (geometry, totals, source) and on each stop (leg and expected arrival). Stops without
+   * Route of an open run through its pending stops, in their sequence, from the store (on
+   * departure) or from the courier's current position (on the way, D049): saved on the run
+   * (geometry, totals, source) and on each stop (leg and expected arrival). Stops without
    * coordinates are skipped (the run still works; the map just cannot draw them).
    */
-  async planRun(runId: string, now = new Date()): Promise<void> {
+  async planRun(runId: string, now = new Date(), from: Coordinates | null = null): Promise<void> {
     const run = await this.db.deliveryRun.findFirst({
       where: { id: runId },
       include: {
@@ -127,7 +128,7 @@ export class RoutePlannerService {
       (s) => s.order.delivery?.latitude != null && s.order.delivery.longitude != null,
     );
     if (!located.length) return;
-    const store = await this.storePoint().catch(() => null);
+    const store = from ?? (await this.storePoint().catch(() => null));
     if (!store) return;
     const points = located.map((s) => ({
       latitude: s.order.delivery!.latitude!,

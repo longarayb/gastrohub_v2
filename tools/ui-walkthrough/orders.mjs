@@ -153,7 +153,7 @@ await step('composer: takeout burger with required modifier and extra', async ()
   await dialog.getByRole('button', { name: /^Adicionar · R\$/ }).click();
   await dialog.waitFor({ state: 'detached' });
   await page.getByLabel('Itens do pedido').getByText('X-Burguer').waitFor();
-  await page.getByLabel('Telefone').fill('11912345678');
+  await page.getByLabel('Telefone').fill('11900000013');
   await page.getByLabel('Nome').fill('Cliente Balcão Teste');
   await shot('04-composer');
   await page.getByRole('button', { name: 'Criar pedido' }).click();
@@ -169,7 +169,7 @@ await step('composer: takeout burger with required modifier and extra', async ()
 await step('composer: half-and-half pizza for delivery with saved customer', async () => {
   await page.getByRole('link', { name: 'Novo pedido' }).click();
   await page.getByRole('tab', { name: 'Delivery' }).click();
-  await page.getByLabel('Telefone').fill('(11) 9912');
+  await page.getByLabel('Telefone').fill('(11) 90000-0021');
   await page
     .getByLabel('Clientes encontrados')
     .getByRole('button', { name: /Mariana/ })

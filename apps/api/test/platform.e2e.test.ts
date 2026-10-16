@@ -406,7 +406,7 @@ describe('Platform admin (e2e)', () => {
     const customerPayload = (email: string, overrides: object = {}) => ({
       customer: {
         name: 'Cantina do Teste',
-        document: '11222333000181',
+        document: '99999999000191',
         legalName: 'Cantina do Teste LTDA',
         invoiceEmail: 'financeiro@cantina.test',
         contactName: 'Maria',
@@ -420,7 +420,7 @@ describe('Platform admin (e2e)', () => {
           state: 'SP',
         },
       },
-      store: { tradeName: 'Cantina do Teste', cnpj: '11222333000181', phone: '11987654321' },
+      store: { tradeName: 'Cantina do Teste', cnpj: '99999999000191', phone: '11987654321' },
       owner: { name: 'Maria Dona', email },
       ...overrides,
     });
@@ -619,7 +619,7 @@ describe('Platform admin (e2e)', () => {
       const unit = {
         tradeName: 'Filial',
         legalName: 'Filial LTDA',
-        cnpj: '11444777000161',
+        cnpj: '99999998000147',
         phone: '11987654321',
       };
       const limited = await ctx
@@ -790,7 +790,7 @@ describe('Platform admin (e2e)', () => {
           phone: '11987654321',
           tradeName: 'Novo',
           legalName: 'Novo LTDA',
-          cnpj: '45723174000110',
+          cnpj: '99999997000100',
         })
         .expect(403);
       // Open signup needs a plan.

@@ -18,6 +18,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { CashModule } from './modules/cash/cash.module.js';
 import { DeliveryModule } from './modules/delivery/delivery.module.js';
 import { DispatchModule } from './modules/dispatch/dispatch.module.js';
+import { PushModule } from './modules/push/push.module.js';
 import { DigitalMenuModule } from './modules/digital-menu/digital-menu.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { KdsModule } from './modules/kds/kds.module.js';
@@ -79,6 +80,7 @@ const isTest = process.env.NODE_ENV === 'test';
     UsersModule,
     MenuModule,
     RealtimeModule,
+    PushModule,
     OrdersModule,
     CashModule,
     KdsModule,

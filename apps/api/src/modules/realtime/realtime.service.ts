@@ -5,6 +5,7 @@ import {
   deviceRoom,
   printAgentRoom,
   sectorRoom,
+  dispatchRoom,
   tenantRoom,
 } from './realtime.gateway.js';
 import { TrackingGateway } from './tracking.gateway.js';
@@ -73,7 +74,7 @@ export class RealtimeService {
 
   /** Where a courier is (dispatch map, D048): only to the unit's room, never to customers. */
   courierPosition(tenantId: string, event: CourierPositionEvent): void {
-    this.gateway.emit(tenantRoom(tenantId), REALTIME_EVENTS.COURIER_POSITION, event);
+    this.gateway.emit(dispatchRoom(tenantId), REALTIME_EVENTS.COURIER_POSITION, event);
   }
 
   deliveryUpdated(tenantId: string): void {

@@ -144,7 +144,7 @@ describe('Multi-tenant isolation and RBAC (e2e)', () => {
       .send({
         tradeName: 'Loja A - Centro',
         legalName: 'Loja A Centro LTDA',
-        cnpj: '11444777000161',
+        cnpj: '99999998000147',
         phone: '1133334444',
       })
       .expect(201);

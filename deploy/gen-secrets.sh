@@ -33,6 +33,17 @@ dozzle_password="$(b64url 18)"
 dozzle_hash="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext "$dozzle_password" |
   tr -d '\n' | base64 -w0)"
 
+# Web Push (D049): P-256 pair in base64url (public = uncompressed point, private = d).
+read -r vapid_public vapid_private < <(docker run --rm node:24-alpine node -e '
+  const { generateKeyPairSync } = require("node:crypto");
+  const key = generateKeyPairSync("ec", { namedCurve: "prime256v1" }).privateKey;
+  const jwk = key.export({ format: "jwk" });
+  const x = Buffer.from(jwk.x, "base64url");
+  const y = Buffer.from(jwk.y, "base64url");
+  const pub = Buffer.concat([Buffer.from([4]), x, y]).toString("base64url");
+  console.log(pub + " " + jwk.d);
+')
+
 umask 077
 sed \
   -e "s|^BASE_DOMAIN=.*|BASE_DOMAIN=${BASE_DOMAIN}|" \
@@ -46,6 +57,8 @@ sed \
   -e "s|^PLATFORM_SECRETS_KEY=.*|PLATFORM_SECRETS_KEY=$(b64url 32)|" \
   -e "s|^MENU_REVALIDATE_SECRET=.*|MENU_REVALIDATE_SECRET=$(b64url 32)|" \
   -e "s|^DOZZLE_PASSWORD_HASH=.*|DOZZLE_PASSWORD_HASH=${dozzle_hash}|" \
+  -e "s|^VAPID_PUBLIC_KEY=.*|VAPID_PUBLIC_KEY=${vapid_public}|" \
+  -e "s|^VAPID_PRIVATE_KEY=.*|VAPID_PRIVATE_KEY=${vapid_private}|" \
   "$HERE/env.production.example" >"$TARGET"
 chmod 600 "$TARGET"
 

@@ -702,19 +702,22 @@ model CustomerAddress {
 
 /// Delivery person; userId is optional (freelancers may have no login).
 model Courier {
-  id               String   @id @default(cuid())
-  tenantId         String   @default(dbgenerated("current_setting('app.tenant_id'::text)"))
-  name             String
-  phone            String?
-  userId           String?
-  isActive         Boolean  @default(true)
+  id                     String    @id @default(cuid())
+  tenantId               String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  name                   String
+  phone                  String?
+  userId                 String?
+  isActive               Boolean   @default(true)
   /// Pay overrides (null = the store rule).
-  perDeliveryCents Int?
-  feeShareBps      Int?
-  dailyCents       Int?
-  createdAt        DateTime @default(now())
+  perDeliveryCents       Int?
+  feeShareBps            Int?
+  dailyCents             Int?
+  createdAt              DateTime  @default(now())
   /// Simulated courier (tests and the public demo): always shown as "simulado".
-  simulated        Boolean  @default(false)
+  simulated              Boolean   @default(false)
+  /// Location sharing accepted by the courier (D049): text version and when.
+  trackingConsentVersion String?
+  trackingConsentAt      DateTime?
 
   orders      Order[]
   runs        DeliveryRun[]
@@ -1903,4 +1906,20 @@ model CourierPosition {
 
   @@index([tenantId, runId, recordedAt])
   @@index([recordedAt])
+}
+
+/// Web Push of a browser or installed app (D049): today the courier's "rota nova".
+model PushSubscription {
+  id            String    @id @default(cuid())
+  tenantId      String    @default(dbgenerated("current_setting('app.tenant_id'::text)"))
+  userId        String
+  endpoint      String
+  p256dh        String
+  auth          String
+  userAgent     String?
+  createdAt     DateTime  @default(now())
+  lastSuccessAt DateTime?
+
+  @@unique([tenantId, endpoint])
+  @@index([tenantId, userId])
 }

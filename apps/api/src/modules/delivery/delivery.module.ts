@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CashModule } from '../cash/cash.module.js';
+import { DispatchModule } from '../dispatch/dispatch.module.js';
 import { MenuModule } from '../menu/menu.module.js';
 import { OrdersModule } from '../orders/orders.module.js';
 import { CourierAppService } from './courier-app.service.js';
@@ -11,7 +12,7 @@ import { SettlementsService } from './settlements.service.js';
 
 /** Delivery areas, couriers, courier app, settlements and report (docs/DECISOES.md D029–D031). */
 @Module({
-  imports: [MenuModule, OrdersModule, CashModule],
+  imports: [MenuModule, OrdersModule, CashModule, DispatchModule],
   controllers: [DeliveryController, CourierAppController],
   providers: [
     DeliveryAreasService,

@@ -175,7 +175,7 @@ await step('composer: area fee from the address, lower fee needs a reason', asyn
   await page.goto(`${WEB}/pedidos/novo`);
   await page.getByRole('tab', { name: 'Delivery' }).click();
   await page.getByText('Complete o endereço para calcular a taxa de entrega.').waitFor();
-  await page.getByLabel('Telefone').fill('(11) 9912');
+  await page.getByLabel('Telefone').fill('(11) 90000-0021');
   await page
     .getByLabel('Clientes encontrados')
     .getByRole('button', { name: /Mariana/ })

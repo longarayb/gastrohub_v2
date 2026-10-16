@@ -40,7 +40,7 @@ describe('customer data schema', () => {
     const { customerDataSchema } = await import('../platform/schemas.js');
     const base = {
       name: 'Cliente',
-      document: '11222333000181',
+      document: '99999999000191',
       legalName: 'Cliente LTDA',
       invoiceEmail: 'nota@cliente.test',
       contactName: 'Contato',

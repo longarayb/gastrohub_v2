@@ -40,6 +40,7 @@ export const PUBLIC_DEMO_HOURS: BusinessHour[] = [0, 1, 2, 3, 4, 5, 6].map((week
 /** Tenant tables in deletion order (children first). A new tenant table must be added here. */
 export const TENANT_TABLES = [
   'CourierPosition',
+  'PushSubscription',
   'GeocodeCache',
   'PrintJob',
   'Printer',
@@ -119,8 +120,8 @@ export function demoStoreData(options: { demoMode: boolean }) {
   return {
     tradeName: `${BRAND.name} Demo`,
     legalName: `${BRAND.name} Demo LTDA`,
-    cnpj: '11222333000181',
-    phone: '11987654321',
+    cnpj: '99999999000191',
+    phone: '11900000010',
     email: 'contato@demo.local',
     logoUrl: null,
     timezone: 'America/Sao_Paulo',

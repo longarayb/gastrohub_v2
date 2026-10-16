@@ -386,7 +386,7 @@ describe('Reports: day dashboard, reconciliation, period, losses, times and netw
     const unit = await post(owner, '/api/stores', {
       tradeName: 'Cantina Relatórios Centro',
       legalName: 'Cantina Centro LTDA',
-      cnpj: '11444777000161',
+      cnpj: '99999998000147',
       phone: '1133334444',
     }).expect(201);
     const switched = await post(owner, '/api/auth/switch-store', { storeId: unit.body.id }).expect(

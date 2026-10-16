@@ -208,11 +208,11 @@ describe('privacyNoticeTemplate', () => {
     const text = privacyNoticeTemplate({
       name: 'Cantina',
       legalName: 'Cantina LTDA',
-      cnpj: '11.222.333/0001-81',
+      cnpj: '99.999.999/0001-91',
       email: 'contato@cantina.com',
       phone: null,
     });
-    expect(text).toContain('Cantina LTDA (CNPJ 11.222.333/0001-81) é o responsável (controlador)');
+    expect(text).toContain('Cantina LTDA (CNPJ 99.999.999/0001-91) é o responsável (controlador)');
     expect(text).toContain('pelo contato contato@cantina.com');
     expect(text).toContain('sem seu nome ou telefone');
   });

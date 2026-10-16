@@ -5,8 +5,10 @@ import {
   type CourierAppStopDto,
   DELIVERY_FAILURE_LABELS,
   PAYMENT_METHOD_LABELS,
+  TRACKING_CONSENT_VERSION,
   formatBRL,
   formatPhone,
+  formatTime,
 } from '@app/shared';
 import { Button } from '@app/ui/components/button';
 import { Skeleton } from '@app/ui/components/misc';
@@ -17,6 +19,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Bike, Check, ExternalLink, Navigation, Phone, RotateCcw, Store } from 'lucide-react';
 import { useState } from 'react';
 import { CollectionDialog } from '@/components/delivery/collection-dialog';
+import { CourierRouteMap } from '@/components/delivery/courier-route-map';
+import { PushCard, TrackingCard } from '@/components/delivery/courier-tracking';
 import { DeliveryFailureDialog } from '@/components/delivery/failure';
 import { formatClock } from '@/components/orders/common';
 import { EmptyState, Page } from '@/components/page';
@@ -29,6 +33,7 @@ import {
   deliveryKeys,
   useCourierRoute,
 } from '@/lib/delivery';
+import { useCourierTracking } from '@/lib/tracking';
 
 type Dialog =
   | { kind: 'deliver'; stop: CourierAppStopDto }
@@ -96,6 +101,11 @@ function StopCard({
               Ref.: {a.reference}
             </span>
           )}
+        </p>
+      )}
+      {pending && stop.etaAt && (
+        <p className="text-sm font-semibold text-muted-foreground">
+          Chegada prevista por volta de {formatTime(stop.etaAt)}
         </p>
       )}
       {stop.notes && <Notice tone="info">Obs.: {stop.notes}</Notice>}
@@ -191,6 +201,9 @@ export default function CourierRoutePage() {
   const { data, isLoading } = useCourierRoute();
   const [dialog, setDialog] = useState<Dialog>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Positions only during an open run and after the courier accepted the current text (D049).
+  const consented = data?.tracking?.consentVersion === TRACKING_CONSENT_VERSION;
+  const tracking = useCourierTracking(consented ? (data?.run?.id ?? null) : null);
 
   async function run(key: string, fn: () => Promise<CourierAppDto>, success?: string) {
     setBusy(key);
@@ -234,21 +247,42 @@ export default function CourierRoutePage() {
       className="max-w-xl"
     >
       {!data.run ? (
-        <EmptyState
-          icon={Store}
-          title="Nenhuma entrega em andamento"
-          description="Quando a loja registrar sua saída, as entregas aparecem aqui."
-          action={
-            <Button
-              variant="outline"
-              onClick={() => void queryClient.invalidateQueries({ queryKey: deliveryKeys.me })}
-            >
-              <RotateCcw /> Atualizar
-            </Button>
-          }
-        />
+        <>
+          <PushCard />
+          <EmptyState
+            icon={Store}
+            title="Nenhuma entrega em andamento"
+            description="Quando a loja registrar sua saída, as entregas aparecem aqui."
+            action={
+              <Button
+                variant="outline"
+                onClick={() => void queryClient.invalidateQueries({ queryKey: deliveryKeys.me })}
+              >
+                <RotateCcw /> Atualizar
+              </Button>
+            }
+          />
+        </>
       ) : (
         <>
+          {data.tracking && (
+            <TrackingCard
+              tracking={data.tracking}
+              status={tracking.status}
+              lastSentAt={tracking.lastSentAt}
+              screenOn={tracking.screenOn}
+              sendError={tracking.sendError}
+              onStart={tracking.start}
+              onStop={tracking.stop}
+              onAccepted={(t) =>
+                queryClient.setQueryData<CourierAppDto>(deliveryKeys.me, (old) =>
+                  old ? { ...old, tracking: t } : old,
+                )
+              }
+            />
+          )}
+          <CourierRouteMap run={data.run} position={tracking.position} />
+          <PushCard />
           <div className="space-y-3">
             {/* Pending first, in route order. */}
             {[...stops]

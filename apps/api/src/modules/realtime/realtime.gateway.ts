@@ -8,7 +8,13 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { type AccessTokenPayload, KDS_DEVICE_ROLE, PRINT_AGENT_ROLE } from '@app/shared';
+import {
+  type AccessTokenPayload,
+  KDS_DEVICE_ROLE,
+  PRINT_AGENT_ROLE,
+  Permission,
+  hasPermission,
+} from '@app/shared';
 import type { Server, Socket } from 'socket.io';
 import { AppConfig } from '../../core/config/app-config.service.js';
 import { PrismaService } from '../../core/prisma/prisma.service.js';
@@ -18,6 +24,11 @@ export const tenantRoom = (tenantId: string) => `tenant:${tenantId}`;
 export const deviceRoom = (deviceId: string) => `device:${deviceId}`;
 /** A paired print agent: job nudges and revocation. Agents never join the tenant room. */
 export const printAgentRoom = (agentId: string) => `print-agent:${agentId}`;
+/**
+ * Who operates deliveries (cashier, manager, owner): courier positions go only here, never to
+ * the couriers themselves or the other roles (D049, LGPD).
+ */
+export const dispatchRoom = (tenantId: string) => `tenant:${tenantId}:dispatch`;
 export const sectorRoom = (tenantId: string, sectorId: string) =>
   `tenant:${tenantId}:sector:${sectorId}`;
 
@@ -71,6 +82,9 @@ export class RealtimeGateway implements OnGatewayConnection {
         await client.join(printAgentRoom(payload.sub));
       } else {
         await client.join(tenantRoom(payload.tenantId));
+        if (hasPermission(payload.role, Permission.DELIVERY_OPERATE)) {
+          await client.join(dispatchRoom(payload.tenantId));
+        }
       }
       // Force a reconnect (with a refreshed token) when this one expires.
       const ms = payload.exp * 1000 - Date.now();

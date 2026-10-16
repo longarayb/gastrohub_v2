@@ -86,6 +86,15 @@ export const envSchema = z.object({
   ROUTING_PROVIDER: z.enum(['osrm', 'none']).default('osrm'),
   /** Public server only for development and the demo; production runs its own (region extract). */
   OSRM_URL: z.url().default('https://router.project-osrm.org'),
+
+  /**
+   * Web Push (D049): VAPID key pair in base64url (deploy/gen-secrets.sh). Empty: development
+   * makes a temporary pair at each start (the phones subscribe again); production has no push.
+   */
+  VAPID_PUBLIC_KEY: z.string().default(''),
+  VAPID_PRIVATE_KEY: z.string().default(''),
+  /** Contact the push services may use (mailto: or https:); default: MAIL_FROM_ADDRESS. */
+  VAPID_SUBJECT: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

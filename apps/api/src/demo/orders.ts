@@ -205,7 +205,7 @@ export async function seedOrders(
   const customers = [
     {
       name: 'Mariana Souza',
-      phone: '11991234567',
+      phone: '11900000021',
       address: {
         cep: '01310200',
         street: 'Avenida Paulista',
@@ -219,7 +219,7 @@ export async function seedOrders(
     },
     {
       name: 'Rafael Lima',
-      phone: '11998765432',
+      phone: '11900000022',
       address: {
         cep: '01419100',
         street: 'Avenida Paulista',
@@ -233,7 +233,7 @@ export async function seedOrders(
     },
     {
       name: 'Juliana Alves',
-      phone: '11987001122',
+      phone: '11900000023',
       address: {
         cep: '01307001',
         street: 'Rua Frei Caneca',
@@ -245,10 +245,10 @@ export async function seedOrders(
         reference: 'Entrada principal',
       },
     },
-    { name: 'Pedro Santos', phone: '11976543210' },
+    { name: 'Pedro Santos', phone: '11900000024' },
     {
       name: 'Carla Mendes',
-      phone: '11965432100',
+      phone: '11900000025',
       address: {
         cep: '01315010',
         street: 'Rua Jaceguai',
@@ -262,7 +262,7 @@ export async function seedOrders(
     },
     {
       name: 'Bruna Ribeiro',
-      phone: '11962221100',
+      phone: '11900000026',
       address: {
         cep: '01409001',
         street: 'Rua Peixoto Gomide',
@@ -276,7 +276,7 @@ export async function seedOrders(
     },
     {
       name: 'Otávio Nunes',
-      phone: '11961110099',
+      phone: '11900000027',
       address: {
         cep: '01310300',
         street: 'Avenida Paulista',
@@ -290,7 +290,7 @@ export async function seedOrders(
     },
     {
       name: 'Sofia Ramos',
-      phone: '11960009988',
+      phone: '11900000028',
       address: {
         cep: '01302000',
         street: 'Rua da Consolação',
@@ -329,12 +329,12 @@ export async function seedOrders(
   ];
 
   const courier = await prisma.courier.create({
-    data: { tenantId, name: 'Gustavo Motoboy', phone: '11955554444' },
+    data: { tenantId, name: 'Gustavo Motoboy', phone: '11900000041' },
   });
-  await prisma.courier.create({ data: { tenantId, name: 'Helena Bike', phone: '11944443333' } });
+  await prisma.courier.create({ data: { tenantId, name: 'Helena Bike', phone: '11900000042' } });
   // Walks a fixed loop on the dispatch map (D048; the route is in simulated-route.ts).
   const simulated = await prisma.courier.create({
-    data: { tenantId, name: 'Rui Moto', phone: '11900001111', simulated: true },
+    data: { tenantId, name: 'Rui Moto', phone: '11900000043', simulated: true },
   });
 
   const bemVindo = await prisma.coupon.create({
@@ -884,9 +884,10 @@ export async function seedOrders(
     userId: cashierId,
   });
   // Waiting on the dispatch map: one with a pin, one the operator marks on the map (D048).
-  for (const [customer, age, payment] of [
-    [bruna, 14, 'CREDIT_CARD'],
-    [sofia, 10, 'DEBIT_CARD'],
+  // Drinks and payment unlike the other open orders: the walkthroughs find those by them.
+  for (const [customer, age, payment, drink] of [
+    [bruna, 14, 'CREDIT_CARD', item('Suco natural', { size: '500 ml' })],
+    [sofia, 10, 'CREDIT_CARD', item('Refrigerante cola lata')],
   ] as const) {
     await createOrder({
       type: 'DELIVERY',
@@ -896,7 +897,7 @@ export async function seedOrders(
         {
           sent: true,
           age,
-          items: [{ pricing: pizza('Média', ['Marguerita']) }, { pricing: item('Guaraná lata') }],
+          items: [{ pricing: pizza('Média', ['Marguerita']) }, { pricing: drink }],
         },
       ],
       customer,

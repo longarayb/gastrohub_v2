@@ -53,7 +53,7 @@ export function formatCPF(value: string): string {
     .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
 }
 
-/** 11222333000181 -> 11.222.333/0001-81 (partial input is formatted progressively). */
+/** 99999999000191 -> 99.999.999/0001-91 (partial input is formatted progressively). */
 export function formatCNPJ(value: string): string {
   const d = onlyDigits(value).slice(0, 14);
   return d

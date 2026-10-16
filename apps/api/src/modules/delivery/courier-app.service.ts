@@ -4,15 +4,19 @@ import {
   type CourierAppDto,
   type CourierAppStopDto,
   type DeliveryFailureReason,
+  type LineString,
   type PaymentMethod,
   type collectionSchema,
   mapLinks,
 } from '@app/shared';
 import type { z } from 'zod';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../core/errors/domain-error.js';
+import { PrismaService } from '../../core/prisma/prisma.service.js';
 import { type Db, type DbTx, InjectDb } from '../../core/tenancy/db.provider.js';
 import { TenantContext } from '../../core/tenancy/tenant-context.js';
 import type { DeliveryRun } from '../../generated/prisma/client.js';
+import { LiveEtaService } from '../dispatch/live-eta.service.js';
+import { TrackingService } from '../dispatch/tracking.service.js';
 import { DispatchService } from '../orders/dispatch.service.js';
 import { OrdersService } from '../orders/orders.service.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
@@ -35,7 +39,11 @@ const collectionData = (c: Collection) => ({
 export class CourierAppService {
   constructor(
     @InjectDb() private readonly db: Db,
+    // Store (the tenant itself) is not a tenant-scoped model.
+    private readonly prisma: PrismaService,
     private readonly ctx: TenantContext,
+    private readonly tracking: TrackingService,
+    private readonly liveEta: LiveEtaService,
     private readonly orders: OrdersService,
     private readonly dispatch: DispatchService,
     private readonly realtime: RealtimeService,
@@ -61,7 +69,7 @@ export class CourierAppService {
 
   async me(): Promise<CourierAppDto> {
     const courier = await this.courier();
-    if (!courier) return { courier: null, run: null };
+    if (!courier) return { courier: null, run: null, tracking: null };
     const run = await this.db.deliveryRun.findFirst({
       where: { openCourierId: courier.id },
       include: {
@@ -87,12 +95,24 @@ export class CourierAppService {
         },
       },
     });
+    const store = run
+      ? await this.prisma.store.findUnique({
+          where: { id: this.ctx.tenantId },
+          select: { latitude: true, longitude: true },
+        })
+      : null;
     return {
       courier: { id: courier.id, name: courier.name },
+      tracking: await this.tracking.trackingOf(courier),
       run: run
         ? {
             id: run.id,
             departedAt: run.departedAt.toISOString(),
+            geometry: (run.routeGeometry ?? null) as LineString | null,
+            store:
+              store?.latitude != null && store.longitude != null
+                ? { latitude: store.latitude, longitude: store.longitude }
+                : null,
             stops: run.stops.map((s): CourierAppStopDto => {
               const address = s.order.deliveryAddress as Address | null;
               return {
@@ -119,6 +139,11 @@ export class CourierAppService {
                 changeCents: s.changeCents,
                 failureReason: s.failureReason as DeliveryFailureReason | null,
                 pixReportedAt: s.order.pixReportedAt?.toISOString() ?? null,
+                location:
+                  s.order.delivery?.latitude != null && s.order.delivery.longitude != null
+                    ? { latitude: s.order.delivery.latitude, longitude: s.order.delivery.longitude }
+                    : null,
+                etaAt: s.etaAt?.toISOString() ?? null,
               };
             }),
           }
@@ -146,6 +171,7 @@ export class CourierAppService {
         data: collectionData(collection),
       });
     }
+    this.liveEta.stopConcluded(stop.runId);
     this.realtime.deliveryUpdated(this.ctx.tenantId);
     return this.me();
   }
@@ -168,6 +194,7 @@ export class CourierAppService {
       throw new ValidationError('Esta entrega já foi encerrada');
     await this.db.$transaction((tx) => this.dispatch.fail(tx, stop.orderId, input));
     await this.orders.publish(stop.orderId);
+    this.liveEta.stopConcluded(stop.runId);
     this.realtime.deliveryUpdated(this.ctx.tenantId);
     return this.me();
   }
