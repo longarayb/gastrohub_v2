@@ -174,7 +174,7 @@ await step('composer: half-and-half pizza for delivery with saved customer', asy
     .getByLabel('Clientes encontrados')
     .getByRole('button', { name: /Mariana/ })
     .click();
-  await page.getByRole('radio', { name: /Avenida Paulista, 1500/ }).waitFor();
+  await page.getByRole('radio', { name: /Avenida Paulista, 1578/ }).waitFor();
   await page.getByRole('button', { name: 'Montar pizza' }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: /^Grande/ }).click();

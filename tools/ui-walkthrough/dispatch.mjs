@@ -68,8 +68,8 @@ await step('cashier opens the dispatch: store, ready pins, couriers, mark on the
     .waitFor();
   await readyRow('Bruna Ribeiro').waitFor();
   await readyRow('Mariana Souza').waitFor();
-  // Rua Frei Caneca has no point in the seed: the operator marks it.
-  const toMark = list().locator('li').filter({ hasText: 'Frei Caneca' });
+  // The library (Rua da Consolação) has no point in the seed: the operator marks it.
+  const toMark = list().locator('li').filter({ hasText: 'Rua da Consolação' });
   await toMark.getByRole('button', { name: 'Marcar no mapa' }).waitFor();
   // Approximate address (street only) asks to check the pin.
   await readyRow('Bruna Ribeiro').getByText('Endereço aproximado: confira o pino').waitFor();
@@ -160,7 +160,7 @@ await step("simulated courier on Helena's run at 20×, then stopped", async () =
 await step(
   'order without location: marked by a click on the map, saved to the customer',
   async () => {
-    const row = list().locator('li').filter({ hasText: 'Frei Caneca' });
+    const row = list().locator('li').filter({ hasText: 'Rua da Consolação' });
     await row.getByRole('button', { name: 'Marcar no mapa' }).click();
     await page.getByText(/Clique no mapa onde fica o pedido #\d+/).waitFor();
     const box = await map().boundingBox();
@@ -185,6 +185,29 @@ await step('dragging a pin asks before moving it; "Voltar" keeps the old point',
   await shot('drag-dialog');
   await dialog.getByRole('button', { name: 'Voltar' }).click();
   await dialog.waitFor({ state: 'hidden' });
+});
+
+await step('the map follows the panel theme (light and dark styles, switched live)', async () => {
+  const style = (name) =>
+    page.waitForResponse((r) => r.url().endsWith(`/styles/${name}`) && r.ok(), {
+      timeout: 15_000,
+    });
+  // The panel's theme menu (dark by default); the map switches without reloading.
+  const setTheme = async (label) => {
+    await page.getByRole('button', { name: /^Tema:/ }).click();
+    await page.getByRole('menuitemradio', { name: label }).click();
+  };
+  const light = style('liberty');
+  await setTheme('Claro');
+  await light;
+  await page.waitForTimeout(1500);
+  await shot('light');
+  const dark = style('dark');
+  await setTheme('Escuro');
+  await dark;
+  // Lines are drawn again on the new style.
+  await page.waitForTimeout(1500);
+  await shot('dark');
 });
 
 await step('phone: Map and List tabs, no horizontal scroll', async () => {

@@ -180,7 +180,7 @@ await step('composer: area fee from the address, lower fee needs a reason', asyn
     .getByLabel('Clientes encontrados')
     .getByRole('button', { name: /Mariana/ })
     .click();
-  await page.getByRole('radio', { name: /Avenida Paulista, 1500/ }).waitFor();
+  await page.getByRole('radio', { name: /Avenida Paulista, 1578/ }).waitFor();
   const fee = page.getByRole('region', { name: 'Taxa de entrega' });
   await fee.getByText('Centro expandido').waitFor();
   await fee.getByText(/35 min/).waitFor();
@@ -268,7 +268,7 @@ await step('courier phone: only the own route, map links, delivered with PIX', a
   await page.waitForURL('**/entregas');
   const stop = page.getByRole('article', { name: /Entrega do pedido \d+/ }).first();
   await stop.getByText('Juliana Alves').waitFor();
-  await stop.getByText(/Rua Augusta, 800/).waitFor();
+  await stop.getByText(/Rua Frei Caneca, 569/).waitFor();
   await stop.getByRole('link', { name: 'Google Maps' }).waitFor();
   await stop.getByRole('link', { name: 'Waze' }).waitFor();
   await stop.getByRole('link', { name: /Ligar/ }).waitFor();

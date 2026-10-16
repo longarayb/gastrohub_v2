@@ -24,16 +24,18 @@ import {
 } from './simulated-route.js';
 
 /**
- * Where the demo addresses are (looked up once in OpenStreetMap, never at seed time). Rua Frei
- * Caneca is left out on purpose: that order shows up in "Marcar no mapa".
+ * Where the demo addresses are: public places and businesses, with the points of OpenStreetMap
+ * (looked up once, never at seed time). The Biblioteca Mário de Andrade is left out on purpose:
+ * that order shows up in "Marcar no mapa". Parque Trianon has no house number in the map
+ * (approximate point: "confira o pino").
  */
 const DEMO_POINTS: Record<string, { latitude: number; longitude: number; house: boolean }> = {
-  'Avenida Paulista|1500': { latitude: -23.5617698, longitude: -46.6553299, house: true },
-  'Rua Haddock Lobo|595': { latitude: -23.5580209, longitude: -46.6616788, house: true },
-  'Rua Augusta|800': { latitude: -23.5544366, longitude: -46.6562818, house: false },
-  'Rua Treze de Maio|120': { latitude: -23.5540263, longitude: -46.6469669, house: true },
-  'Alameda Santos|2000': { latitude: -23.5612957, longitude: -46.6586039, house: false },
-  'Rua Pamplona|1200': { latitude: -23.5675268, longitude: -46.6577562, house: true },
+  'Avenida Paulista|1578': { latitude: -23.5614961, longitude: -46.6559677, house: true },
+  'Avenida Paulista|2073': { latitude: -23.5590407, longitude: -46.6602355, house: true },
+  'Rua Frei Caneca|569': { latitude: -23.55418, longitude: -46.6524036, house: true },
+  'Rua Jaceguai|520': { latitude: -23.5551932, longitude: -46.6412477, house: true },
+  'Rua Peixoto Gomide|949': { latitude: -23.5627983, longitude: -46.6578347, house: false },
+  'Avenida Paulista|2424': { latitude: -23.5560722, longitude: -46.6619346, house: true },
 };
 const pointOf = (a: { street?: string | null; number?: string | null } | null) =>
   a ? (DEMO_POINTS[`${a.street}|${a.number}`] ?? null) : null;
@@ -401,10 +403,32 @@ export async function seedDelivery(
   }
 
   // ---- Neighborhoods of recent customers no area covers ("Bairros sem área") ----
-  for (const [name, phone, neighborhood, street] of [
-    ['Bruno Costa', '11954321098', 'Vila Madalena', 'Rua Harmonia'],
-    ['Lívia Prado', '11943210987', 'Vila Madalena', 'Rua Aspicuelta'],
-    ['Thiago Rocha', '11932109876', 'Liberdade', 'Rua Galvão Bueno'],
+  // Public places (squares and stations), never a home address.
+  for (const [name, phone, neighborhood, street, cep, complement] of [
+    [
+      'Bruno Costa',
+      '11954321098',
+      'Vila Madalena',
+      'Praça Benedito Calixto',
+      '05406040',
+      'Feira da praça',
+    ],
+    [
+      'Lívia Prado',
+      '11943210987',
+      'Vila Madalena',
+      'Rua Heitor Penteado',
+      '01257010',
+      'Estação Vila Madalena',
+    ],
+    [
+      'Thiago Rocha',
+      '11932109876',
+      'Liberdade',
+      'Avenida da Liberdade',
+      '01503000',
+      'Estação Japão-Liberdade',
+    ],
   ] as const) {
     await prisma.customer.create({
       data: {
@@ -414,11 +438,12 @@ export async function seedDelivery(
         addresses: {
           create: {
             tenantId,
-            label: 'Casa',
+            label: 'Trabalho',
             isDefault: true,
-            cep: '05435000',
+            cep,
             street,
-            number: '200',
+            number: 's/n',
+            complement,
             neighborhood,
             city: 'São Paulo',
             state: 'SP',
