@@ -387,6 +387,14 @@ O primeiro comando fixa o deslocamento; `same` reaproveita-o, para a API, o seed
 10. **Claude Code dentro do WSL:** `curl -fsSL https://claude.ai/install.sh | bash` no Ubuntu; para abrir: `wsl -d Ubuntu-24.04`, `cd ~/projetos/GastroHub_v2`, `claude`. No VS Code: extensão **WSL** e `code .` a partir do Ubuntu (ou "WSL: Conectar à distribuição" › Ubuntu-24.04 › abrir a pasta), com a extensão do Claude Code instalada no lado do WSL.
 
 
+### Relógio do WSL saltando (achado em 2026-10-16)
+
+Dentro do WSL há dois acertadores de hora: o `systemd-timesyncd` do Ubuntu (hora da internet) e o TimeSync do Hyper-V (hora do Windows). Se o relógio do Windows estiver alguns segundos fora, os dois brigam e a hora do WSL **volta alguns segundos a cada ~30 s** (o diário mostra "Time jumped backwards": `journalctl --since today | grep -i "jumped"`). Isso faz testes falharem às vezes (um trabalho de impressão recém-liberado fica "no futuro" e não é entregue na hora) e atinge o servidor temporário, que roda no mesmo WSL. Para corrigir, uma vez:
+
+1. No WSL, deixe só o Hyper-V acertar a hora: `sudo systemctl disable --now systemd-timesyncd`.
+2. No Windows (PowerShell como administrador), acerte a hora do Windows pela internet: `w32tm /resync` (se responder que o serviço não está rodando: `net start w32time` e repita).
+3. Confira: `journalctl --since "5 min ago" | grep -i jumped` não mostra nada novo depois de alguns minutos.
+
 ## Servidor temporário no Surface (rede de casa)
 
 Até a publicação na Contabo, o Surface serve o sistema para a rede de casa. Dois cenários: **programar no Surface com o servidor parado**, ou **programar no desktop com o servidor rodando no Surface**. Os dois nunca rodam juntos no Surface (8 GB; mesmas portas 3000–3002 e 3333): o `pnpm servidor:subir` avisa e para se o desenvolvimento estiver rodando, e o `pnpm dev`/`start:lite` recusam começar com o servidor no ar.
