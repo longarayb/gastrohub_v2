@@ -226,7 +226,12 @@ function ensureEnv(ip) {
     log('Chaves de push (VAPID) criadas no .env do servidor.');
   }
   // Firebase (D050): the service account saved by the owner goes to the .env once (base64).
-  const firebase = path.join(os.homedir(), '.config', 'app-courier', 'firebase-service-account.json');
+  const firebase = path.join(
+    os.homedir(),
+    '.config',
+    'app-courier',
+    'firebase-service-account.json',
+  );
   if (existsSync(firebase) && !readEnv().FCM_SERVICE_ACCOUNT) {
     setEnv({ FCM_SERVICE_ACCOUNT: readFileSync(firebase).toString('base64') });
     log('Firebase: conta de serviço adicionada ao .env do servidor (avisos de rota nova no app).');

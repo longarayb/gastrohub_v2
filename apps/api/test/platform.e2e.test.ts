@@ -24,6 +24,8 @@ describe('Platform admin (e2e)', () => {
   let adminToken: string;
   let adminCookie: string;
   let totpSecret: string;
+  /** The code consumed at enrollment (recomputing it could land in the next 30 s window). */
+  let enrollCode: string;
   let recoveryCodes: string[];
 
   const admin = (method: 'get' | 'post' | 'put', path: string, body?: object) => {
@@ -66,7 +68,7 @@ describe('Platform admin (e2e)', () => {
       const confirmed = await ctx
         .http()
         .post('/api/platform/auth/2fa/enroll/confirm')
-        .send({ challenge: login.body.challenge, code: totp(totpSecret) })
+        .send({ challenge: login.body.challenge, code: (enrollCode = totp(totpSecret)) })
         .expect(200);
       expect(confirmed.body.recoveryCodes).toHaveLength(10);
       expect(confirmed.body.admin.totpEnabled).toBe(true);
@@ -90,7 +92,7 @@ describe('Platform admin (e2e)', () => {
       await ctx
         .http()
         .post('/api/platform/auth/2fa/verify')
-        .send({ challenge: login.body.challenge, code: totp(totpSecret) })
+        .send({ challenge: login.body.challenge, code: enrollCode })
         .expect(401);
       // The next window's code is still accepted (clock drift tolerance).
       const next = totp(totpSecret, new Date(Date.now() + 30_000));
