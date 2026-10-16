@@ -155,11 +155,11 @@ const newOwner = `dono.novo.${stamp}@exemplo.local`;
 await step('new customer: organization, store, owner and invitation', async () => {
   await page.goto(`${ADMIN_URL}/clientes/novo`);
   await page.getByLabel('Nome do cliente').fill('Sorveteria UI Teste');
-  await page.getByLabel('CNPJ ou CPF').fill('45723174000110');
+  await page.getByLabel('CNPJ ou CPF').fill('99999997000100');
   await page.getByLabel('Razão social ou nome completo').fill('Sorveteria UI Teste LTDA');
   await page.getByLabel('E-mail para nota fiscal').fill('nota@sorveteria.test');
   await page.getByLabel('Contato', { exact: true }).fill('Lia Contato');
-  await page.getByLabel('Telefone do contato').fill('11987651234');
+  await page.getByLabel('Telefone do contato').fill('11900000012');
   await page.getByLabel('CEP').fill('01310100');
   await page.getByLabel('CEP').blur();
   await page
@@ -176,8 +176,8 @@ await step('new customer: organization, store, owner and invitation', async () =
     });
   await page.getByLabel('Número').fill('2000');
   await page.getByLabel('Nome fantasia').fill('Sorveteria UI Teste');
-  await page.getByLabel('CNPJ da unidade').fill('45723174000110');
-  await page.getByLabel('Telefone da unidade').fill('11987651234');
+  await page.getByLabel('CNPJ da unidade').fill('99999997000100');
+  await page.getByLabel('Telefone da unidade').fill('11900000012');
   await page.getByLabel('Nome', { exact: true }).fill('Lia Dona');
   await page.getByLabel('E-mail (recebe o convite)').fill(newOwner);
   await page.getByLabel('Plano').click();

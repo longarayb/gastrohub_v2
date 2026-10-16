@@ -70,7 +70,7 @@ export async function openSignupForTests(prisma: PrismaService): Promise<void> {
 }
 
 let counter = 0;
-const VALID_CNPJS = ['11222333000181', '11444777000161', '45723174000110', '04252011000110'];
+const VALID_CNPJS = ['99999999000191', '99999998000147', '99999997000100', '99999996000158'];
 
 export interface RegisteredStore {
   accessToken: string;

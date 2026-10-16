@@ -119,8 +119,8 @@ export function demoStoreData(options: { demoMode: boolean }) {
   return {
     tradeName: `${BRAND.name} Demo`,
     legalName: `${BRAND.name} Demo LTDA`,
-    cnpj: '11222333000181',
-    phone: '11987654321',
+    cnpj: '99999999000191',
+    phone: '11900000010',
     email: 'contato@demo.local',
     logoUrl: null,
     timezone: 'America/Sao_Paulo',

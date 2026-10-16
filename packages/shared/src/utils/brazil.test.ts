@@ -21,15 +21,15 @@ describe('CPF', () => {
 
 describe('CNPJ', () => {
   it('validates check digits', () => {
-    expect(isValidCNPJ('11.222.333/0001-81')).toBe(true);
-    expect(isValidCNPJ('11222333000181')).toBe(true);
+    expect(isValidCNPJ('99.999.999/0001-91')).toBe(true);
+    expect(isValidCNPJ('99999999000191')).toBe(true);
     expect(isValidCNPJ('11.222.333/0001-80')).toBe(false);
     expect(isValidCNPJ('00.000.000/0000-00')).toBe(false);
   });
 
   it('formats', () => {
-    expect(formatCNPJ('11222333000181')).toBe('11.222.333/0001-81');
-    expect(formatDocument('11222333000181')).toBe('11.222.333/0001-81');
+    expect(formatCNPJ('99999999000191')).toBe('99.999.999/0001-91');
+    expect(formatDocument('99999999000191')).toBe('99.999.999/0001-91');
     expect(formatDocument('52998224725')).toBe('529.982.247-25');
   });
 });

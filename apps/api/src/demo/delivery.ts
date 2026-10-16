@@ -407,7 +407,7 @@ export async function seedDelivery(
   for (const [name, phone, neighborhood, street, cep, complement] of [
     [
       'Bruno Costa',
-      '11954321098',
+      '11900000031',
       'Vila Madalena',
       'Praça Benedito Calixto',
       '05406040',
@@ -415,7 +415,7 @@ export async function seedDelivery(
     ],
     [
       'Lívia Prado',
-      '11943210987',
+      '11900000032',
       'Vila Madalena',
       'Rua Heitor Penteado',
       '01257010',
@@ -423,7 +423,7 @@ export async function seedDelivery(
     ],
     [
       'Thiago Rocha',
-      '11932109876',
+      '11900000033',
       'Liberdade',
       'Avenida da Liberdade',
       '01503000',

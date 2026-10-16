@@ -86,7 +86,7 @@ describe('normalizePixKey', () => {
   it('normalizes CPF and CNPJ to digits and validates them', () => {
     expect(normalizePixKey('CPF', '529.982.247-25')).toBe('52998224725');
     expect(normalizePixKey('CPF', '111.111.111-11')).toBeNull();
-    expect(normalizePixKey('CNPJ', '11.222.333/0001-81')).toBe('11222333000181');
+    expect(normalizePixKey('CNPJ', '99.999.999/0001-91')).toBe('99999999000191');
   });
 
   it('normalizes e-mail, phone and random keys', () => {

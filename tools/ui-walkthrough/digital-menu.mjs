@@ -189,7 +189,7 @@ await step('checkout: delivery area fee, PIX, privacy consent, order sent', asyn
   await sheet.getByRole('button', { name: 'Continuar' }).click();
   await sheet.getByRole('radio', { name: 'Entrega' }).click();
   await sheet.getByLabel('Nome', { exact: true }).fill('Ana Cardápio');
-  await sheet.getByLabel('Celular com DDD', { exact: true }).fill('11977776666');
+  await sheet.getByLabel('Celular com DDD', { exact: true }).fill('11900000014');
   // Typed by hand (works without ViaCEP).
   await sheet.getByLabel('Número', { exact: true }).fill('520');
   await sheet.getByLabel('Rua', { exact: true }).fill('Rua Jaceguai');

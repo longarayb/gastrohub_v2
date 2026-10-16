@@ -44,7 +44,7 @@ describe('Auth (e2e)', () => {
         phone: '11987654321',
         tradeName: 'Outro',
         legalName: 'Outro LTDA',
-        cnpj: '11222333000181',
+        cnpj: '99999999000191',
       })
       .expect(409);
     expect(res.body.message).toBe('Já existe uma conta com este e-mail');

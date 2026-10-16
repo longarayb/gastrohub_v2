@@ -78,7 +78,7 @@ await step('register validation shows pt-BR errors', async () => {
   await page.goto(`${WEB}/cadastro`);
   await page.getByRole('button', { name: 'Criar conta' }).click();
   await page.getByText('Informe o nome do restaurante').waitFor();
-  await page.getByLabel('CNPJ').fill('11222333000180');
+  await page.getByLabel('CNPJ').fill('99999999000190');
   await page.getByLabel('CNPJ').blur();
   await page.getByText('CNPJ inválido').waitFor();
 });
@@ -86,12 +86,12 @@ await step('register validation shows pt-BR errors', async () => {
 await step('register a restaurant (masks applied)', async () => {
   await page.getByLabel('Nome do restaurante').fill('Cantina UI Teste');
   await page.getByLabel('Razão social').fill('Cantina UI Teste LTDA');
-  await page.getByLabel('CNPJ').fill('11222333000181');
-  if ((await page.getByLabel('CNPJ').inputValue()) !== '11.222.333/0001-81')
+  await page.getByLabel('CNPJ').fill('99999999000191');
+  if ((await page.getByLabel('CNPJ').inputValue()) !== '99.999.999/0001-91')
     throw new Error('CNPJ mask');
   await page.getByLabel('Seu nome').fill('Maria Dona');
-  await page.getByLabel('Celular').fill('11987654321');
-  if ((await page.getByLabel('Celular').inputValue()) !== '(11) 98765-4321')
+  await page.getByLabel('Celular').fill('11900000010');
+  if ((await page.getByLabel('Celular').inputValue()) !== '(11) 90000-0010')
     throw new Error('phone mask');
   await page.getByLabel('E-mail').fill(owner.email);
   await page.getByLabel('Senha').fill(owner.password);
